@@ -227,7 +227,23 @@ public class CrawlerQueueV2Reconciler {
         MutableCounts counts
     ) {
         try {
-            supervisor.ingestProgress(liveAttempt);
+            // Cancellation must validate the latest durable identity before any
+            // artifact/progress read can influence the process-control path.
+            CrawlerQueueV2Attempt preflight = repository.findAttempt(liveAttempt.attemptId()).orElse(null);
+            if (preflight != null
+                && !preflight.status().terminal()
+                && Objects.equals(engine.stateStoreEpoch(), preflight.stateStoreEpoch())
+                && preflight.status() == CrawlerQueueV2Status.CANCEL_REQUESTED) {
+                CrawlerQueueV2Queue preflightQueue = repository.findQueue(preflight.queueId()).orElse(null);
+                if (!hasExactCancellationBinding(preflight, preflightQueue)) {
+                    stallAttempt(preflight, preflightQueue, now);
+                    counts.converged++;
+                    return;
+                }
+                supervisor.ingestProgress(preflight);
+            } else {
+                supervisor.ingestProgress(liveAttempt);
+            }
             CrawlerQueueV2Attempt current = repository.findAttempt(liveAttempt.attemptId()).orElse(null);
             if (current == null
                 || current.status().terminal()
@@ -236,12 +252,17 @@ public class CrawlerQueueV2Reconciler {
                 return;
             }
             OverdueTransition transition = overdueTransition(current.status());
+            CrawlerQueueV2Queue queue = repository.findQueue(current.queueId()).orElse(null);
             if (current.status() == CrawlerQueueV2Status.CANCEL_REQUESTED) {
+                if (!hasExactCancellationBinding(current, queue)) {
+                    stallAttempt(current, queue, now);
+                    counts.converged++;
+                    return;
+                }
                 supervisor.cancel(current);
                 counts.converged++;
                 return;
             }
-            CrawlerQueueV2Queue queue = repository.findQueue(current.queueId()).orElse(null);
             if (queue == null
                 || !Objects.equals(current.stateStoreEpoch(), queue.stateStoreEpoch())
                 || !Objects.equals(current.queueId(), queue.queueId())) {
@@ -338,6 +359,12 @@ public class CrawlerQueueV2Reconciler {
             return false;
         }
         if (current.status() == CrawlerQueueV2Status.CANCEL_REQUESTED) {
+            CrawlerQueueV2Queue currentQueue = repository.findQueue(current.queueId()).orElse(null);
+            if (!hasExactCancellationBinding(current, currentQueue)) {
+                stallAttempt(current, currentQueue, now);
+                counts.converged++;
+                return false;
+            }
             supervisor.cancel(current);
             counts.converged++;
             return false;
@@ -370,8 +397,9 @@ public class CrawlerQueueV2Reconciler {
                     continue;
                 }
                 CrawlerQueueV2Queue queue = repository.findQueue(ready.queueId()).orElse(null);
-                if (queue == null || !Objects.equals(ready.queueId(), queue.queueId())) {
-                    counts.failures++;
+                if (!hasValidReadyQueueBinding(ready, queue)) {
+                    stallReadyAttempt(ready, queue, now);
+                    counts.converged++;
                     continue;
                 }
                 Instant deadline = stateMachine.deadlineFor(
@@ -430,6 +458,112 @@ public class CrawlerQueueV2Reconciler {
             counts.failures++;
         }
         return started;
+    }
+
+    private boolean hasValidReadyQueueBinding(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Queue queue
+    ) {
+        return queue != null && queue.hasExactAttemptBinding(attempt);
+    }
+
+    private boolean hasExactCancellationBinding(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Queue queue
+    ) {
+        if (queue == null || !queue.hasExactAttemptBinding(attempt)) {
+            return false;
+        }
+        return attempt.sourceDispatchIdentity() == null
+            || supervisor.hasExactIdentityBinding(attempt);
+    }
+
+    private void stallAttempt(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Queue queue,
+        Instant now
+    ) {
+        if (!stateMachine.canTransition(attempt.status(), CrawlerQueueV2Status.STALLED)) {
+            throw new IllegalStateException("不可信 V2 attempt 不能进入 STALLED：" + attempt.attemptId());
+        }
+        String dedupeKey = queue == null || queue.dedupeKey() == null || queue.dedupeKey().isBlank()
+            ? "recovery-orphan:" + attempt.queueId() + ":" + attempt.attemptId()
+            : queue.dedupeKey();
+        Instant deadline = stateMachine.deadlineFor(
+            CrawlerQueueV2Status.STALLED,
+            now,
+            attempt.lastHeartbeatAt(),
+            attempt.eligibleAt()
+        );
+        repository.mutate(new CrawlerQueueV2Repository.MutationCommand(
+            attempt.stateStoreEpoch(),
+            attempt.queueId(),
+            attempt.attemptId(),
+            attempt.lane(),
+            dedupeKey,
+            attempt.coveredDomains(),
+            attempt.fenceToken(),
+            attempt.stateVersion(),
+            CrawlerQueueV2Status.STALLED,
+            CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED,
+            now,
+            deadline,
+            attempt.lastHeartbeatAt(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            "attempt.transitioned"
+        ));
+    }
+
+    private void stallReadyAttempt(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Queue queue,
+        Instant now
+    ) {
+        if (!stateMachine.canTransition(attempt.status(), CrawlerQueueV2Status.STALLED)) {
+            throw new IllegalStateException("不可信 ready V2 attempt 不能进入 STALLED：" + attempt.attemptId());
+        }
+        String dedupeKey = queue == null || queue.dedupeKey() == null || queue.dedupeKey().isBlank()
+            ? "recovery-orphan:" + attempt.queueId() + ":" + attempt.attemptId()
+            : queue.dedupeKey();
+        Instant deadline = stateMachine.deadlineFor(
+            CrawlerQueueV2Status.STALLED,
+            now,
+            attempt.lastHeartbeatAt(),
+            attempt.eligibleAt()
+        );
+        repository.mutate(new CrawlerQueueV2Repository.MutationCommand(
+            attempt.stateStoreEpoch(),
+            attempt.queueId(),
+            attempt.attemptId(),
+            attempt.lane(),
+            dedupeKey,
+            attempt.coveredDomains(),
+            attempt.fenceToken(),
+            attempt.stateVersion(),
+            CrawlerQueueV2Status.STALLED,
+            CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED,
+            now,
+            deadline,
+            attempt.lastHeartbeatAt(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            "attempt.transitioned"
+        ));
     }
 
     private void observeOverdue(CrawlerQueueV2Attempt attempt, Instant now, MutableCounts counts) {

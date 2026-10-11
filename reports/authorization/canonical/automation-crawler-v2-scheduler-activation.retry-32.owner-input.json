@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05/AUTH-06: bounded V2 natural scheduler canary for wiki-items-refresh/items using fresh retry-32 H8 preflight after scheduler cadence diagnosis. Observe one natural durable tick and terminal outcome, no manual sweep/non-canary dispatch/direct Redis or JSON write, and restore scheduler disabled after the window.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05-06/items/retry-32",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260920-standing-items-10"
+}

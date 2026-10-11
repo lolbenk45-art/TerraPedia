@@ -1,0 +1,7 @@
+{
+  "policyVersion": 1,
+  "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "minimumSuccessfulL1Runs": 3,
+  "fullReconciliation": true
+}

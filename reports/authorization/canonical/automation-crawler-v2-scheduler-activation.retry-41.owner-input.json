@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05: one bounded natural projectiles canary after reviewed importer repair and scope containment, restore disabled afterward",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05/projectiles/20260922-retry-41",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260922-projectiles-324f065b-4f8d-4884-97dd-f97da46cd0b9",
+  "authorizedAt": "2026-09-22T10:46:31.102Z"
+}

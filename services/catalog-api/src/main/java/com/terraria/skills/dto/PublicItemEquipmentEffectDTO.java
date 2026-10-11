@@ -27,7 +27,18 @@ public class PublicItemEquipmentEffectDTO implements Serializable {
     private String classScope;
     private String operation;
     private BigDecimal valueDecimal;
+    private BigDecimal valueMaxDecimal;
     private String unit;
+    private String variantLabel;
+    private String conditionText;
     private String rawText;
     private String parseStatus;
+    private String sourceMaintRecordKey;
+    private Long sourceMaintId;
+    private Long landingSourceId;
+    private String landingSourceKey;
+    private String landingContentHash;
+    private String sourceProvider;
+    private String sourcePage;
+    private String sourceRevisionTimestamp;
 }

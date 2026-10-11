@@ -1,0 +1,288 @@
+{
+  "schemaVersion": "canonical-armor-semantic-repair-source/v3",
+  "operationId": "canonical-armor-semantic-repair",
+  "runKey": "a63-20260929-armor-source-01",
+  "generatedAt": "2026-09-29T14:43:20.837Z",
+  "databaseWrites": false,
+  "sourceArtifacts": {
+    "attributePage": {
+      "path": "/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation/.local/tmp/a63-20260928-04/parsed-v3/wiki-armor-attributes.latest.json",
+      "contentHash": "sha256:a4e8186ea73e0c9e358bbf31e64cfa7b2e8987b2369e4a3a8e1f6a23ac5272c8",
+      "revisionId": 199734,
+      "revisionTimestamp": "2023-10-23T04:15:47Z"
+    },
+    "boundedItemPages": {
+      "manifestPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/manifest.json",
+      "manifestHash": "sha256:87ec363d050f9e16f71d18ac108db977870aa51d543b42d737e56b37e4b47c8b",
+      "pages": [
+        {
+          "key": "shroomite-headgear",
+          "requestedPageTitle": "Shroomite Headgear",
+          "pageTitle": "Shroomite armor",
+          "pageId": 4771,
+          "revisionId": 1027106,
+          "revisionTimestamp": "2026-09-02T13:55:25Z",
+          "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/raw/shroomite-headgear.json",
+          "sha256": "sha256:e04b55ce891e88059a09b29958f2dafff571afdfee4c7ae51f39290f48eb5176"
+        },
+        {
+          "key": "shroomite-mask",
+          "requestedPageTitle": "Shroomite Mask",
+          "pageTitle": "Shroomite armor",
+          "pageId": 4771,
+          "revisionId": 1027106,
+          "revisionTimestamp": "2026-09-02T13:55:25Z",
+          "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/raw/shroomite-mask.json",
+          "sha256": "sha256:83492cde143e2e1670428bb6e1fa9073d203b911d03ad17c3f589eafdbb7967d"
+        },
+        {
+          "key": "shroomite-helmet",
+          "requestedPageTitle": "Shroomite Helmet",
+          "pageTitle": "Shroomite armor",
+          "pageId": 4771,
+          "revisionId": 1027106,
+          "revisionTimestamp": "2026-09-02T13:55:25Z",
+          "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/raw/shroomite-helmet.json",
+          "sha256": "sha256:a20d7cdd20dffea193bb97c3b9f5600ae0b11f2173ec0fac797de2fae1c2253d"
+        },
+        {
+          "key": "shroomite-breastplate",
+          "requestedPageTitle": "Shroomite Breastplate",
+          "pageTitle": "Shroomite armor",
+          "pageId": 4771,
+          "revisionId": 1027106,
+          "revisionTimestamp": "2026-09-02T13:55:25Z",
+          "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/raw/shroomite-breastplate.json",
+          "sha256": "sha256:b35b89cbafb5110cc968de68e31ff6b87eadceb2b2de9cfb6df8719293a9da8b"
+        },
+        {
+          "key": "shroomite-leggings",
+          "requestedPageTitle": "Shroomite Leggings",
+          "pageTitle": "Shroomite armor",
+          "pageId": 4771,
+          "revisionId": 1027106,
+          "revisionTimestamp": "2026-09-02T13:55:25Z",
+          "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/raw/shroomite-leggings.json",
+          "sha256": "sha256:01f735d97d2d02da86b4f55f6c27de478fbeba72d3c0962b238d619847f18945"
+        },
+        {
+          "key": "mining-helmet",
+          "requestedPageTitle": "Mining Helmet",
+          "pageTitle": "Mining armor",
+          "pageId": 4037,
+          "revisionId": 1003045,
+          "revisionTimestamp": "2026-07-13T08:15:01Z",
+          "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/raw/mining-helmet.json",
+          "sha256": "sha256:97e51bbaedc2fc9d8d6bc8a724cbfd7656038f4596ff1d1a6416ce3afda55a69"
+        },
+        {
+          "key": "mining-pants",
+          "requestedPageTitle": "Mining Pants",
+          "pageTitle": "Mining armor",
+          "pageId": 4037,
+          "revisionId": 1003045,
+          "revisionTimestamp": "2026-07-13T08:15:01Z",
+          "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-01/raw/mining-pants.json",
+          "sha256": "sha256:742d25394b55940196b3d71f0c3c0532f0bd2a210d49892dbae2454ca537354a"
+        }
+      ]
+    },
+    "itemInfoModule": {
+      "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+      "contentHash": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1",
+      "pageTitle": "Module:Iteminfo/data",
+      "pageId": 18021,
+      "revisionId": 1023241,
+      "revisionTimestamp": "2026-08-22T03:26:22Z"
+    },
+    "armorSetBonusesModule": {
+      "path": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-armorsetbonuses.json",
+      "contentHash": "sha256:f2b91a22f49320caf7d833e3fdb7af0c3206b96a44a5ddd021ad08eb90effbcd",
+      "pageTitle": "Module:ArmorSetBonuses",
+      "pageId": 72704,
+      "revisionId": 964993,
+      "revisionTimestamp": "2026-01-31T20:21:00Z"
+    }
+  },
+  "identityEvidence": {
+    "rows": [
+      {
+        "internalName": "MiningHelmet",
+        "itemId": 88,
+        "slot": "head",
+        "defense": 2,
+        "sourceRevisionId": 1023241,
+        "sourceRevisionTimestamp": "2026-08-22T03:26:22Z",
+        "sourceArtifactPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+        "sourceArtifactSha256": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1"
+      },
+      {
+        "internalName": "MiningPants",
+        "itemId": 411,
+        "slot": "legs",
+        "defense": 1,
+        "sourceRevisionId": 1023241,
+        "sourceRevisionTimestamp": "2026-08-22T03:26:22Z",
+        "sourceArtifactPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+        "sourceArtifactSha256": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1"
+      },
+      {
+        "internalName": "ShroomiteHeadgear",
+        "itemId": 1546,
+        "slot": "head",
+        "defense": 11,
+        "sourceRevisionId": 1023241,
+        "sourceRevisionTimestamp": "2026-08-22T03:26:22Z",
+        "sourceArtifactPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+        "sourceArtifactSha256": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1"
+      },
+      {
+        "internalName": "ShroomiteMask",
+        "itemId": 1547,
+        "slot": "head",
+        "defense": 11,
+        "sourceRevisionId": 1023241,
+        "sourceRevisionTimestamp": "2026-08-22T03:26:22Z",
+        "sourceArtifactPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+        "sourceArtifactSha256": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1"
+      },
+      {
+        "internalName": "ShroomiteHelmet",
+        "itemId": 1548,
+        "slot": "head",
+        "defense": 11,
+        "sourceRevisionId": 1023241,
+        "sourceRevisionTimestamp": "2026-08-22T03:26:22Z",
+        "sourceArtifactPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+        "sourceArtifactSha256": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1"
+      },
+      {
+        "internalName": "ShroomiteBreastplate",
+        "itemId": 1549,
+        "slot": "body",
+        "defense": 24,
+        "sourceRevisionId": 1023241,
+        "sourceRevisionTimestamp": "2026-08-22T03:26:22Z",
+        "sourceArtifactPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+        "sourceArtifactSha256": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1"
+      },
+      {
+        "internalName": "ShroomiteLeggings",
+        "itemId": 1550,
+        "slot": "legs",
+        "defense": 16,
+        "sourceRevisionId": 1023241,
+        "sourceRevisionTimestamp": "2026-08-22T03:26:22Z",
+        "sourceArtifactPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor/.local/tmp/a63-20260929-armor-source-02/module-iteminfo-data.json",
+        "sourceArtifactSha256": "sha256:2375bf54ebb430b89b3662f07c759762d47ca29654f07fc612a37a9685496ae1"
+      }
+    ],
+    "miningHelmet": {
+      "itemId": 88,
+      "headSlot": true,
+      "defense": 2
+    },
+    "miningPants": {
+      "itemId": 411,
+      "legSlot": true,
+      "defense": 1
+    },
+    "shroomiteSetVariantIds": {
+      "headgear": [
+        1546,
+        1549,
+        1550
+      ],
+      "mask": [
+        1547,
+        1549,
+        1550
+      ],
+      "helmet": [
+        1548,
+        1549,
+        1550
+      ]
+    }
+  },
+  "semanticFindings": {
+    "setPageRevision": {
+      "pageTitle": "Shroomite armor",
+      "revisionId": 1027106,
+      "revisionTimestamp": "2026-09-02T13:55:25Z",
+      "exactSetEffects": [
+        "+13% ranged damage",
+        "+25% ranged critical strike chance",
+        "+20% ammo conservation",
+        "+12% movement speed"
+      ],
+      "sourcePages": [
+        "Shroomite Headgear",
+        "Shroomite Mask",
+        "Shroomite Helmet",
+        "Shroomite Breastplate",
+        "Shroomite Leggings"
+      ]
+    },
+    "qualifiedCells": {
+      "count": 6,
+      "rows": [
+        {
+          "itemPageTitle": "蘑菇矿头饰",
+          "itemNameZh": "蘑菇矿头饰",
+          "slotGroup": "head",
+          "cellKey": "rangedDamage",
+          "rawValue": ">15%"
+        },
+        {
+          "itemPageTitle": "蘑菇矿头饰",
+          "itemNameZh": "蘑菇矿头饰",
+          "slotGroup": "head",
+          "cellKey": "rangedDamageCritChance",
+          "rawValue": ">20%"
+        },
+        {
+          "itemPageTitle": "蘑菇矿面具",
+          "itemNameZh": "蘑菇矿面具",
+          "slotGroup": "head",
+          "cellKey": "rangedDamage",
+          "rawValue": ">15%"
+        },
+        {
+          "itemPageTitle": "蘑菇矿面具",
+          "itemNameZh": "蘑菇矿面具",
+          "slotGroup": "head",
+          "cellKey": "rangedDamageCritChance",
+          "rawValue": ">20%"
+        },
+        {
+          "itemPageTitle": "蘑菇矿头盔",
+          "itemNameZh": "蘑菇矿头盔",
+          "slotGroup": "head",
+          "cellKey": "rangedDamage",
+          "rawValue": ">15%"
+        },
+        {
+          "itemPageTitle": "蘑菇矿头盔",
+          "itemNameZh": "蘑菇矿头盔",
+          "slotGroup": "head",
+          "cellKey": "rangedDamageCritChance",
+          "rawValue": ">20%"
+        }
+      ],
+      "decision": "reject-and-retain-diagnostic",
+      "reason": "source table expresses qualified values (>15%, >20%); revision-bound set page and module evidence do not provide exact per-piece numeric values; parser must not coerce them"
+    },
+    "miningIdentity": {
+      "decision": "accept-revision-bound-module-identity",
+      "reason": "iteminfo module revision binds item IDs, slot fields and defenses; the duplicate source row is reconciled by exact item identity, not image or row order"
+    }
+  },
+  "transition": {
+    "executable": false,
+    "blockedBy": [
+      "six qualified Shroomite attribute cells lack exact numeric authority"
+    ],
+    "nextSafeStep": "keep qualified cells excluded from numeric effects and derive a candidate only after explicit partial-source policy or stronger per-piece exact evidence"
+  }
+}

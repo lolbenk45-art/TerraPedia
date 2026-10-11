@@ -122,10 +122,149 @@ test('detects bundle content drift', () => {
 });
 
 test('builds an activation-gated automatic execution identity', () => {
-  const bundle = buildSupplementaryL1Bundle(input({ executionMode: 'ACTIVATION_GATED_AUTO' }));
+  const bundle = buildSupplementaryL1Bundle(input({
+    executionMode: 'ACTIVATION_GATED_AUTO',
+    policy: {
+      ...input().policy,
+      level: 'L2',
+      policyVersion: 2,
+      policyJson: {
+        level: 'L2',
+        requireSnapshot: true,
+        anomalyAction: 'CIRCUIT_OPEN',
+        ownedTables: [
+          { databaseRole: 'local', table: 'audio_assets', fieldGroup: 'all_columns' },
+          { databaseRole: 'local', table: 'audio_asset_links', fieldGroup: 'all_columns' },
+        ],
+      },
+    },
+    ownedTables: [
+      { databaseRole: 'local', table: 'audio_assets', fieldGroup: 'all_columns' },
+      { databaseRole: 'local', table: 'audio_asset_links', fieldGroup: 'all_columns' },
+    ],
+  }));
   assert.equal(bundle.executionMode, 'ACTIVATION_GATED_AUTO');
+  assert.equal(bundle.policy.level, 'L2');
+  assert.deepEqual(bundle.ownedTables, [
+    { databaseRole: 'local', table: 'audio_assets', fieldGroup: 'all_columns' },
+    { databaseRole: 'local', table: 'audio_asset_links', fieldGroup: 'all_columns' },
+  ]);
   assert.equal(bundle.approvalMode, 'AUTO_APPLY_ACTIVATED');
   assert.equal(validateSupplementaryL1Bundle(bundle), true);
+});
+
+test('automatic bundles preserve and require exact shared-table predicate scopes', () => {
+  const policyJson = {
+    level: 'L2',
+    requireSnapshot: true,
+    anomalyAction: 'CIRCUIT_OPEN',
+    ownedTables: [
+      { databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' },
+      { databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned', logicalPredicateHash: HASH_D },
+    ],
+  };
+  const sharedScopes = [
+    { databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' },
+    { databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned', logicalPredicateHash: HASH_D },
+  ];
+  const bundle = buildSupplementaryL1Bundle(input({
+    domainId: 'bosses',
+    operationId: 'automation-bosses-first-l1',
+    runId: 'bosses_l1_auto_20260831_01',
+    executionMode: 'ACTIVATION_GATED_AUTO',
+    policy: { ...input().policy, domainId: 'bosses', level: 'L2', policyVersion: 2, policyJson },
+    ownedTables: sharedScopes,
+    baseline: {
+      ...input().baseline,
+      generations: sharedScopes.map((scope) => ({ ...scope, generation: 0 })),
+    },
+  }));
+  assert.equal(bundle.ownedTables[1].logicalPredicateHash, HASH_D);
+  assert.equal(validateSupplementaryL1Bundle(bundle), true);
+
+  assert.throws(
+    () => buildSupplementaryL1Bundle(input({
+      domainId: 'bosses',
+      operationId: 'automation-bosses-first-l1',
+      runId: 'bosses_l1_auto_20260831_02',
+      executionMode: 'ACTIVATION_GATED_AUTO',
+      policy: { ...input().policy, domainId: 'bosses', level: 'L2', policyVersion: 2, policyJson },
+      ownedTables: [
+        { databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' },
+        { databaseRole: 'local', table: 'npcs', fieldGroup: 'all_columns' },
+      ],
+      baseline: {
+        ...input().baseline,
+        generations: [
+          { databaseRole: 'local', table: 'boss_groups', generation: 0 },
+          { databaseRole: 'local', table: 'npcs', generation: 0 },
+        ],
+      },
+    })),
+    /owned table scope|policy/i,
+  );
+});
+
+test('automatic bundles reject reordered policy and bundle scopes', () => {
+  const policyScopes = [
+    { databaseRole: 'local', table: 'audio_assets', fieldGroup: 'all_columns' },
+    { databaseRole: 'local', table: 'audio_asset_links', fieldGroup: 'all_columns' },
+  ];
+  const reorderedScopes = [...policyScopes].reverse();
+
+  assert.throws(
+    () => buildSupplementaryL1Bundle(input({
+      executionMode: 'ACTIVATION_GATED_AUTO',
+      policy: {
+        ...input().policy,
+        level: 'L2',
+        policyVersion: 2,
+        policyJson: {
+          level: 'L2',
+          requireSnapshot: true,
+          anomalyAction: 'CIRCUIT_OPEN',
+          ownedTables: policyScopes,
+        },
+      },
+      ownedTables: reorderedScopes,
+      baseline: {
+        ...input().baseline,
+        generations: reorderedScopes.map((scope) => ({ ...scope, generation: 0 })),
+      },
+    })),
+    /order|exact|scope|policy/i,
+  );
+});
+
+test('keeps manual Owner execution pinned to L1 while automatic execution requires L2', () => {
+  assert.throws(
+    () => buildSupplementaryL1Bundle(input({
+      executionMode: 'MANUAL_OWNER_L1',
+      policy: { ...input().policy, level: 'L2', policyVersion: 2 },
+    })),
+    /MANUAL_OWNER_L1.*L1|L1.*MANUAL_OWNER_L1/i,
+  );
+  assert.throws(
+    () => buildSupplementaryL1Bundle(input({
+      executionMode: 'ACTIVATION_GATED_AUTO',
+      policy: input().policy,
+    })),
+    /ACTIVATION_GATED_AUTO.*L2|L2.*ACTIVATION_GATED_AUTO/i,
+  );
+});
+
+test('rejects a scheduler source dispatch identity in a manual Owner bundle', () => {
+  assert.throws(
+    () => buildSupplementaryL1Bundle(input({
+      executionMode: 'MANUAL_OWNER_L1',
+      sourceDispatchIdentity: {
+        sourceFingerprint: HASH_A,
+        sourceRunIdentity: '2026-08-14T06:00:00.000Z',
+        sourceContentIdentity: HASH_B,
+      },
+    })),
+    /manual.*source dispatch identity|source dispatch identity.*manual/i,
+  );
 });
 
 test('rejects unknown supplementary execution modes', () => {

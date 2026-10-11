@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-27T15:17:24.181Z",
+  "generatedAt": "2026-10-09T06:05:07.472Z",
   "total": 151,
-  "mapped": 132,
-  "placeholder": 19,
+  "mapped": 138,
+  "placeholder": 13,
   "records": {
     "1": {
       "armorSetId": 1,
@@ -1930,26 +1930,34 @@
         374,
         375
       ],
-      "status": "expected_placeholder",
-      "candidates": [],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.CobaltMelee",
+          "benefitExpression": "ArmorSetBonuses.Benefits.CobaltMelee",
+          "primaryPart": "Head",
+          "setCount": 1,
+          "uniqueItemIds": [
+            372,
+            374,
+            375
+          ]
+        }
+      ],
       "definition": {
-        "textKey": null,
-        "textZh": "钴盔甲",
-        "textEn": "钴盔甲",
-        "benefitExpression": null,
+        "textKey": "ArmorSetBonus.CobaltMelee",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.CobaltMelee",
+        "benefitExpression": "ArmorSetBonuses.Benefits.CobaltMelee",
         "benefitZh": null,
-        "benefitEn": null,
-        "primaryPart": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.CobaltMelee",
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
           372,
           374,
           375
         ]
-      },
-      "review": {
-        "status": "accepted_expected_placeholder",
-        "reason": "wiki display set represented by Cobalt class-specific bonus definitions"
       }
     },
     "39": {
@@ -2004,26 +2012,34 @@
         379,
         380
       ],
-      "status": "expected_placeholder",
-      "candidates": [],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MythrilMelee",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MythrilMelee",
+          "primaryPart": "Head",
+          "setCount": 1,
+          "uniqueItemIds": [
+            377,
+            379,
+            380
+          ]
+        }
+      ],
       "definition": {
-        "textKey": null,
-        "textZh": "秘银盔甲",
-        "textEn": "秘银盔甲",
-        "benefitExpression": null,
+        "textKey": "ArmorSetBonus.MythrilMelee",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MythrilMelee",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MythrilMelee",
         "benefitZh": null,
-        "benefitEn": null,
-        "primaryPart": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MythrilMelee",
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
           377,
           379,
           380
         ]
-      },
-      "review": {
-        "status": "accepted_expected_placeholder",
-        "reason": "wiki display set represented by Mythril class-specific bonus definitions"
       }
     },
     "41": {
@@ -2078,26 +2094,34 @@
         403,
         404
       ],
-      "status": "expected_placeholder",
-      "candidates": [],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.AdamantiteMelee",
+          "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteMelee",
+          "primaryPart": "Head",
+          "setCount": 1,
+          "uniqueItemIds": [
+            401,
+            403,
+            404
+          ]
+        }
+      ],
       "definition": {
-        "textKey": null,
-        "textZh": "精金盔甲",
-        "textEn": "精金盔甲",
-        "benefitExpression": null,
+        "textKey": "ArmorSetBonus.AdamantiteMelee",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.AdamantiteMelee",
+        "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteMelee",
         "benefitZh": null,
-        "benefitEn": null,
-        "primaryPart": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.AdamantiteMelee",
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
           401,
           403,
           404
         ]
-      },
-      "review": {
-        "status": "accepted_expected_placeholder",
-        "reason": "wiki display set represented by Adamantite class-specific bonus definitions"
       }
     },
     "43": {
@@ -2488,7 +2512,19 @@
         1005
       ],
       "status": "mapped_manual",
-      "candidates": [],
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ChlorophyteMelee",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteMelee",
+          "primaryPart": "Head",
+          "setCount": 1,
+          "uniqueItemIds": [
+            1001,
+            1004,
+            1005
+          ]
+        }
+      ],
       "definition": {
         "textKey": "ArmorSetBonus.Chlorophyte",
         "textZh": null,
@@ -2593,26 +2629,34 @@
         2200,
         2202
       ],
-      "status": "expected_placeholder",
-      "candidates": [],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.BeetleDamage",
+          "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDamage",
+          "primaryPart": "Body",
+          "setCount": 1,
+          "uniqueItemIds": [
+            2199,
+            2200,
+            2202
+          ]
+        }
+      ],
       "definition": {
-        "textKey": null,
-        "textZh": "甲虫盔甲",
-        "textEn": "甲虫盔甲",
-        "benefitExpression": null,
+        "textKey": "ArmorSetBonus.BeetleDamage",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.BeetleDamage",
+        "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDamage",
         "benefitZh": null,
-        "benefitEn": null,
-        "primaryPart": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.BeetleDamage",
+        "primaryPart": "Body",
         "setCount": 1,
         "uniqueItemIds": [
           2199,
           2200,
           2202
         ]
-      },
-      "review": {
-        "status": "accepted_expected_placeholder",
-        "reason": "wiki display set represented by Beetle Damage/Defense bonus definitions"
       }
     },
     "57": {
@@ -2624,26 +2668,38 @@
         1549,
         1550
       ],
-      "status": "expected_placeholder",
-      "candidates": [],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Shroomite",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Shroomite",
+          "primaryPart": null,
+          "setCount": 3,
+          "uniqueItemIds": [
+            1548,
+            1549,
+            1550,
+            1546,
+            1547
+          ]
+        }
+      ],
       "definition": {
-        "textKey": null,
-        "textZh": "蘑菇矿盔甲",
-        "textEn": "蘑菇矿盔甲",
-        "benefitExpression": null,
+        "textKey": "ArmorSetBonus.Shroomite",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Shroomite",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Shroomite",
         "benefitZh": null,
-        "benefitEn": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Shroomite",
         "primaryPart": null,
-        "setCount": 1,
+        "setCount": 3,
         "uniqueItemIds": [
-          1546,
+          1548,
           1549,
-          1550
+          1550,
+          1546,
+          1547
         ]
-      },
-      "review": {
-        "status": "accepted_expected_placeholder",
-        "reason": "wiki display set without Module:ArmorSetBonuses definition"
       }
     },
     "58": {
@@ -2655,26 +2711,34 @@
         1505,
         2189
       ],
-      "status": "expected_placeholder",
-      "candidates": [],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.SpectreDamage",
+          "benefitExpression": "ArmorSetBonuses.Benefits.SpectreDamage",
+          "primaryPart": "Head",
+          "setCount": 1,
+          "uniqueItemIds": [
+            2189,
+            1504,
+            1505
+          ]
+        }
+      ],
       "definition": {
-        "textKey": null,
-        "textZh": "幽灵盔甲",
-        "textEn": "幽灵盔甲",
-        "benefitExpression": null,
+        "textKey": "ArmorSetBonus.SpectreDamage",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.SpectreDamage",
+        "benefitExpression": "ArmorSetBonuses.Benefits.SpectreDamage",
         "benefitZh": null,
-        "benefitEn": null,
-        "primaryPart": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.SpectreDamage",
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
+          2189,
           1504,
-          1505,
-          2189
+          1505
         ]
-      },
-      "review": {
-        "status": "accepted_expected_placeholder",
-        "reason": "wiki display set represented by Spectre Healing/Damage bonus definitions"
       }
     },
     "59": {
@@ -4360,12 +4424,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDamage",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.BeetleDamage",
-        "primaryPart": null,
+        "primaryPart": "Body",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           2199,
-          2200
+          2200,
+          2202
         ]
       }
     },
@@ -4387,12 +4451,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDefense",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.BeetleDefense",
-        "primaryPart": null,
+        "primaryPart": "Body",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           2199,
-          2201
+          2201,
+          2202
         ]
       }
     },
@@ -4583,12 +4647,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.SpectreHealing",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.SpectreHealing",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           1503,
-          1504
+          1504,
+          1505
         ]
       }
     },
@@ -4610,12 +4674,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.SpectreDamage",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.SpectreDamage",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           2189,
-          1504
+          1504,
+          1505
         ]
       }
     },
@@ -4901,12 +4965,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteMelee",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.ChlorophyteMelee",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           1001,
-          1004
+          1004,
+          1005
         ]
       }
     },
@@ -4928,12 +4992,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteSummon",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.ChlorophyteSummon",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           5524,
-          1004
+          1004,
+          1005
         ]
       }
     },
@@ -5123,12 +5187,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.CobaltCaster",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.CobaltCaster",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           371,
-          374
+          374,
+          375
         ]
       }
     },
@@ -5150,12 +5214,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.CobaltMelee",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.CobaltMelee",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           372,
-          374
+          374,
+          375
         ]
       }
     },
@@ -5177,12 +5241,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.CobaltRanged",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.CobaltRanged",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           373,
-          374
+          374,
+          375
         ]
       }
     },
@@ -5204,12 +5268,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.MythrilCaster",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.MythrilCaster",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           376,
-          379
+          379,
+          380
         ]
       }
     },
@@ -5231,12 +5295,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.MythrilMelee",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.MythrilMelee",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           377,
-          379
+          379,
+          380
         ]
       }
     },
@@ -5258,12 +5322,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.MythrilRanged",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.MythrilRanged",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           378,
-          379
+          379,
+          380
         ]
       }
     },
@@ -5285,12 +5349,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteCaster",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.AdamantiteCaster",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           400,
-          403
+          403,
+          404
         ]
       }
     },
@@ -5312,12 +5376,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteMelee",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.AdamantiteMelee",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           401,
-          403
+          403,
+          404
         ]
       }
     },
@@ -5339,12 +5403,12 @@
         "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteRanged",
         "benefitZh": null,
         "benefitEn": "ArmorSetBonuses.Benefits.AdamantiteRanged",
-        "primaryPart": null,
+        "primaryPart": "Head",
         "setCount": 1,
         "uniqueItemIds": [
-          0,
           402,
-          403
+          403,
+          404
         ]
       }
     },

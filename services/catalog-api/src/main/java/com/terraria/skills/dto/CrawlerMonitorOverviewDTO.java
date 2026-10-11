@@ -63,10 +63,26 @@ public class CrawlerMonitorOverviewDTO {
         private CrawlerMonitorAutoDispatchDTO autoDispatchSettings;
         private WikiMonitorLastSweepDTO lastSweep;
         private WikiMonitorSummaryDTO summary = new WikiMonitorSummaryDTO();
+        private List<WikiMonitorAlertDTO> alerts = new ArrayList<>();
         private List<WikiMonitorDomainDTO> domains = new ArrayList<>();
         private List<WikiMonitorDispatchPlanDTO> dispatchPlan = new ArrayList<>();
         private List<WikiMonitorQueueItemDTO> dispatchQueue = new ArrayList<>();
         private List<WikiMonitorDispatchDTO> pendingDispatches = new ArrayList<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorAlertDTO {
+        private Long id;
+        private String runId;
+        private String severity;
+        private String dedupeKey;
+        private String status;
+        private String title;
+        private String details;
+        private String domain;
+        private String createdAt;
+        private String lastSeenAt;
     }
 
     @Data

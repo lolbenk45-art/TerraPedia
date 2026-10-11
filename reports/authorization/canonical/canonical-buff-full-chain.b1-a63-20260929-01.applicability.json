@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "buff-source-applicability/v1",
+  "operationId": "canonical-buff-full-chain",
+  "source": {
+    "path": ".local/tmp/b1-a63-20260928-03/raw/template__getbuffinfo.parsed.latest.json",
+    "sha256": "sha256:9363042f776ba666e7fea83a791cc18b2b74e7d9532f69c88dbcff74b3cca47c",
+    "runId": "b1-a63-20260928-03"
+  },
+  "summary": {
+    "total": 400,
+    "parsed": 30,
+    "notApplicable": 0,
+    "unknown": 370
+  },
+  "status": "blocked",
+  "blockers": [
+    "370 records have section_missing immunity without explicit not_applicable evidence"
+  ],
+  "writes": {
+    "landing": 0,
+    "maint": 0,
+    "relation": 0,
+    "projection": 0,
+    "decision": 0
+  },
+  "generatedAt": "2026-09-28T21:07:33.019Z"
+}

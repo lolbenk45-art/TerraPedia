@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05/AUTH-06: bounded V2 natural scheduler canary for wiki-projectiles-refresh/projectiles using fresh Retry-39 source monitor, current projectiles readiness, and H8 preflight. Observe one natural durable tick and terminal outcome; no manual sweep, non-canary dispatch, direct Redis or JSON write; restore scheduler disabled after the window.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05-06/projectiles/retry-39",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260920-standing-projectiles-16"
+}

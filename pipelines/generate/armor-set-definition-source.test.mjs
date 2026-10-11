@@ -99,6 +99,31 @@ test('resolveArmorSetDefinitionEntry uses the row text key as source-backed defi
   assert.equal(entry.definition.benefitExpression, 'ArmorSetBonuses.Benefits.CobaltMelee');
 });
 
+test('resolveArmorSetDefinitionEntry maps Shroomite through its current source definition', () => {
+  const definition = {
+    textKey: 'ArmorSetBonus.Shroomite',
+    benefitExpression: 'ArmorSetBonuses.Benefits.Shroomite',
+    setCount: 3,
+    uniqueItemIds: [1546, 1547, 1548, 1549, 1550],
+  };
+  const entry = resolveArmorSetDefinitionEntry({
+    seed: {
+      armorSetId: 57,
+      name: '蘑菇矿盔甲',
+      internalCode: '蘑菇矿盔甲',
+      itemIds: [1546, 1549, 1550],
+      textKey: null,
+    },
+    definitions: [definition],
+    definitionLookup: new Map([[definition.textKey, definition]]),
+    overrides: manualDefinitionOverrides,
+  });
+
+  assert.equal(entry.status, 'mapped_manual');
+  assert.equal(entry.definition.textKey, 'ArmorSetBonus.Shroomite');
+  assert.equal(entry.definition.benefitExpression, 'ArmorSetBonuses.Benefits.Shroomite');
+});
+
 test('resolveArmorSetDefinitionEntry marks reviewed placeholders by stable identity instead of database id', () => {
   const entry = resolveArmorSetDefinitionEntry({
     seed: {

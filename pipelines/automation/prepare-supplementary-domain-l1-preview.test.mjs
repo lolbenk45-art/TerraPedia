@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
 
 import {
   buildDomainSourceCommand,
@@ -17,12 +20,75 @@ import {
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
 
+test('supplementary source executes reviewed child bytes while keeping outputs in the durable root', (t) => {
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-split-roots-'));
+  t.after(() => fs.rmSync(temporaryRoot, { recursive: true, force: true }));
+  const codeRoot = path.join(temporaryRoot, 'reviewed-code');
+  const dataRoot = path.join(temporaryRoot, 'durable-data');
+  const sourceRoot = path.resolve(import.meta.dirname, '../..');
+  const manifest = buildCanonicalOperationExecutionManifest({ repoRoot: sourceRoot, operationId: 'canonical-crawler-v2-scheduler-activation' });
+  for (const entry of manifest.codeBundleEntries) {
+    const destination = path.join(codeRoot, entry.path);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(path.join(sourceRoot, entry.path), destination);
+  }
+  fs.mkdirSync(path.join(dataRoot, 'data/generated'), { recursive: true });
+  const progressPath = path.join(dataRoot, 'data/generated/boss-progress.json');
+  for (const [root, selectedCode] of [[codeRoot, 'reviewed'], [dataRoot, 'stale-primary']]) {
+    const child = path.join(root, 'pipelines/fetch/fetch-wiki-bosses.mjs');
+    fs.mkdirSync(path.dirname(child), { recursive: true });
+    fs.writeFileSync(child, `import fs from 'node:fs'; import path from 'node:path';
+      const progressPath = process.argv.find((arg) => arg.startsWith('--progress-path=')).slice('--progress-path='.length);
+      fs.writeFileSync(path.join(process.env.WORKTREE_ROOT, 'data/generated/wiki-bosses.latest.json'), JSON.stringify({ selectedCode: ${JSON.stringify(selectedCode)}, cwd: process.cwd(), records: [] }));
+      fs.writeFileSync(progressPath, JSON.stringify({ status: 'completed' }));`);
+  }
+  const script = `const { runDomainSource } = await import(${JSON.stringify(pathToFileURL(path.join(codeRoot, 'pipelines/automation/prepare-supplementary-domain-l1-preview.mjs')).href)});
+    const result = await runDomainSource({ domainId: 'bosses', repoRoot: process.env.WORKTREE_ROOT, progressPath: ${JSON.stringify(progressPath)} }, { env: process.env, runId: 'bosses_l1_split_root_test', resumeMode: 'fresh' });
+    process.stdout.write(JSON.stringify(result));`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '--eval', script], {
+    cwd: dataRoot, env: { ...process.env, WORKTREE_ROOT: dataRoot }, encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).sourcePayload, { selectedCode: 'reviewed', cwd: dataRoot, records: [] });
+  assert.equal(JSON.parse(fs.readFileSync(progressPath)).status, 'completed');
+  assert.equal(fs.existsSync(path.join(codeRoot, 'data/generated')), false);
+});
+
 test('manual preview CLI keeps the owner-authorized execution mode by default', () => {
   assert.equal(resolveSupplementaryPreviewExecutionMode({}), 'MANUAL_OWNER_L1');
   assert.equal(
     resolveSupplementaryPreviewExecutionMode({ 'execution-mode': 'ACTIVATION_GATED_AUTO' }),
     'ACTIVATION_GATED_AUTO',
   );
+});
+
+test('preview preparation rejects an unknown execution mode before any publication or source work', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-unknown-mode-'));
+  let sourceRuns = 0;
+  const progressWrites = [];
+
+  assert.throws(
+    () => resolveSupplementaryPreviewExecutionMode({ 'execution-mode': 'UNTRUSTED_MODE' }),
+    /execution mode|MANUAL_OWNER_L1|ACTIVATION_GATED_AUTO/i,
+  );
+  await assert.rejects(
+    prepareSupplementaryDomainL1Preview({
+      domainId: 'bosses',
+      repoRoot,
+      generatedAt: '2026-09-01T06:00:00.000Z',
+      runId: 'bosses_l1_unknown_mode',
+      executionMode: 'UNTRUSTED_MODE',
+    }, {
+      writeProgress: (_filePath, payload) => progressWrites.push(payload),
+      runSource: async () => { sourceRuns += 1; return { sourcePayload: { records: [] } }; },
+      loadPolicyContext: async () => { throw new Error('policy must not be reached'); },
+      buildImportPlan: async () => { throw new Error('plan must not be reached'); },
+    }),
+    /execution mode|MANUAL_OWNER_L1|ACTIVATION_GATED_AUTO/i,
+  );
+  assert.equal(sourceRuns, 0);
+  assert.deepEqual(progressWrites, []);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'reports')), false);
 });
 
 test('uses string dates when freezing supplementary L1 baselines', () => {
@@ -281,6 +347,342 @@ for (const domainId of ['audio', 'bosses', 'shimmer']) {
     );
   });
 }
+
+test('activation-gated previews use a run-specific canonical artifact path', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-automatic-artifacts-'));
+  const legacySourcePath = path.join(repoRoot, 'reports/authorization/canonical/automation-bosses-first-l1.source.json');
+  const automaticScopes = [
+    { databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' },
+    { databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned', logicalPredicateHash: HASH('d') },
+  ];
+  fs.mkdirSync(path.dirname(legacySourcePath), { recursive: true });
+  fs.writeFileSync(legacySourcePath, 'legacy\n', { mode: 0o600 });
+
+  const result = await prepareSupplementaryDomainL1Preview({
+    domainId: 'bosses',
+    repoRoot,
+    generatedAt: '2026-08-31T06:00:00.000Z',
+    runId: 'bosses_l1_auto_preview_20260831_01',
+    executionMode: 'ACTIVATION_GATED_AUTO',
+  }, {
+    runSource: async () => ({ sourcePayload: { domainId: 'bosses', records: [] } }),
+    loadPolicyContext: async () => ({
+      policy: {
+        domainId: 'bosses', level: 'L2', operationalState: 'ACTIVE', policyVersion: 2,
+        policyHash: HASH('a'), policySetHash: HASH('b'),
+        policyJson: {
+          schemaVersion: 1,
+          level: 'L2',
+          requireSnapshot: true,
+          anomalyAction: 'CIRCUIT_OPEN',
+          ownedTables: automaticScopes,
+        },
+      },
+      baseline: {
+        environmentId: 'local',
+        generations: automaticScopes.map((scope) => ({ ...scope, generation: 0 })),
+        projectionHash: HASH('c'),
+      },
+      ownedTables: automaticScopes,
+    }),
+    buildImportPlan: async () => ({ records: [] }),
+  });
+
+  assert.match(result.sourcePath, /reports[\\/]authorization[\\/]canonical[\\/]automatic[\\/]bosses[\\/]bosses_l1_auto_preview_20260831_01[\\/]source\.json$/);
+  assert.match(result.bundlePath, /reports[\\/]authorization[\\/]canonical[\\/]automatic[\\/]bosses[\\/]bosses_l1_auto_preview_20260831_01[\\/]bundle\.json$/);
+  assert.equal(fs.lstatSync(result.sourcePath).isFile(), true);
+  assert.equal(fs.lstatSync(result.sourcePath).mode & 0o777, 0o600);
+  assert.equal(fs.lstatSync(result.bundlePath).isFile(), true);
+  assert.equal(fs.lstatSync(result.bundlePath).mode & 0o777, 0o600);
+  assert.deepEqual(result.bundle.ownedTables, automaticScopes);
+  assert.equal(fs.readFileSync(legacySourcePath, 'utf8'), 'legacy\n');
+});
+
+test('activation-gated preview rejects source identity drift before source or bundle publication', async (t) => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-preview-identity-drift-'));
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const checkedAt = '2026-08-31T06:00:00.000Z';
+  const sourceFingerprint = HASH('f');
+  const sourceStatePath = path.join(repoRoot, 'data', 'generated', 'source-update-monitor.latest.json');
+  const sourceState = {
+    checkedAt,
+    summary: { probeHealthy: true, errorSources: 0 },
+    sources: [{
+      key: 'wiki.bosses.catalog',
+      status: 'ok',
+      checkedAt,
+      currentValue: sourceFingerprint,
+      changed: true,
+    }],
+  };
+  fs.mkdirSync(path.dirname(sourceStatePath), { recursive: true });
+  fs.writeFileSync(sourceStatePath, JSON.stringify(sourceState));
+  const sourceDispatchIdentity = {
+    sourceFingerprint,
+    sourceRunIdentity: checkedAt,
+    sourceContentIdentity: `sha256:${createHash('sha256').update(JSON.stringify(sourceState)).digest('hex')}`,
+  };
+  const runId = 'bosses_l1_auto_preview_identity_drift';
+  const artifactRoot = path.join(repoRoot, 'reports', 'authorization', 'canonical', 'automatic', 'bosses', runId);
+  const automaticScopes = [
+    { databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' },
+    { databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned', logicalPredicateHash: HASH('d') },
+  ];
+  const snapshot = {
+    sourceKey: 'wiki.bosses.catalog',
+    locator: 'Bosses',
+    entityFamily: 'bosses',
+    sourceKind: 'page_catalog',
+    contentHash: sourceFingerprint,
+    checkedAt,
+  };
+
+  await assert.rejects(
+    prepareSupplementaryDomainL1Preview({
+      domainId: 'bosses',
+      repoRoot,
+      generatedAt: checkedAt,
+      runId,
+      executionMode: 'ACTIVATION_GATED_AUTO',
+      sourceDispatchIdentity,
+      sourceStatePath,
+    }, {
+      runSource: async () => {
+        const drifted = JSON.parse(fs.readFileSync(sourceStatePath, 'utf8'));
+        drifted.summary.lastObservedAt = '2026-08-31T06:00:01.000Z';
+        fs.writeFileSync(sourceStatePath, JSON.stringify(drifted));
+        return { sourcePayload: { domainId: 'bosses', records: [] } };
+      },
+      loadPolicyContext: async () => ({
+        policy: {
+          domainId: 'bosses', level: 'L2', operationalState: 'ACTIVE', policyVersion: 2,
+          policyHash: HASH('a'), policySetHash: HASH('b'),
+          policyJson: {
+            schemaVersion: 1,
+            level: 'L2',
+            requireSnapshot: true,
+            anomalyAction: 'CIRCUIT_OPEN',
+            ownedTables: automaticScopes,
+          },
+        },
+        baseline: {
+          environmentId: 'local',
+          generations: automaticScopes.map((scope) => ({ ...scope, generation: 0 })),
+          projectionHash: HASH('c'),
+        },
+        ownedTables: automaticScopes,
+      }),
+      buildImportPlan: async () => ({ records: [] }),
+      probeSource: async () => snapshot,
+    }),
+    /source monitor content identity|source dispatch identity/i,
+  );
+
+  assert.equal(fs.existsSync(path.join(artifactRoot, 'source.json')), false);
+  assert.equal(fs.existsSync(path.join(artifactRoot, 'bundle.json')), false);
+});
+
+test('activation-gated preview refuses an existing run artifact before source work', async () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-automatic-collision-'));
+  const artifactRoot = path.join(
+    repoRoot,
+    'reports/authorization/canonical/automatic/bosses/bosses_l1_auto_preview_collision',
+  );
+  fs.mkdirSync(artifactRoot, { recursive: true });
+  fs.writeFileSync(path.join(artifactRoot, 'source.json'), 'existing\n', { mode: 0o600 });
+  let sourceRuns = 0;
+
+  await assert.rejects(
+    prepareSupplementaryDomainL1Preview({
+      domainId: 'bosses',
+      repoRoot,
+      generatedAt: '2026-08-31T06:00:00.000Z',
+      runId: 'bosses_l1_auto_preview_collision',
+      executionMode: 'ACTIVATION_GATED_AUTO',
+    }, {
+      runSource: async () => { sourceRuns += 1; },
+      loadPolicyContext: async () => { throw new Error('policy must not be reached'); },
+      buildImportPlan: async () => { throw new Error('plan must not be reached'); },
+    }),
+    /refusing to overwrite automatic preview artifact/,
+  );
+  assert.equal(sourceRuns, 0);
+});
+
+test('activation-gated preview rejects a symlinked canonical artifact ancestor before source work', async (t) => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-automatic-symlink-'));
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-automatic-symlink-outside-'));
+  t.after(() => {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(outsideRoot, { recursive: true, force: true });
+  });
+  const authorizationRoot = path.join(repoRoot, 'reports', 'authorization');
+  fs.mkdirSync(authorizationRoot, { recursive: true });
+  fs.symlinkSync(outsideRoot, path.join(authorizationRoot, 'canonical'), 'dir');
+  let sourceRuns = 0;
+
+  await assert.rejects(
+    prepareSupplementaryDomainL1Preview({
+      domainId: 'bosses',
+      repoRoot,
+      generatedAt: '2026-09-01T06:20:00.000Z',
+      runId: 'bosses_l1_auto_preview_symlink',
+      executionMode: 'ACTIVATION_GATED_AUTO',
+    }, {
+      writeProgress: () => {},
+      runSource: async () => {
+        sourceRuns += 1;
+        return { sourcePayload: { domainId: 'bosses', records: [] } };
+      },
+      loadPolicyContext: async () => { throw new Error('policy must not be reached'); },
+      buildImportPlan: async () => { throw new Error('plan must not be reached'); },
+    }),
+    /symbolic|symlink|canonical.*ordinary|artifact.*directory/i,
+  );
+  assert.equal(sourceRuns, 0);
+  assert.deepEqual(fs.readdirSync(outsideRoot), []);
+});
+
+test('activation-gated preview preserves a target created after the initial freshness check', async (t) => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-automatic-late-collision-'));
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const artifactRoot = path.join(
+    repoRoot,
+    'reports/authorization/canonical/automatic/bosses/bosses_l1_auto_preview_late_collision',
+  );
+  const sourcePath = path.join(artifactRoot, 'source.json');
+  const automaticScopes = [
+    { databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' },
+    { databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned', logicalPredicateHash: HASH('d') },
+  ];
+  const originalRenameSync = fs.renameSync;
+  const originalLinkSync = fs.linkSync;
+  const originalOpenSync = fs.openSync;
+  let raced = false;
+  const publishCollision = (candidate) => {
+    if (raced || typeof candidate !== 'string' || !candidate.endsWith(`${path.sep}source.json`)) return;
+    raced = true;
+    const fd = originalOpenSync(
+      sourcePath,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL,
+      0o600,
+    );
+    fs.writeFileSync(fd, 'late collision\n');
+    fs.closeSync(fd);
+  };
+  fs.renameSync = function patchedRenameSync(from, to, ...args) {
+    publishCollision(to);
+    return originalRenameSync.call(this, from, to, ...args);
+  };
+  fs.linkSync = function patchedLinkSync(from, to, ...args) {
+    publishCollision(to);
+    return originalLinkSync.call(this, from, to, ...args);
+  };
+
+  try {
+    await assert.rejects(
+      prepareSupplementaryDomainL1Preview({
+        domainId: 'bosses',
+        repoRoot,
+        generatedAt: '2026-09-01T06:20:00.000Z',
+        runId: 'bosses_l1_auto_preview_late_collision',
+        executionMode: 'ACTIVATION_GATED_AUTO',
+      }, {
+        writeProgress: () => {},
+        runSource: async () => ({ sourcePayload: { domainId: 'bosses', records: [] } }),
+        loadPolicyContext: async () => ({
+          policy: {
+            domainId: 'bosses', level: 'L2', operationalState: 'ACTIVE', policyVersion: 2,
+            policyHash: HASH('a'), policySetHash: HASH('b'),
+            policyJson: {
+              schemaVersion: 1,
+              level: 'L2',
+              requireSnapshot: true,
+              anomalyAction: 'CIRCUIT_OPEN',
+              ownedTables: automaticScopes,
+            },
+          },
+          baseline: {
+            environmentId: 'local',
+            generations: automaticScopes.map((scope) => ({ ...scope, generation: 0 })),
+            projectionHash: HASH('c'),
+          },
+          ownedTables: automaticScopes,
+        }),
+        buildImportPlan: async () => ({ records: [] }),
+      }),
+      /already exists|overwrite/i,
+    );
+  } finally {
+    fs.renameSync = originalRenameSync;
+    fs.linkSync = originalLinkSync;
+  }
+  assert.equal(raced, true);
+  assert.equal(fs.readFileSync(sourcePath, 'utf8'), 'late collision\n');
+});
+
+test('activation-gated preview rejects a destination replaced after hard-link publication', async (t) => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-automatic-replaced-destination-'));
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const automaticScopes = [
+    { databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' },
+    { databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned', logicalPredicateHash: HASH('d') },
+  ];
+  const originalLinkSync = fs.linkSync;
+  let replaced = false;
+  fs.linkSync = function patchedLinkSync(from, to, ...args) {
+    const result = originalLinkSync.call(this, from, to, ...args);
+    if (!replaced && typeof to === 'string' && to.endsWith(`${path.sep}bundle.json`)) {
+      replaced = true;
+      fs.unlinkSync(to);
+      fs.writeFileSync(to, '{"replacement":true}\n', { mode: 0o600, flag: 'wx' });
+    }
+    return result;
+  };
+  try {
+    await assert.rejects(
+      prepareSupplementaryDomainL1Preview({
+        domainId: 'bosses',
+        repoRoot,
+        generatedAt: '2026-09-01T06:20:00.000Z',
+        runId: 'bosses_l1_auto_preview_replaced',
+        executionMode: 'ACTIVATION_GATED_AUTO',
+      }, {
+        writeProgress: () => {},
+        runSource: async () => ({ sourcePayload: { domainId: 'bosses', records: [] } }),
+        loadPolicyContext: async () => ({
+          policy: {
+            domainId: 'bosses', level: 'L2', operationalState: 'ACTIVE', policyVersion: 2,
+            policyHash: HASH('a'), policySetHash: HASH('b'),
+            policyJson: {
+              schemaVersion: 1,
+              level: 'L2',
+              requireSnapshot: true,
+              anomalyAction: 'CIRCUIT_OPEN',
+              ownedTables: automaticScopes,
+            },
+          },
+          baseline: {
+            environmentId: 'local',
+            generations: automaticScopes.map((scope) => ({ ...scope, generation: 0 })),
+            projectionHash: HASH('c'),
+          },
+          ownedTables: automaticScopes,
+        }),
+        buildImportPlan: async () => ({ records: [] }),
+      }),
+      /identity|changed|replacement|ordinary|private/i,
+    );
+  } finally {
+    fs.linkSync = originalLinkSync;
+  }
+  assert.equal(replaced, true);
+  const replacedPath = path.join(
+    repoRoot,
+    'reports/authorization/canonical/automatic/bosses/bosses_l1_auto_preview_replaced/bundle.json',
+  );
+  assert.equal(fs.readFileSync(replacedPath, 'utf8'), '{"replacement":true}\n');
+});
 
 test('records a terminal failed progress snapshot', async () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-failed-'));

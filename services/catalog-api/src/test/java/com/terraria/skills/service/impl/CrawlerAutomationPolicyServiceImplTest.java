@@ -275,6 +275,47 @@ class CrawlerAutomationPolicyServiceImplTest {
     }
 
     @Test
+    void schedulerRejectsMissingOrMismatchedCanaryScope() {
+        when(policyMapper.findPolicyState("items"))
+            .thenReturn(new PolicyState("items", 2, ITEMS_L2_POLICY_HASH, "L2", "ACTIVE"));
+        when(policyMapper.findPolicyState("crawler_v2_scheduler"))
+            .thenReturn(new PolicyState("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH, "L1", "ACTIVE"));
+        when(policyMapper.findCurrentPolicyRows()).thenReturn(List.of(
+            new PolicyRow("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH),
+            new PolicyRow("items", 2, ITEMS_L2_POLICY_HASH)
+        ));
+        when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "items"))
+            .thenReturn(new ActivationDecisionRecord(
+                "L2_PROMOTION", "items", 2, ITEMS_L2_POLICY_HASH,
+                ITEMS_L2_POLICY_SET_HASH, 3, "owner", "promotion", "decision://items",
+                "items-promotion", sha('p'), LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1), true
+            ));
+        when(activationDecisionMapper.findLatestActivationDecision("SCHEDULER_ACTIVATION", "crawler_v2_scheduler"))
+            .thenReturn(new ActivationDecisionRecord(
+                "SCHEDULER_ACTIVATION", "crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH,
+                ITEMS_L2_POLICY_SET_HASH, 2, "owner", "scheduler", "decision://scheduler",
+                "scheduler-activation", sha('q'), LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1), true, null
+            ));
+
+        AutomationEligibility missing = service.schedulerEligibility("items", "wiki-items-refresh");
+        assertFalse(missing.eligible());
+        assertTrue(missing.reasonCodes().contains("SCHEDULER_CANARY_SCOPE_REQUIRED"), missing.reasonCodes().toString());
+
+        when(activationDecisionMapper.findLatestActivationDecision("SCHEDULER_ACTIVATION", "crawler_v2_scheduler"))
+            .thenReturn(new ActivationDecisionRecord(
+                "SCHEDULER_ACTIVATION", "crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH,
+                ITEMS_L2_POLICY_SET_HASH, 2, "owner", "scheduler", "decision://scheduler",
+                "scheduler-activation", sha('q'), LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1), true, "wiki-npcs-refresh"
+            ));
+        AutomationEligibility mismatched = service.schedulerEligibility("items", "wiki-items-refresh");
+        assertFalse(mismatched.eligible());
+        assertTrue(mismatched.reasonCodes().contains("SCHEDULER_CANARY_ACTION_MISMATCH"), mismatched.reasonCodes().toString());
+    }
+
+    @Test
     void thresholdOverflowRequiresOwnerL1WithoutWriteIntent() {
         Decision decision = service.evaluate(request("L2", counts(100, 11, 0, 0, 0), false, false, true));
         assertEquals(DecisionType.REQUIRES_OWNER_L1, decision.type());

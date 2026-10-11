@@ -6,7 +6,6 @@ export const EXPECTED_ARMOR_SET_PLACEHOLDERS = new Map([
   ['神圣盔甲', { itemIds: [551, 552, 559], reason: 'wiki display set is a page-specific Hallowed variant subset' }],
   ['远古神圣盔甲', { itemIds: [4899, 4900, 4901], reason: 'wiki display set is a page-specific Ancient Hallowed variant subset' }],
   ['甲虫盔甲', { itemIds: [2199, 2200, 2202], reason: 'wiki display set represented by Beetle Damage/Defense bonus definitions' }],
-  ['蘑菇矿盔甲', { itemIds: [1546, 1549, 1550], reason: 'wiki display set without Module:ArmorSetBonuses definition' }],
   ['幽灵盔甲', { itemIds: [1504, 1505, 2189], reason: 'wiki display set represented by Spectre Healing/Damage bonus definitions' }],
   ['空桶', { itemIds: [205], reason: 'nonstandard single-piece equipped display' }],
   ['护目镜', { itemIds: [37], reason: 'nonstandard single-piece equipped display' }],

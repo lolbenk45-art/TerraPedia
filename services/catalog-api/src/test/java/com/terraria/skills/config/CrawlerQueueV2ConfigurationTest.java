@@ -1,7 +1,14 @@
 package com.terraria.skills.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.service.impl.CrawlerMonitorActionRegistry;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptArtifactStore;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptProcessLauncher;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptStateMachine;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptSupervisor;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerLegacySnapshotReader;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Repository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -59,5 +66,35 @@ class CrawlerQueueV2ConfigurationTest {
             if (previousRepoRoot == null) System.clearProperty("terrapedia.repo-root");
             else System.setProperty("terrapedia.repo-root", previousRepoRoot);
         }
+    }
+
+    @Test
+    void keepsAttemptStateDurableWhilePassingTheConfiguredCommandRootToTheSupervisor() throws Exception {
+        Path commandRoot = repositoryRoot.resolveSibling("scheduler-command-root");
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+
+        CrawlerAttemptSupervisor supervisor = new CrawlerQueueV2Configuration().crawlerAttemptSupervisor(
+            mock(CrawlerQueueV2Repository.class),
+            mock(CrawlerAttemptArtifactStore.class),
+            CrawlerMonitorActionRegistry.defaults(),
+            mock(CrawlerAttemptProcessLauncher.class),
+            new CrawlerAttemptStateMachine(properties),
+            properties,
+            Clock.systemUTC(),
+            mock(CrawlerQueueEngineRouter.class),
+            repositoryRoot.toString(),
+            commandRoot.toString()
+        );
+
+        Field worktreeRoot = CrawlerAttemptSupervisor.class.getDeclaredField("worktreeRoot");
+        worktreeRoot.setAccessible(true);
+        Field artifactRoot = CrawlerAttemptSupervisor.class.getDeclaredField("artifactRoot");
+        artifactRoot.setAccessible(true);
+        Field supervisorCommandRoot = CrawlerAttemptSupervisor.class.getDeclaredField("commandRoot");
+        supervisorCommandRoot.setAccessible(true);
+
+        assertEquals(repositoryRoot.toAbsolutePath().normalize(), worktreeRoot.get(supervisor));
+        assertEquals(repositoryRoot.toAbsolutePath().normalize(), artifactRoot.get(supervisor));
+        assertEquals(commandRoot.toAbsolutePath().normalize(), supervisorCommandRoot.get(supervisor));
     }
 }

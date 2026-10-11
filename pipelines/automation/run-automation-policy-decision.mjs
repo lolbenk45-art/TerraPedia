@@ -11,13 +11,37 @@ import {
   loadAuthorizedOperationContext,
   loadAuthorizedOperationServerFingerprint,
 } from './authorized-operation-context.mjs';
-import { canonicalServerFingerprint } from './automation-database-contract.mjs';
-import { assertRepositoryOrdinaryFile } from '../lib/private-repository-path.mjs';
+import {
+  canonicalServerFingerprint,
+  hashCanonicalServerFingerprint,
+} from './automation-database-contract.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+  resolveTrustedEvidenceRoot,
+} from '../lib/private-repository-path.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
 import { computePolicyHash } from './bootstrap-automation-policy.mjs';
 import { verifyFullReconciliationEvidence } from './reconciliation-evidence-contract.mjs';
-import { assertProposal as assertL2PromotionProposal } from './build-l2-promotion-proposal.mjs';
+import {
+  assertProposal as assertL2PromotionProposal,
+  L2_SERIAL_PROMOTION_ORDER,
+} from './build-l2-promotion-proposal.mjs';
+import {
+  assertL2SerialTransition,
+  isSerialL2PromotionOperation,
+} from './l2-promotion-serial-contract.mjs';
+import {
+  assertL2PolicyStableReauthorizationInput,
+  isL2PolicyStableReauthorizationOperation,
+  L2_POLICY_STABLE_REAUTHORIZATION_DOMAINS,
+} from './l2-policy-stable-reauthorization.mjs';
 import { assertApprovedL2PolicyCeilingArtifact } from './l2-policy-ceiling-artifact.mjs';
+import {
+  loadHistoricalSourceHashDispositions,
+  verifyHistoricalSourceHashDispositionEntry,
+} from './historical-source-hash-disposition.mjs';
+import { SCHEDULER_ACTION_BY_DOMAIN } from './crawler-v2-scheduler-activation-preflight.mjs';
 
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const L1_PROMOTION = Object.freeze({
@@ -87,6 +111,13 @@ const L2_OPERATION_IDS = Object.freeze({
   bosses: 'automation-bosses-l2-promotion',
   shimmer: 'automation-shimmer-l2-promotion',
 });
+const L2_REAUTHORIZATION_OPERATION_IDS = Object.freeze(Object.fromEntries(
+  L2_POLICY_STABLE_REAUTHORIZATION_DOMAINS.map((domainId) => [
+    domainId,
+    `automation-${domainId.replaceAll('_', '-')}-l2-reauthorization`,
+  ]),
+));
+const SCHEDULER_ACTION_IDS = Object.freeze(new Set(Object.values(SCHEDULER_ACTION_BY_DOMAIN)));
 for (const [domainId, operationId] of Object.entries(L2_OPERATION_IDS)) {
   OPERATION_DEFINITIONS[operationId] = Object.freeze({
     domainId,
@@ -95,6 +126,17 @@ for (const [domainId, operationId] of Object.entries(L2_OPERATION_IDS)) {
     targetLevel: 'L2',
     targetOperationalState: 'ACTIVE',
     decisionKind: 'L2_PROMOTION',
+  });
+}
+for (const [domainId, operationId] of Object.entries(L2_REAUTHORIZATION_OPERATION_IDS)) {
+  OPERATION_DEFINITIONS[operationId] = Object.freeze({
+    domainId,
+    currentLevel: 'L2',
+    currentStates: Object.freeze(['ACTIVE']),
+    targetLevel: null,
+    targetOperationalState: null,
+    decisionKind: 'L2_PROMOTION',
+    reauthorization: true,
   });
 }
 Object.freeze(OPERATION_DEFINITIONS);
@@ -107,6 +149,18 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
   const operationId = requireText(input.operationId, 'operationId');
   const definition = OPERATION_DEFINITIONS[operationId];
   if (!definition) throw new Error(`unsupported policy decision operationId: ${operationId}`);
+  if (isL2PolicyStableReauthorizationOperation(operationId)) {
+    return buildL2PolicyStableReauthorizationPlan(input, authorizationContext, definition);
+  }
+  const authorizedActionId = operationId === 'automation-crawler-v2-scheduler-activation'
+    ? requireText(input.authorizedActionId, 'authorizedActionId')
+    : null;
+  if (authorizedActionId != null && !SCHEDULER_ACTION_IDS.has(authorizedActionId)) {
+    throw new Error('authorizedActionId is not a registered scheduler action');
+  }
+  if (authorizedActionId != null) {
+    assertSchedulerCanaryScope(input, authorizedActionId);
+  }
   if (authorizationContext.operationId !== operationId) {
     throw new Error('authorization context operationId must match the policy decision operationId');
   }
@@ -134,6 +188,10 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
   const proposalBinding = definition.decisionKind === 'L2_PROMOTION'
     ? validateL2ProposalBinding(input, operationId)
     : {};
+  const serialBinding = definition.decisionKind === 'L2_PROMOTION'
+      && isSerialL2PromotionOperation(operationId)
+    ? validateSerialL2Input(input, operationId)
+    : {};
   return Object.freeze({
     schemaVersion: 1,
     operationId,
@@ -149,6 +207,9 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
     decisionIdentity: requireText(authorizationContext.decisionIdentity, 'decisionIdentity'),
     packetHash: requireHash(authorizationContext.packetHash, 'packetHash'),
     policySetHash: requireHash(input.policySetHash, 'policySetHash'),
+    ...(isSerialL2PromotionOperation(operationId)
+      ? { l1EvidencePolicySetHash: requireHash(input.l1EvidencePolicySetHash, 'l1EvidencePolicySetHash') }
+      : {}),
     policyVersion,
     policyHash: requireHash(input.policyHash, 'policyHash'),
     minimumSuccessfulL1Runs,
@@ -157,8 +218,73 @@ export function buildAutomationPolicyDecisionPlan(input = {}, authorizationConte
     requiresSuccessfulL1Runs,
     requiresFullReconciliation: definition.decisionKind === 'L2_PROMOTION',
     ...proposalBinding,
+    ...serialBinding,
     ...(definition.decisionKind === 'L2_PROMOTION' ? validateL2TargetInput(input) : {}),
     ...definition,
+    ...(authorizedActionId == null ? {} : { authorizedActionId }),
+  });
+}
+
+function assertSchedulerCanaryScope(input, authorizedActionId) {
+  const canary = input?.canary;
+  if (!canary || typeof canary !== 'object' || Array.isArray(canary)) {
+    throw new Error('scheduler activation requires a captured canary scope');
+  }
+  const actionId = requireText(canary.actionId, 'captured canary actionId');
+  const domainId = requireText(canary.domainId, 'captured canary domainId');
+  if (SCHEDULER_ACTION_BY_DOMAIN[domainId] !== actionId) {
+    throw new Error('captured canary action/domain binding is invalid');
+  }
+  if (actionId !== authorizedActionId) {
+    throw new Error('authorizedActionId must match the captured canary action');
+  }
+}
+
+function buildL2PolicyStableReauthorizationPlan(input, authorizationContext, definition) {
+  if (authorizationContext.operationId !== input.operationId) {
+    throw new Error('authorization context operationId must match the policy decision operationId');
+  }
+  const authorization = assertL2PolicyStableReauthorizationInput(input, {
+    now: authorizationContext.authorizedAt,
+  });
+  const authorizedAt = requireTimestamp(authorizationContext.authorizedAt, 'authorizedAt');
+  const expiresAt = requireTimestamp(authorizationContext.expiresAt, 'expiresAt');
+  if (Date.parse(expiresAt) <= Date.parse(authorizedAt)) {
+    throw new Error('expiresAt must be after authorizedAt');
+  }
+  const current = authorization.currentPolicy;
+  const predecessor = authorization.predecessorL1Evidence;
+  return Object.freeze({
+    schemaVersion: 1,
+    operationId: authorization.operationId,
+    databaseName: authorization.databaseName,
+    domainId: authorization.domainId,
+    ownerUsername: requireText(authorizationContext.actor, 'actor'),
+    actor: requireText(authorizationContext.actor, 'actor'),
+    reason: requireText(authorizationContext.reason, 'reason'),
+    authorizationReference: requireText(authorizationContext.authorizationReference, 'authorizationReference'),
+    decisionIdentity: requireText(authorizationContext.decisionIdentity, 'decisionIdentity'),
+    packetHash: requireHash(authorizationContext.packetHash, 'packetHash'),
+    policySetHash: current.policySetHash,
+    policyVersion: current.policyVersion,
+    policyHash: current.policyHash,
+    minimumSuccessfulL1Runs: predecessor.minimumSuccessfulL1Runs,
+    authorizedAt,
+    expiresAt,
+    requiresSuccessfulL1Runs: true,
+    requiresFullReconciliation: true,
+    currentLevel: definition.currentLevel,
+    currentStates: definition.currentStates,
+    targetLevel: null,
+    targetOperationalState: null,
+    decisionKind: 'L2_PROMOTION',
+    reauthorization: true,
+    currentPolicy: current,
+    targetPolicy: authorization.targetPolicy,
+    priorDecision: authorization.priorDecision,
+    l1EvidencePolicyVersion: predecessor.policyVersion,
+    l1EvidencePolicyHash: predecessor.policyHash,
+    l1EvidencePolicySetHash: predecessor.policySetHash,
   });
 }
 
@@ -207,9 +333,61 @@ export async function executeAutomationPolicyDecision({
       throw new Error('current policy set identity does not match the decision');
     }
 
+    if (plan.decisionKind === 'L2_PROMOTION' && isSerialL2PromotionOperation(plan.operationId)) {
+      await assertSerialPromotionPredecessor({ adapter, plan, currentPolicySetHash });
+    }
+    if (plan.reauthorization === true) {
+      await assertL2PolicyStableReauthorizationPredecessor({ adapter, plan, executionTime });
+    }
+
     let successfulL1Runs = null;
     let qualifyingEvidence = null;
-    if (plan.decisionKind === 'L2_PROMOTION') {
+    if (plan.decisionKind === 'L2_PROMOTION' && plan.reauthorization === true) {
+      if (typeof adapter.readTargetPolicyForUpdate !== 'function') {
+        throw new Error('current L2 policy reader is required for L2 reauthorization');
+      }
+      const targetPolicy = await adapter.readTargetPolicyForUpdate(plan.domainId, plan.policyVersion);
+      const targetPolicyJson = parsePolicyJson(targetPolicy?.policyJson);
+      if (!targetPolicy || targetPolicy.domainId !== plan.domainId
+          || Number(targetPolicy.policyVersion) !== plan.policyVersion
+          || targetPolicy.policyHash !== plan.policyHash
+          || targetPolicy.level !== 'L2'
+          || computePolicyHash(targetPolicyJson) !== plan.policyHash) {
+        throw new Error('current L2 policy version or ceiling does not match the reauthorization');
+      }
+      if (typeof adapter.readL2OwnershipFenceState !== 'function') {
+        throw new Error('L2 ownership fence reader is required for L2 reauthorization');
+      }
+      const fenceState = await adapter.readL2OwnershipFenceState(plan.domainId, targetPolicyJson.ownedTables);
+      if (!fenceState || [fenceState.activeAttempts, fenceState.activeReservations,
+        fenceState.activeFences, fenceState.mismatchedFences ?? 0]
+        .some((count) => !Number.isSafeInteger(Number(count)) || Number(count) !== 0)) {
+        throw new Error('active writer, reservation, or attempt blocks L2 reauthorization');
+      }
+      if (typeof adapter.readQualifyingL1Evidence !== 'function') {
+        throw new Error('full reconciliation evidence reader is required for L2 reauthorization');
+      }
+      qualifyingEvidence = await adapter.readQualifyingL1Evidence(plan.domainId, {
+        policyVersion: plan.l1EvidencePolicyVersion,
+        policyHash: plan.l1EvidencePolicyHash,
+        policySetHash: plan.l1EvidencePolicySetHash,
+        minimumSuccessfulL1Runs: plan.minimumSuccessfulL1Runs,
+      });
+      successfulL1Runs = Number(qualifyingEvidence?.distinctCommittedL1Runs);
+      if (!Number.isSafeInteger(successfulL1Runs) || successfulL1Runs < plan.minimumSuccessfulL1Runs) {
+        throw new Error(`at least ${plan.minimumSuccessfulL1Runs} distinct committed L1 runs are required`);
+      }
+      try {
+        verifyFullReconciliationEvidence(qualifyingEvidence.fullReconciliation, {
+          domainId: plan.domainId,
+          policyVersion: plan.l1EvidencePolicyVersion,
+          policyHash: plan.l1EvidencePolicyHash,
+          policySetHash: plan.l1EvidencePolicySetHash,
+        });
+      } catch (error) {
+        throw new Error(`full reconciliation evidence is required for L2 reauthorization: ${error.message}`);
+      }
+    } else if (plan.decisionKind === 'L2_PROMOTION') {
       if (typeof adapter.readTargetPolicyForUpdate !== 'function') {
         throw new Error('target L2 policy reader is required for L2 promotion');
       }
@@ -241,7 +419,7 @@ export async function executeAutomationPolicyDecision({
       qualifyingEvidence = await adapter.readQualifyingL1Evidence(plan.domainId, {
         policyVersion: plan.policyVersion,
         policyHash: plan.policyHash,
-        policySetHash: plan.policySetHash,
+        policySetHash: plan.l1EvidencePolicySetHash ?? plan.policySetHash,
         minimumSuccessfulL1Runs: plan.minimumSuccessfulL1Runs,
       });
       successfulL1Runs = Number(qualifyingEvidence?.distinctCommittedL1Runs);
@@ -253,7 +431,7 @@ export async function executeAutomationPolicyDecision({
           domainId: plan.domainId,
           policyVersion: plan.policyVersion,
           policyHash: plan.policyHash,
-          policySetHash: plan.policySetHash,
+          policySetHash: plan.l1EvidencePolicySetHash ?? plan.policySetHash,
         });
       } catch (error) {
         throw new Error(`full reconciliation evidence is required for L2 promotion: ${error.message}`);
@@ -286,6 +464,7 @@ export async function executeAutomationPolicyDecision({
         authorizationReference: plan.authorizationReference,
         decisionIdentity: plan.decisionIdentity,
         packetHash: plan.packetHash,
+        authorizedActionId: plan.authorizedActionId ?? null,
         authorizedAt: plan.authorizedAt,
         expiresAt: plan.expiresAt,
       });
@@ -300,6 +479,12 @@ export async function executeAutomationPolicyDecision({
         targetLevel: plan.targetLevel,
         targetOperationalState: plan.targetOperationalState,
       });
+      if (plan.decisionKind === 'L2_PROMOTION' && typeof adapter.readCurrentPolicySetHash === 'function') {
+        const postPromotionPolicySetHash = await adapter.readCurrentPolicySetHash();
+        if (postPromotionPolicySetHash !== plan.targetPolicySetHash) {
+          throw new Error('post-promotion policy set identity does not match the decision');
+        }
+      }
     }
     const result = Object.freeze({
       schemaVersion: 1,
@@ -319,6 +504,12 @@ export async function executeAutomationPolicyDecision({
       authorizationReference: plan.authorizationReference,
       packetHash: plan.packetHash,
       successfulL1Runs,
+      ...(plan.l1EvidencePolicySetHash == null ? {} : {
+        l1EvidencePolicySetHash: plan.l1EvidencePolicySetHash,
+        promotionCurrentPolicySetHash: plan.policySetHash,
+        promotionTargetPolicySetHash: plan.targetPolicySetHash,
+        serialTransition: plan.serialTransition,
+      }),
       completedAt: executionTime,
     });
     if (beforeCommit != null) await beforeCommit(result);
@@ -332,9 +523,159 @@ export async function executeAutomationPolicyDecision({
   }
 }
 
-export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoot = process.cwd() } = {}) {
+async function assertL2PolicyStableReauthorizationPredecessor({ adapter, plan, executionTime }) {
+  if (typeof adapter.readLatestL2PromotionDecisionForUpdate !== 'function') {
+    throw new Error('latest L2 promotion decision reader is required for L2 reauthorization');
+  }
+  const actual = await adapter.readLatestL2PromotionDecisionForUpdate(plan.domainId);
+  const expected = plan.priorDecision;
+  if (!actual || actual.decisionKind !== 'L2_PROMOTION'
+      || actual.domainId !== plan.domainId
+      || Number(actual.policyVersion) !== plan.policyVersion
+      || actual.policyHash !== plan.policyHash
+      || actual.policySetHash !== expected.policySetHash
+      || actual.decisionIdentity !== expected.decisionIdentity
+      || actual.packetHash !== expected.packetHash
+      || requireTimestamp(actual.expiresAt, 'latest L2 promotion decision expiry') !== expected.expiresAt) {
+    throw new Error('latest L2 promotion decision does not match the reauthorization input');
+  }
+  if (Date.parse(actual.expiresAt) >= Date.parse(executionTime)) {
+    throw new Error('latest L2 promotion decision is not expired');
+  }
+}
+
+async function assertSerialPromotionPredecessor({ adapter, plan, currentPolicySetHash }) {
+  const transition = assertL2SerialTransition(plan.serialTransition, {
+    domainId: plan.domainId,
+    operationId: plan.operationId,
+  });
+  if (transition.sequenceIndex === 0) return true;
+  if (typeof adapter.readL2PromotionPredecessor !== 'function') {
+    throw new Error('serial L2 predecessor reader is required for non-first promotion');
+  }
+  const expected = transition.predecessor;
+  const observed = await adapter.readL2PromotionPredecessor(
+    plan.domainId,
+    transition,
+  );
+  if (!observed || observed.decisionKind !== 'L2_PROMOTION'
+      || observed.domainId !== expected.domainId
+      || observed.operationId !== expected.operationId
+      || observed.decisionIdentity !== expected.decisionIdentity
+      || observed.packetHash !== expected.packetHash
+      || observed.policySetHash !== expected.postPolicySetHash
+      || observed.postPolicySetHash !== expected.postPolicySetHash
+      || currentPolicySetHash !== expected.postPolicySetHash) {
+    throw new Error('serial L2 predecessor identity or post-policy-set hash does not match the live transition');
+  }
+  return true;
+}
+
+export function createMysqlAutomationPolicyDecisionAdapter(connection, {
+  repoRoot = process.cwd(),
+  databaseEvidenceRoot = null,
+  historicalEvidenceRoot = null,
+  evidenceRoot = null,
+  historicalSourceHashDispositionPaths = [],
+  historicalDispositionPaths = [],
+  historicalDispositionServerFingerprint = null,
+  historicalDispositionNow = null,
+} = {}) {
   if (!connection) throw new TypeError('MySQL connection is required');
+  const resolvedRepoRoot = path.resolve(repoRoot);
+  const evidenceRootInputs = [databaseEvidenceRoot, historicalEvidenceRoot, evidenceRoot]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean);
+  for (const value of evidenceRootInputs) {
+    if (!path.isAbsolute(value) || path.resolve(value) !== value || value.endsWith(path.sep)) {
+      throw new Error('evidence root must be a canonical absolute directory path');
+    }
+  }
+  const normalizedEvidenceRoots = [...new Set(evidenceRootInputs.map((value) => path.resolve(value)))];
+  if (normalizedEvidenceRoots.length > 1) {
+    throw new Error('conflicting evidence root inputs');
+  }
+  const evidenceRootDescriptor = resolveTrustedEvidenceRoot({
+    repoRoot: resolvedRepoRoot,
+    evidenceRoot: evidenceRootInputs[0] ?? null,
+  });
+  const resolvedEvidenceRoot = evidenceRootDescriptor.root;
+  const evidenceRootIdentity = Object.freeze({
+    kind: evidenceRootDescriptor.kind,
+    repositoryRelativeRoot: evidenceRootDescriptor.repositoryRelativeRoot,
+  });
+  const sourceDispositionPaths = normalizeHistoricalDispositionPaths(
+    Array.isArray(historicalSourceHashDispositionPaths)
+      ? historicalSourceHashDispositionPaths
+      : [historicalSourceHashDispositionPaths],
+  );
+  const compatibilityDispositionPaths = normalizeHistoricalDispositionPaths(
+    Array.isArray(historicalDispositionPaths)
+      ? historicalDispositionPaths
+      : [historicalDispositionPaths],
+  );
+  if (sourceDispositionPaths.length > 0 && compatibilityDispositionPaths.length > 0
+      && !samePathSet(sourceDispositionPaths, compatibilityDispositionPaths)) {
+    throw new Error('historical disposition path conflict between source-hash and compatibility inputs');
+  }
+  const dispositionPaths = normalizeHistoricalDispositionPaths([
+    ...sourceDispositionPaths,
+    ...compatibilityDispositionPaths,
+  ]);
+  const resolveHistoricalDispositionNow = () => (
+    typeof historicalDispositionNow === 'function'
+      ? historicalDispositionNow()
+      : historicalDispositionNow ?? new Date().toISOString()
+  );
+  let historicalDispositions = loadHistoricalSourceHashDispositions({
+    repoRoot: resolvedRepoRoot,
+    dispositionPaths,
+    now: resolveHistoricalDispositionNow(),
+  });
+  let expectedHistoricalServerFingerprint = null;
+  if (historicalDispositions.size > 0) {
+    if (!historicalDispositionServerFingerprint) {
+      throw new Error('historical disposition current server fingerprint is required');
+    }
+    expectedHistoricalServerFingerprint = canonicalServerFingerprint(
+      historicalDispositionServerFingerprint,
+    );
+  }
+  const verifyHistoricalDispositionServerFingerprint = async () => {
+    if (dispositionPaths.length === 0) return;
+    const refreshedDispositions = loadHistoricalSourceHashDispositions({
+      repoRoot: resolvedRepoRoot,
+      dispositionPaths,
+      now: resolveHistoricalDispositionNow(),
+    });
+    assertHistoricalDispositionSnapshot(historicalDispositions, refreshedDispositions);
+    historicalDispositions = refreshedDispositions;
+    if (historicalDispositions.size === 0) return;
+    const [serverRows] = await connection.query(
+      'SELECT @@server_uuid AS serverUuid, @@port AS port',
+    );
+    const actual = canonicalServerFingerprint({
+      host: expectedHistoricalServerFingerprint.host,
+      port: Number(serverRows?.[0]?.port),
+      serverUuid: serverRows?.[0]?.serverUuid,
+      databases: expectedHistoricalServerFingerprint.databases,
+    });
+    if (JSON.stringify(actual) !== JSON.stringify(expectedHistoricalServerFingerprint)) {
+      throw new Error('current database server fingerprint does not match the historical disposition input');
+    }
+    const actualHash = hashCanonicalServerFingerprint(actual);
+    for (const [runId, historical] of historicalDispositions.entries()) {
+      const packetHash = historical.packet?.serverFingerprint;
+      const approvalHash = historical.disposition?.approval?.technical?.serverFingerprint;
+      if (packetHash !== actualHash || approvalHash !== actualHash) {
+        throw new Error(`historical disposition ${runId} server fingerprint does not match the current database server`);
+      }
+    }
+    return actual;
+  };
   return {
+    evidenceRoot: evidenceRootIdentity,
+    databaseEvidenceRoot: evidenceRootIdentity,
     begin: () => connection.beginTransaction(),
     async readOwnerForUpdate() {
       const [rows] = await connection.query(
@@ -352,6 +693,23 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
         [domainId],
       );
       return rows?.[0] ?? null;
+    },
+    async readLatestL2PromotionDecisionForUpdate(domainId) {
+      const [rows] = await connection.query(
+        'SELECT decision_kind AS decisionKind, domain_id AS domainId,'
+        + ' policy_version AS policyVersion, policy_hash AS policyHash,'
+        + ' policy_set_hash AS policySetHash, decision_identity AS decisionIdentity,'
+        + ' packet_hash AS packetHash,'
+        + " DATE_FORMAT(expires_at, '%Y-%m-%d %H:%i:%s') AS expiresAt"
+        + ' FROM crawler_automation_activation_decision'
+        + " WHERE decision_kind = 'L2_PROMOTION' AND domain_id = ?"
+        + ' ORDER BY authorized_at DESC, id DESC LIMIT 1 FOR UPDATE',
+        [domainId],
+      );
+      const row = rows?.[0] ?? null;
+      return row == null
+        ? null
+        : { ...row, expiresAt: mysqlDateTimeToUtcIso(row.expiresAt) };
     },
     async readTargetPolicyForUpdate(domainId, policyVersion) {
       const [rows] = await connection.query(
@@ -411,14 +769,21 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
         mismatchedFences: mismatchedFenceRows.length,
       };
     },
-    async readCurrentPolicySetHash() {
+    async readCurrentPolicyRows() {
       const [rows] = await connection.query(
         'SELECT p.domain_id AS domainId, p.current_version AS policyVersion,'
         + ' pv.policy_hash AS policyHash FROM crawler_automation_policy p'
         + ' JOIN crawler_automation_policy_version pv ON pv.domain_id = p.domain_id'
         + ' AND pv.policy_version = p.current_version ORDER BY p.domain_id FOR UPDATE',
       );
-      return computePolicySetHash(rows ?? []);
+      return (rows ?? []).map((row) => ({
+        domainId: row.domainId,
+        policyVersion: Number(row.policyVersion),
+        policyHash: row.policyHash,
+      }));
+    },
+    async readCurrentPolicySetHash() {
+      return computePolicySetHash(await this.readCurrentPolicyRows());
     },
     async readTargetPolicySetHash(domainId, targetPolicyVersion) {
       const [rows] = await connection.query(
@@ -434,6 +799,28 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
       );
       return computePolicySetHash(rows ?? []);
     },
+    async readL2PromotionPredecessor(domainId, transition) {
+      const predecessor = transition?.predecessor;
+      if (!predecessor || typeof predecessor !== 'object') {
+        throw new Error('serial L2 predecessor descriptor is required');
+      }
+      const [rows] = await connection.query(
+        'SELECT decision_kind AS decisionKind, domain_id AS domainId, policy_version AS policyVersion, '
+        + 'policy_hash AS policyHash, policy_set_hash AS policySetHash, '
+        + 'decision_identity AS decisionIdentity, packet_hash AS packetHash '
+        + 'FROM crawler_automation_activation_decision '
+        + "WHERE decision_kind = 'L2_PROMOTION' AND domain_id = ? "
+        + 'AND decision_identity = ? AND packet_hash = ? FOR UPDATE',
+        [predecessor.domainId, predecessor.decisionIdentity, predecessor.packetHash],
+      );
+      const row = rows?.[0];
+      if (!row) return null;
+      return {
+        ...row,
+        operationId: `automation-${String(row.domainId).replaceAll('_', '-')}-l2-promotion`,
+        postPolicySetHash: row.policySetHash,
+      };
+    },
     async countSuccessfulL1Applies(domainId, identity = {}) {
       const evidence = await this.readQualifyingL1Evidence(domainId, identity);
       return Number(evidence?.distinctCommittedL1Runs ?? 0);
@@ -444,17 +831,33 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
           || !HASH_PATTERN.test(identity.policySetHash ?? '')) {
         throw new Error('L1 evidence identity is required');
       }
+      await verifyHistoricalDispositionServerFingerprint();
       const [rows] = await connection.query(
-        'SELECT DISTINCT r.run_id AS runId, r.created_at AS runCreatedAt,'
+        'SELECT DISTINCT r.run_id AS runId, r.primary_domain_id AS runDomainId,'
+        + ' r.created_at AS runCreatedAt, r.trigger_kind AS triggerKind, r.status AS runStatus,'
         + ' r.policy_set_hash AS runPolicySetHash, r.baseline_fingerprint AS runBaselineFingerprint,'
-        + ' a.bundle_hash AS bundleHash, a.policy_set_hash AS applyPolicySetHash,'
-        + ' b.private_path AS bundlePath, b.evidence_hash AS bundleEvidenceHash,'
-        + ' b.policy_set_hash AS bundlePolicySetHash, b.baseline_fingerprint AS bundleBaselineFingerprint,'
-        + ' es.evidence_hash AS evidenceHash, es.policy_set_hash AS evidenceSetPolicySetHash,'
+        + ' rp.run_id AS runPolicyRunId, rp.run_id AS runPolicyRowRunId, rp.domain_id AS runPolicyDomainId,'
+        + ' rp.policy_version AS runPolicyVersion, rp.policy_hash AS runPolicyHash,'
+        + ' rp.policy_set_hash AS runPolicyRowSetHash,'
+        + ' a.run_id AS applyRunId, a.bundle_hash AS bundleHash, a.bundle_hash AS applyBundleHash, a.status AS applyStatus,'
+        + ' a.policy_set_hash AS applyPolicySetHash,'
+        + ' b.run_id AS bundleRunId, b.bundle_hash AS bundleRowHash, b.private_path AS bundlePath,'
+        + ' b.evidence_hash AS bundleEvidenceHash, b.policy_set_hash AS bundlePolicySetHash,'
+        + ' b.baseline_fingerprint AS bundleBaselineFingerprint,'
+        + ' es.run_id AS evidenceSetRunId, es.evidence_hash AS evidenceHash, es.evidence_hash AS evidenceSetHash,'
+        + ' es.policy_set_hash AS evidenceSetPolicySetHash,'
         + ' es.baseline_fingerprint AS evidenceSetBaselineFingerprint, es.manifest_json AS evidenceManifest,'
-        + ' (SELECT JSON_OBJECT(\'path\', e.private_path, \'sha256\', e.sha256, \'policySetHash\', e.policy_set_hash)'
+        + ' (SELECT JSON_OBJECT(\'runId\', e.run_id, \'path\', e.private_path, \'sha256\', e.sha256, \'policySetHash\', e.policy_set_hash)'
         + ' FROM crawler_automation_evidence e WHERE e.run_id = r.run_id'
         + " AND e.kind = 'FULL_RECONCILIATION' ORDER BY e.id DESC LIMIT 1) AS reconciliationArtifact"
+        + ', (SELECT e.run_id FROM crawler_automation_evidence e WHERE e.run_id = r.run_id'
+        + " AND e.kind = 'FULL_RECONCILIATION' ORDER BY e.id DESC LIMIT 1) AS reconciliationRunId"
+        + ', (SELECT e.private_path FROM crawler_automation_evidence e WHERE e.run_id = r.run_id'
+        + " AND e.kind = 'FULL_RECONCILIATION' ORDER BY e.id DESC LIMIT 1) AS reconciliationPath"
+        + ', (SELECT e.sha256 FROM crawler_automation_evidence e WHERE e.run_id = r.run_id'
+        + " AND e.kind = 'FULL_RECONCILIATION' ORDER BY e.id DESC LIMIT 1) AS reconciliationSha256"
+        + ', (SELECT e.policy_set_hash FROM crawler_automation_evidence e WHERE e.run_id = r.run_id'
+        + " AND e.kind = 'FULL_RECONCILIATION' ORDER BY e.id DESC LIMIT 1) AS reconciliationPolicySetHash"
         + ' FROM crawler_automation_run r'
         + ' JOIN crawler_automation_apply a ON a.run_id = r.run_id'
         + ' JOIN crawler_automation_run_policy rp ON rp.run_id = r.run_id'
@@ -466,20 +869,75 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
         + ' ORDER BY runCreatedAt',
         [domainId, domainId, identity.policyVersion, identity.policyHash, identity.policySetHash],
       );
+      // The evidence query is a boundary at which a disposition file or the
+      // connected server could have changed. Re-read both immediately before
+      // interpreting any row so a stale packet can never exclude evidence.
+      await verifyHistoricalDispositionServerFingerprint();
       const distinct = new Map();
+      const qualifyingL1Runs = [];
+      const excludedHistoricalRuns = [];
+      const expectedHistoricalRuns = new Map(
+        [...historicalDispositions.entries()]
+          .filter(([, value]) => value.entry.domainId === domainId),
+      );
+      const observedHistoricalRuns = new Set();
       let fullReconciliation = false;
       for (const row of rows ?? []) {
         if (distinct.has(row.runId)) continue;
+        assertL1DatabaseRowIdentity(row, domainId, identity);
+        const historical = historicalDispositions.get(row.runId);
+        if (historical) {
+          if (observedHistoricalRuns.has(row.runId)) continue;
+          if (historical.entry.domainId !== domainId) {
+            throw new Error('historical source hash disposition domain identity does not match the queried domain');
+          }
+          try {
+            verifyHistoricalSourceHashDispositionEntry({
+              repoRoot: resolvedRepoRoot,
+              disposition: historical.disposition,
+              entry: historical.entry,
+              row,
+              domainId,
+              policy: {
+                domainId,
+                level: 'L1',
+                operationalState: 'ACTIVE',
+                policyVersion: Number(identity.policyVersion),
+                policyHash: identity.policyHash,
+                policySetHash: identity.policySetHash,
+              },
+            });
+          } catch (error) {
+            throw new Error(`historical source hash disposition is invalid for ${row.runId}: ${error.message}`);
+          }
+          observedHistoricalRuns.add(row.runId);
+          excludedHistoricalRuns.push({
+            domainId,
+            runId: row.runId,
+            reasonCode: historical.disposition.reasonCode,
+            disposition: historical.disposition.disposition,
+            dispositionPath: historical.path,
+            dispositionArtifactHash: historical.disposition.artifactHash,
+            declaredSourceSha256: historical.entry.source.declaredSha256,
+            semanticJsonSha256: historical.entry.source.semanticJsonSha256,
+            actualByteSha256: historical.entry.source.actualByteSha256,
+          });
+          continue;
+        }
         let bundle = null;
-        const bundlePath = String(row.bundlePath ?? '').trim();
-        if (!bundlePath || !path.isAbsolute(bundlePath)) throw new Error('L1 bundle path is missing or not absolute');
+        const bundlePath = requireCanonicalAbsoluteEvidencePath(
+          row.bundlePath,
+          resolvedEvidenceRoot,
+          'L1 bundle path',
+        );
         try {
           const confinedBundlePath = assertRepositoryOrdinaryFile({
-            repoRoot,
+            repoRoot: resolvedEvidenceRoot,
             filePath: bundlePath,
             label: 'L1 bundle path',
           });
-          if (!confinedBundlePath.startsWith(`${path.resolve(repoRoot, 'reports', 'authorization', 'canonical')}${path.sep}`)) {
+          if (confinedBundlePath !== bundlePath
+              || !confinedBundlePath.startsWith(`${path.resolve(resolvedEvidenceRoot, 'reports', 'authorization', 'canonical')}${path.sep}`)) {
             throw new Error('L1 bundle path must be under the canonical authorization report root');
           }
           bundle = JSON.parse(fs.readFileSync(confinedBundlePath, 'utf8'));
@@ -495,8 +953,9 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
         } catch (error) {
           throw new Error(`L1 evidence manifest is invalid: ${error.message}`);
         }
-        const sourcePath = String(bundle.source?.path ?? '').replaceAll('\\', '/');
-        if (!sourcePath.startsWith('reports/') || sourcePath.includes('..') || sourcePath.startsWith('/')
+        assertL1BundleIdentity(bundle, row, domainId, identity);
+        const sourcePath = requireCanonicalRelativeEvidencePath(bundle.source?.path, 'L1 source path');
+        if (!sourcePath.startsWith('reports/')
             || !HASH_PATTERN.test(bundle.source?.sha256 ?? '')
             || manifest?.privatePath !== bundle.__confinedPath
             || manifest?.source?.path !== sourcePath
@@ -504,8 +963,8 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
           throw new Error('L1 source identity is missing or drifted');
         }
         const sourceAbsolute = assertRepositoryOrdinaryFile({
-          repoRoot,
-          filePath: path.resolve(repoRoot, sourcePath),
+          repoRoot: resolvedEvidenceRoot,
+          filePath: path.resolve(resolvedEvidenceRoot, sourcePath),
           label: 'L1 source artifact',
         });
         const sourceBytes = fs.readFileSync(sourceAbsolute);
@@ -550,6 +1009,7 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
         if (!l1Bound) continue;
         distinct.set(row.runId, true);
         const reconciliation = bundle?.reconciliationEvidence ?? manifest?.reconciliationEvidence;
+        let verifiedReconciliationArtifact = null;
         if (reconciliation != null) {
           try {
             const verified = verifyFullReconciliationEvidence(reconciliation, {
@@ -559,15 +1019,22 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
               policyHash: identity.policyHash,
               policySetHash: identity.policySetHash,
             });
-            verifyReconciliationArtifactFiles(verified, repoRoot);
-            fullReconciliation = verified;
+            verifyReconciliationArtifactFiles(verified, resolvedEvidenceRoot);
           } catch (error) {
-            throw new Error(`L1 reconciliation evidence is invalid: ${error.message}`);
+            throw new Error(`L1 inline reconciliation evidence is invalid: ${error.message}`);
           }
         }
-        if (reconciliationArtifact?.path && reconciliationArtifact?.sha256) {
+        const hasReconciliationArtifact = reconciliationArtifact != null;
+        if (hasReconciliationArtifact) {
           try {
-            const artifactEntry = readConfinedReconciliationArtifact(repoRoot, reconciliationArtifact);
+            assertReconciliationArtifactReferenceIdentity({
+              reference: reconciliationArtifact,
+              row,
+              runId: row.runId,
+              policySetHash: identity.policySetHash,
+              repoRoot: resolvedEvidenceRoot,
+            });
+            const artifactEntry = readConfinedReconciliationArtifact(resolvedEvidenceRoot, reconciliationArtifact);
             const artifactEvidence = JSON.parse(artifactEntry.bytes.toString('utf8'));
             const verified = verifyFullReconciliationEvidence(artifactEvidence, {
               domainId,
@@ -579,25 +1046,56 @@ export function createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoo
             if (reconciliationArtifact.policySetHash !== identity.policySetHash) {
               throw new Error('L1 reconciliation artifact policy-set identity drifted');
             }
+            verifyReconciliationArtifactFiles(verified, resolvedEvidenceRoot);
             fullReconciliation = verified;
+            verifiedReconciliationArtifact = reconciliationArtifact;
           } catch (error) {
             throw new Error(`L1 reconciliation artifact is invalid: ${error.message}`);
           }
         }
+        qualifyingL1Runs.push({
+          runId: row.runId,
+          status: 'COMPLETED',
+          applyStatus: 'COMMITTED',
+          ...(row.runCreatedAt == null ? {} : { runCreatedAt: row.runCreatedAt }),
+          ...(row.triggerKind == null ? {} : { triggerKind: row.triggerKind }),
+          operationId: bundle.operationId,
+          bundlePath: toRepoRelativePath(resolvedEvidenceRoot, bundle.__confinedPath),
+          bundleSha256: bundleFileHash,
+          evidencePath: verifiedReconciliationArtifact?.path
+            ? toRepoRelativePath(resolvedEvidenceRoot, verifiedReconciliationArtifact.path)
+            : null,
+          evidenceSha256: verifiedReconciliationArtifact?.sha256 ?? null,
+          policySetHash: bundle.policy.policySetHash,
+          baselineFingerprint: bundle.baselineFingerprint,
+          fullReconciliation: Boolean(verifiedReconciliationArtifact),
+        });
       }
-      return { distinctCommittedL1Runs: distinct.size, fullReconciliation };
+      for (const runId of expectedHistoricalRuns.keys()) {
+        if (!observedHistoricalRuns.has(runId)) {
+          throw new Error(`historical source hash disposition run ${runId} was not found in the exact database identity query`);
+        }
+      }
+      return {
+        distinctCommittedL1Runs: distinct.size,
+        fullReconciliation,
+        qualifyingL1Runs,
+        excludedHistoricalRuns,
+        evidenceRoot: evidenceRootIdentity,
+        databaseEvidenceRoot: evidenceRootIdentity,
+      };
     },
     async insertActivationDecision(values) {
       await connection.query(
         'INSERT INTO crawler_automation_activation_decision'
         + ' (decision_kind, domain_id, policy_version, policy_hash, policy_set_hash,'
         + ' minimum_successful_l1_runs, actor, reason, authorization_reference,'
-        + ' decision_identity, packet_hash, authorized_at, expires_at)'
-        + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        + ' decision_identity, packet_hash, authorized_action_id, authorized_at, expires_at)'
+        + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [values.decisionKind, values.domainId, values.policyVersion, values.policyHash,
           values.policySetHash, values.minimumSuccessfulL1Runs, values.actor, values.reason,
           values.authorizationReference, values.decisionIdentity, values.packetHash,
-          toMysqlTimestamp(values.authorizedAt), toMysqlTimestamp(values.expiresAt)],
+          values.authorizedActionId, toMysqlTimestamp(values.authorizedAt), toMysqlTimestamp(values.expiresAt)],
       );
     },
     async updatePolicy(values) {
@@ -644,7 +1142,7 @@ function verifyReconciliationArtifactFiles(evidence, repoRoot) {
     ['ownedTableReadbackPath', 'ownedTableReadbackHash', 'reconciliation table readback'],
     ['attemptStatePath', 'attemptStateHash', 'reconciliation attempt state'],
   ]) {
-    const normalized = String(evidence[pathField] ?? '').replaceAll('\\', '/');
+    const normalized = requireCanonicalRelativeEvidencePath(evidence[pathField], `${label} path`);
     const absolute = assertRepositoryOrdinaryFile({
       repoRoot,
       filePath: path.resolve(repoRoot, normalized),
@@ -657,19 +1155,254 @@ function verifyReconciliationArtifactFiles(evidence, repoRoot) {
   }
 }
 
-function readConfinedReconciliationArtifact(repoRoot, reference) {
-  const artifactPath = String(reference.path ?? '').trim();
-  if (!artifactPath || !path.isAbsolute(artifactPath)) {
-    throw new Error('reconciliation artifact path must be absolute');
+function assertL1DatabaseRowIdentity(row, domainId, identity) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) {
+    throw new Error('L1 database evidence row is invalid');
   }
+  const runId = requireText(row.runId, 'L1 run identity');
+  assertExactIdentity(row.runDomainId, domainId, 'L1 run domain identity');
+  assertExactIdentity(row.runPolicyRunId, runId, 'L1 run-policy run identity');
+  assertExactIdentity(row.runPolicyRowRunId, runId, 'L1 run-policy row run identity');
+  assertExactIdentity(row.runPolicyDomainId, domainId, 'L1 run-policy domain identity');
+  assertNumericIdentity(row.runPolicyVersion, identity.policyVersion, 'L1 run-policy version identity');
+  assertExactIdentity(row.runPolicyHash, identity.policyHash, 'L1 run-policy hash identity');
+  assertExactIdentity(row.runPolicyRowSetHash, identity.policySetHash, 'L1 run-policy set identity');
+  assertExactIdentity(row.applyRunId, runId, 'L1 apply run identity');
+  assertExactIdentity(row.applyBundleHash, row.bundleHash, 'L1 apply bundle identity');
+  assertExactIdentity(row.applyPolicySetHash, identity.policySetHash, 'L1 apply policy-set identity');
+  assertExactIdentity(row.bundleRunId, runId, 'L1 bundle run identity');
+  assertExactIdentity(row.bundleRowHash, row.bundleHash, 'L1 bundle row hash identity');
+  assertExactIdentity(row.bundlePolicySetHash, identity.policySetHash, 'L1 bundle policy-set identity');
+  assertExactIdentity(row.evidenceSetRunId, runId, 'L1 evidence-set run identity');
+  assertExactIdentity(row.evidenceSetHash, row.evidenceHash, 'L1 evidence-set hash identity');
+  assertExactIdentity(row.evidenceSetPolicySetHash, identity.policySetHash, 'L1 evidence-set policy-set identity');
+  for (const [field, label] of [
+    ['bundleHash', 'L1 bundle hash'],
+    ['evidenceHash', 'L1 evidence hash'],
+    ['runPolicyHash', 'L1 run-policy hash'],
+    ['runPolicyRowSetHash', 'L1 run-policy set hash'],
+    ['runPolicySetHash', 'L1 run set hash'],
+    ['applyPolicySetHash', 'L1 apply set hash'],
+    ['bundlePolicySetHash', 'L1 bundle set hash'],
+    ['evidenceSetPolicySetHash', 'L1 evidence-set hash'],
+    ['runBaselineFingerprint', 'L1 run baseline fingerprint'],
+    ['bundleBaselineFingerprint', 'L1 bundle baseline fingerprint'],
+    ['evidenceSetBaselineFingerprint', 'L1 evidence-set baseline fingerprint'],
+  ]) {
+    if (!HASH_PATTERN.test(String(row[field] ?? ''))) {
+      throw new Error(`${label} is missing or invalid`);
+    }
+  }
+  assertExactIdentity(row.runPolicySetHash, identity.policySetHash, 'L1 run policy-set identity');
+  assertExactIdentity(row.runBaselineFingerprint, row.bundleBaselineFingerprint, 'L1 run baseline identity');
+  assertExactIdentity(row.evidenceSetBaselineFingerprint, row.bundleBaselineFingerprint, 'L1 evidence-set baseline identity');
+  if (row.runStatus != null && row.runStatus !== 'COMPLETED') {
+    throw new Error('L1 run status identity is not COMPLETED');
+  }
+  if (row.applyStatus != null && row.applyStatus !== 'COMMITTED') {
+    throw new Error('L1 apply status identity is not COMMITTED');
+  }
+  const reconciliationFields = [
+    row.reconciliationRunId,
+    row.reconciliationPath,
+    row.reconciliationSha256,
+    row.reconciliationPolicySetHash,
+  ];
+  if (reconciliationFields.some((value) => value != null)) {
+    if (reconciliationFields.some((value) => value == null)) {
+      throw new Error('L1 reconciliation evidence identity is incomplete');
+    }
+    assertExactIdentity(row.reconciliationRunId, runId, 'L1 reconciliation run identity');
+    assertExactIdentity(row.reconciliationPolicySetHash, identity.policySetHash, 'L1 reconciliation policy-set identity');
+    if (!HASH_PATTERN.test(String(row.reconciliationSha256))) {
+      throw new Error('L1 reconciliation evidence hash identity is invalid');
+    }
+  }
+}
+
+function assertL1BundleIdentity(bundle, row, domainId, identity) {
+  if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
+    throw new Error('L1 bundle identity is invalid');
+  }
+  if (bundle.domainId !== domainId) {
+    throw new Error('L1 bundle domain identity drifted');
+  }
+  if (bundle.runId !== row.runId) {
+    throw new Error('L1 bundle run identity drifted');
+  }
+  if (bundle.databaseName !== 'terria_v1_local') {
+    throw new Error('L1 bundle database identity drifted');
+  }
+  if (!exactL1OperationId(domainId, bundle.operationId)) {
+    throw new Error('L1 bundle operation identity is not exact for the domain');
+  }
+  const policy = bundle.policy;
+  if (!policy || typeof policy !== 'object' || Array.isArray(policy)
+      || policy.domainId !== domainId || policy.level !== 'L1'
+      || policy.operationalState !== 'ACTIVE'
+      || Number(policy.policyVersion) !== Number(identity.policyVersion)
+      || policy.policyHash !== identity.policyHash
+      || policy.policySetHash !== identity.policySetHash) {
+    throw new Error('L1 bundle policy identity drifted');
+  }
+  if (!HASH_PATTERN.test(String(bundle.evidenceHash ?? ''))
+      || !HASH_PATTERN.test(String(bundle.baselineFingerprint ?? ''))) {
+    throw new Error('L1 bundle evidence or baseline identity is invalid');
+  }
+}
+
+function assertReconciliationArtifactReferenceIdentity({
+  reference,
+  row,
+  runId,
+  policySetHash,
+  repoRoot,
+} = {}) {
+  if (!reference || typeof reference !== 'object' || Array.isArray(reference)) {
+    throw new Error('reconciliation artifact reference is required');
+  }
+  const artifactPath = requireCanonicalAbsoluteEvidencePath(
+    reference.path,
+    repoRoot,
+    'reconciliation artifact path',
+  );
+  const relative = path.relative(path.resolve(repoRoot), artifactPath).replaceAll('\\', '/');
+  if (!relative.startsWith('reports/runtime/l1-reconciliation/')) {
+    throw new Error('reconciliation artifact path must be under the exact L1 reconciliation root');
+  }
+  if (!relative.endsWith('/reconciliation-evidence.json')) {
+    throw new Error('reconciliation artifact path must name reconciliation-evidence.json');
+  }
+  assertExactIdentity(reference.runId, runId, 'reconciliation artifact run identity');
+  if (!HASH_PATTERN.test(String(reference.sha256 ?? ''))) {
+    throw new Error('reconciliation artifact hash is invalid');
+  }
+  if (reference.policySetHash !== policySetHash) {
+    throw new Error('reconciliation artifact policy-set identity drifted');
+  }
+  if (row.reconciliationRunId != null && row.reconciliationRunId !== runId) {
+    throw new Error('reconciliation artifact run identity drifted');
+  }
+  if (row.reconciliationPath != null && row.reconciliationPath !== artifactPath) {
+    throw new Error('reconciliation artifact path identity drifted');
+  }
+  if (row.reconciliationSha256 != null && row.reconciliationSha256 !== reference.sha256) {
+    throw new Error('reconciliation artifact hash identity drifted');
+  }
+  if (row.reconciliationPolicySetHash != null && row.reconciliationPolicySetHash !== reference.policySetHash) {
+    throw new Error('reconciliation artifact policy-set identity drifted');
+  }
+  return artifactPath;
+}
+
+function assertExactIdentity(actual, expected, label) {
+  if (actual == null || actual === '') {
+    throw new Error(`${label} is missing`);
+  }
+  if (actual !== expected) {
+    throw new Error(`${label} drifted`);
+  }
+}
+
+function assertNumericIdentity(actual, expected, label) {
+  if (actual == null || !Number.isSafeInteger(Number(actual))
+      || Number(actual) !== Number(expected)) {
+    throw new Error(`${label} drifted`);
+  }
+}
+
+function requireCanonicalRelativeEvidencePath(value, label) {
+  const raw = String(value ?? '');
+  const normalized = raw.trim();
+  if (!normalized || raw !== normalized || normalized.includes('\\')
+      || path.posix.isAbsolute(normalized) || normalized.includes('//')
+      || normalized.endsWith('/') || path.posix.normalize(normalized) !== normalized
+      || !normalized.startsWith('reports/')) {
+    throw new Error(`${label} must be a canonical normalized relative path`);
+  }
+  return normalized;
+}
+
+function requireCanonicalAbsoluteEvidencePath(value, repoRoot, label) {
+  const raw = String(value ?? '');
+  const normalized = raw.trim();
+  if (!normalized || raw !== normalized || normalized.includes('\\')
+      || !path.posix.isAbsolute(normalized) || normalized.includes('//')
+      || normalized.endsWith('/') || path.posix.normalize(normalized) !== normalized) {
+    throw new Error(`${label} must be a canonical normalized absolute path`);
+  }
+  const resolved = path.resolve(normalized);
+  if (resolved !== normalized) {
+    throw new Error(`${label} must be a canonical normalized absolute path`);
+  }
+  const root = path.resolve(repoRoot);
+  const relative = path.relative(root, resolved);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`${label} must remain inside the repository root`);
+  }
+  return normalized;
+}
+
+function readConfinedReconciliationArtifact(repoRoot, reference) {
+  const artifactPath = requireCanonicalAbsoluteEvidencePath(
+    reference?.path,
+    repoRoot,
+    'reconciliation artifact path',
+  );
   const confined = assertRepositoryOrdinaryFile({ repoRoot, filePath: artifactPath, label: 'L1 reconciliation artifact' });
-  if (!confined.startsWith(`${path.resolve(repoRoot, 'reports')}${path.sep}`)) {
+  if (confined !== artifactPath || !confined.startsWith(`${path.resolve(repoRoot, 'reports')}${path.sep}`)) {
     throw new Error('reconciliation artifact must be under reports');
   }
   const bytes = fs.readFileSync(confined);
   const actual = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
   if (actual !== reference.sha256) throw new Error('reconciliation artifact file hash drifted');
   return { path: confined, bytes };
+}
+
+function normalizeHistoricalDispositionPaths(values) {
+  const normalized = [];
+  for (const value of values ?? []) {
+    if (value == null || String(value).trim() === '') continue;
+    const text = String(value).trim().replaceAll('\\', '/');
+    for (const part of text.split(',').map((entry) => entry.trim()).filter(Boolean)) {
+      if (!normalized.includes(part)) normalized.push(part);
+    }
+  }
+  return normalized;
+}
+
+function samePathSet(left, right) {
+  const a = new Set(left);
+  const b = new Set(right);
+  return a.size === b.size && [...a].every((value) => b.has(value));
+}
+
+function assertHistoricalDispositionSnapshot(previous, current) {
+  if (!(previous instanceof Map) || !(current instanceof Map) || previous.size !== current.size) {
+    throw new Error('historical disposition changed between load and consumption');
+  }
+  for (const [runId, before] of previous.entries()) {
+    const after = current.get(runId);
+    if (!after
+        || before.path !== after.path
+        || before.fileSha256 !== after.fileSha256
+        || before.packetPath !== after.packetPath
+        || before.packetFileSha256 !== after.packetFileSha256
+        || stableJson(before.disposition) !== stableJson(after.disposition)
+        || stableJson(before.packet) !== stableJson(after.packet)) {
+      throw new Error(`historical disposition ${runId} changed between load and consumption`);
+    }
+  }
+}
+
+function toRepoRelativePath(repoRoot, filePath) {
+  const root = path.resolve(repoRoot);
+  const absolute = path.resolve(filePath);
+  const relative = path.relative(root, absolute).replaceAll('\\', '/');
+  if (!relative || relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)) {
+    throw new Error('evidence path escapes the adapter repository root');
+  }
+  return relative;
 }
 
 export async function runAutomationPolicyDecisionCli({
@@ -686,11 +1419,7 @@ export async function runAutomationPolicyDecisionCli({
   const outputArgument = requireText(args.output, '--output').replaceAll('\\', '/');
   const l2Operation = isL2PolicyDecisionOperation(operationId);
   if (l2Operation) {
-    const expectedInput = `reports/authorization/canonical/${operationId}.input.json`;
-    const expectedOutput = `reports/authorization/canonical/${operationId}.result.json`;
-    if (inputArgument !== expectedInput || outputArgument !== expectedOutput) {
-      throw new Error('L2 policy decision input/output paths must be the exact operation-derived canonical paths');
-    }
+    assertL2PolicyDecisionCliPaths({ operationId, inputArgument, outputArgument });
   }
   const inputPath = path.resolve(repoRoot, inputArgument);
   const outputPath = path.resolve(repoRoot, outputArgument);
@@ -718,19 +1447,27 @@ export async function runAutomationPolicyDecisionCli({
   if (operationId !== input.operationId) {
     throw new Error('--operation-id must match the frozen input');
   }
-  if (input.targetPolicyLevel === 'L2') {
+  if (isL2PolicyStableReauthorizationOperation(operationId)) {
+    assertL2ReauthorizationExecutionInput({ repoRoot, operationId, input });
+  } else if (input.targetPolicyLevel === 'L2') {
     assertL2PromotionExecutionInput({ repoRoot, operationId: input.operationId, input });
   }
   const authorizationContext = loadAuthorizedOperationContext({
     env,
     operationId: input.operationId,
     now,
+    repoRoot,
   });
   const plan = buildAutomationPolicyDecisionPlan(input, authorizationContext);
   assertAuthorizedOperationDataBundle({ repoRoot, authorizedContext: authorizationContext });
   const authorizedServerFingerprint = loadAuthorizedOperationServerFingerprint({
     authorizedContext: authorizationContext,
     env,
+  });
+  const adapterOptions = buildPolicyDecisionAdapterOptions({
+    repoRoot,
+    args,
+    authorizedServerFingerprint,
   });
   const connection = await (mysqlModule ?? loadMysqlModule()).createConnection({
     host: requireText(env.TERRAPEDIA_DB_HOST, 'TERRAPEDIA_DB_HOST'),
@@ -745,7 +1482,7 @@ export async function runAutomationPolicyDecisionCli({
   try {
     await assertCurrentServerFingerprint(connection, authorizedServerFingerprint, env);
     const result = await executeAutomationPolicyDecision({
-      adapter: createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoot }),
+      adapter: createMysqlAutomationPolicyDecisionAdapter(connection, adapterOptions),
       plan,
       now,
       ...(l2Operation ? {
@@ -779,6 +1516,49 @@ export async function runAutomationPolicyDecisionCli({
   } finally {
     await connection.end();
   }
+}
+
+function assertL2PolicyDecisionCliPaths({ operationId, inputArgument, outputArgument }) {
+  const prefix = `reports/authorization/canonical/${operationId}`;
+  const inputMatch = new RegExp(`^${escapeRegExp(prefix)}(?:\\.([a-z0-9]+(?:-[a-z0-9]+)*))?\\.input\\.json$`).exec(inputArgument);
+  const outputMatch = new RegExp(`^${escapeRegExp(prefix)}(?:\\.([a-z0-9]+(?:-[a-z0-9]+)*))?\\.result\\.json$`).exec(outputArgument);
+  if (!inputMatch || !outputMatch || inputMatch[1] !== outputMatch[1]) {
+    throw new Error('L2 policy decision input/output paths must use the exact operation identity and one matching retry label');
+  }
+  return inputMatch[1] ?? null;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Translate the CLI's explicit read-only evidence inputs into the adapter
+ * contract.  The decision packet and all writable/publication paths remain
+ * bound to the caller worktree; an evidence root is only an opt-in read root
+ * for historical database rows.  Historical dispositions additionally bind
+ * to the live server fingerprint carried by the authorized packet.
+ */
+export function buildPolicyDecisionAdapterOptions({
+  repoRoot = process.cwd(),
+  args = {},
+  authorizedServerFingerprint = null,
+} = {}) {
+  const historicalDispositionPaths = normalizeHistoricalDispositionPaths([
+    args?.['historical-source-hash-disposition']
+      ?? args?.['historical-disposition-paths']
+      ?? args?.['historical-disposition'],
+  ]);
+  return Object.freeze({
+    repoRoot: path.resolve(repoRoot),
+    databaseEvidenceRoot: args?.['database-evidence-root'] ?? null,
+    historicalEvidenceRoot: args?.['historical-evidence-root'] ?? null,
+    evidenceRoot: args?.['evidence-root'] ?? null,
+    historicalSourceHashDispositionPaths: historicalDispositionPaths,
+    historicalDispositionServerFingerprint: historicalDispositionPaths.length > 0
+      ? authorizedServerFingerprint
+      : null,
+  });
 }
 
 export function assertL2PromotionExecutionInput({ repoRoot, operationId, input } = {}) {
@@ -869,7 +1649,7 @@ function assertL2RegistrationArtifacts({ repoRoot, input, proposal, policyArtifa
       || result.operationId !== registration.operationId || result.domainId !== proposal.domainId
       || Number(result.policyVersion) !== Number(proposal.targetPolicy.policyVersion)
       || result.policyHash !== proposal.targetPolicy.policyHash
-      || result.policySetHash !== proposal.targetPolicySetHash
+      || result.policySetHash !== (proposal.policyArtifactTargetPolicySetHash ?? proposal.targetPolicySetHash)
       || result.artifactHash !== proposal.policyArtifactHash
       || result.actor !== policyArtifact.approval?.actor
       || result.authorizationReference !== policyArtifact.approval?.reference
@@ -935,11 +1715,12 @@ function assertL2PolicyArtifact({ repoRoot, input, proposal }) {
       || artifact?.status !== 'approved'
       || artifact?.domainId !== proposal.domainId
       || artifact?.targetPolicy?.policyHash !== input.targetPolicyHash
-      || artifact?.targetPolicySetHash !== input.targetPolicySetHash) {
+      || artifact?.targetPolicySetHash !== (input.policyArtifactTargetPolicySetHash ?? input.targetPolicySetHash)
+      || artifact?.currentPolicySetHash !== (input.policyArtifactCurrentPolicySetHash ?? proposal.currentPolicySetHash)) {
     throw new Error('L2 policy artifact identity does not match the proposal');
   }
   if (stableJson(artifact.currentPolicy) !== stableJson(proposal.currentPolicy)
-      || artifact.currentPolicySetHash !== proposal.currentPolicySetHash
+      || artifact.currentPolicySetHash !== (proposal.policyArtifactCurrentPolicySetHash ?? proposal.currentPolicySetHash)
       || stableJson(artifact.targetPolicy) !== stableJson(proposal.targetPolicy)) {
     throw new Error('L2 policy artifact content does not match the proposal');
   }
@@ -955,6 +1736,12 @@ function assertL2ProposalMatchesExecutionInput(proposal, input) {
       || proposal.targetPolicy?.policyHash !== input.targetPolicyHash
       || proposal.targetPolicy?.level !== input.targetPolicyLevel
       || proposal.targetPolicySetHash !== input.targetPolicySetHash
+      || proposal.l1EvidencePolicySetHash !== input.l1EvidencePolicySetHash
+      || proposal.policyArtifactCurrentPolicySetHash !== input.policyArtifactCurrentPolicySetHash
+      || proposal.policyArtifactTargetPolicySetHash !== input.policyArtifactTargetPolicySetHash
+      || stableJson(proposal.promotionCurrentPolicyRows) !== stableJson(input.promotionCurrentPolicyRows)
+      || stableJson(proposal.promotionTargetPolicyRows) !== stableJson(input.promotionTargetPolicyRows)
+      || stableJson(proposal.serialTransition) !== stableJson(input.serialTransition)
       || proposal.minimumSuccessfulL1Runs !== Number(input.minimumSuccessfulL1Runs)
       || stableJson(proposal.targetPolicy?.policyJson) !== stableJson(input.targetPolicyJson)
       || stableJson(proposal.ownedTables) !== stableJson(input.targetPolicyJson?.ownedTables)) {
@@ -1044,6 +1831,51 @@ function validateL2TargetInput(input) {
   };
 }
 
+function validateSerialL2Input(input, operationId) {
+  const serialTransition = assertL2SerialTransition(input.serialTransition, {
+    domainId: input.domainId,
+    operationId,
+  });
+  return {
+    serialTransition,
+    promotionCurrentPolicyRows: normalizePolicySetRows(
+      input.promotionCurrentPolicyRows,
+      'promotion current policy rows',
+    ),
+    promotionTargetPolicyRows: normalizePolicySetRows(
+      input.promotionTargetPolicyRows,
+      'promotion target policy rows',
+    ),
+    policyArtifactCurrentPolicySetHash: requireHash(
+      input.policyArtifactCurrentPolicySetHash,
+      'policy artifact current policy-set provenance',
+    ),
+    policyArtifactTargetPolicySetHash: requireHash(
+      input.policyArtifactTargetPolicySetHash,
+      'policy artifact target policy-set provenance',
+    ),
+  };
+}
+
+function normalizePolicySetRows(value, label) {
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`${label} are required`);
+  const seen = new Set();
+  const rows = value.map((row) => {
+    const domainId = requireText(row?.domainId, `${label} domainId`);
+    if (!/^[a-z][a-z0-9_]{0,63}$/.test(domainId) || seen.has(domainId)) {
+      throw new Error(`${label} contain duplicate or invalid domains`);
+    }
+    seen.add(domainId);
+    const policyVersion = Number(row?.policyVersion);
+    if (!Number.isSafeInteger(policyVersion) || policyVersion < 1) {
+      throw new Error(`${label} policyVersion is invalid`);
+    }
+    const policyHash = requireHash(row?.policyHash, `${label} policyHash`);
+    return { domainId, policyVersion, policyHash };
+  });
+  return rows.sort((left, right) => left.domainId.localeCompare(right.domainId));
+}
+
 function validateL2ProposalBinding(input, operationId) {
   if (input.proposalOnly !== false) {
     throw new Error('L2 promotion input must be an execution input, not a proposal-only artifact');
@@ -1098,7 +1930,42 @@ function isEightDomainL2Operation(operationId) {
 }
 
 function isL2PolicyDecisionOperation(operationId) {
-  return operationId === 'automation-biomes-l2-promotion' || isEightDomainL2Operation(operationId);
+  return operationId === 'automation-biomes-l2-promotion'
+    || isEightDomainL2Operation(operationId)
+    || isL2PolicyStableReauthorizationOperation(operationId);
+}
+
+function assertL2ReauthorizationExecutionInput({ repoRoot, operationId, input }) {
+  assertL2PolicyStableReauthorizationInput(input, { now: input.generatedAt ?? new Date().toISOString() });
+  const proposalPath = String(input.proposalPath ?? '').replaceAll('\\', '/');
+  const prefix = `reports/authorization/canonical/${operationId}/`;
+  if (!proposalPath.startsWith(prefix)
+      || !/^[a-f0-9]{64}\/proposal\.json$/.test(proposalPath.slice(prefix.length))) {
+    throw new Error('L2 reauthorization proposal path is not content-addressed');
+  }
+  const proposalHash = requireHash(input.proposalHash, 'proposalHash');
+  if (proposalPath.slice(prefix.length, prefix.length + 64) !== proposalHash.slice(7)) {
+    throw new Error('L2 reauthorization proposal path content address does not match proposalHash');
+  }
+  const confined = assertRepositoryOrdinaryFile({
+    repoRoot,
+    filePath: path.resolve(repoRoot, proposalPath),
+    label: 'L2 reauthorization proposal',
+  });
+  if ((fs.lstatSync(confined).mode & 0o077) !== 0) throw new Error('L2 reauthorization proposal must be private');
+  const bytes = fs.readFileSync(confined);
+  if (`sha256:${createHash('sha256').update(bytes).digest('hex')}` !== requireHash(input.proposalSha256, 'proposalSha256')) {
+    throw new Error('L2 reauthorization proposal file hash drifted');
+  }
+  let proposal;
+  try { proposal = JSON.parse(bytes.toString('utf8')); } catch { throw new Error('L2 reauthorization proposal must be valid JSON'); }
+  if (proposal?.operationId !== operationId || proposal?.proposalHash !== proposalHash
+      || proposal?.proposalOnly !== true || proposal?.policyUpdate !== false
+      || proposal?.currentPolicy?.policyHash !== input.currentPolicy?.policyHash
+      || proposal?.currentPolicySetHash !== input.currentPolicy?.policySetHash) {
+    throw new Error('L2 reauthorization proposal identity is invalid');
+  }
+  return true;
 }
 
 function requireExactRegistrationPath(value, promotionOperationId, marker) {
@@ -1176,8 +2043,54 @@ function requirePort(value) {
   return port;
 }
 
-function toMysqlTimestamp(value) {
-  return new Date(value).toISOString().slice(0, 19).replace('T', ' ');
+const MYSQL_DATETIME_TIME_ZONE = process.env.TERRAPEDIA_DB_TIME_ZONE ?? 'Asia/Shanghai';
+
+export function toMysqlTimestamp(value) {
+  const timestamp = new Date(requireTimestamp(value, 'timestamp'));
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: MYSQL_DATETIME_TIME_ZONE,
+    calendar: 'iso8601',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(timestamp)
+    .filter((part) => part.type !== 'literal')
+    .map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
+function mysqlDateTimeToUtcIso(value) {
+  const text = requireText(value, 'MySQL DATETIME');
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) return new Date(text).toISOString();
+  const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/.exec(text);
+  if (!match) throw new Error('MySQL DATETIME must use YYYY-MM-DD HH:mm:ss');
+  const components = match.slice(1).map(Number);
+  const wallMs = Date.UTC(
+    components[0], components[1] - 1, components[2],
+    components[3], components[4], components[5],
+  );
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: MYSQL_DATETIME_TIME_ZONE,
+    calendar: 'iso8601',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  });
+  let guess = wallMs;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(guess))
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]));
+    const representedMs = Date.UTC(
+      Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+      Number(parts.hour), Number(parts.minute), Number(parts.second),
+    );
+    guess += wallMs - representedMs;
+  }
+  return new Date(guess).toISOString();
 }
 
 function parseArgs(argv) {

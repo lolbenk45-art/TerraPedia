@@ -31,9 +31,38 @@ import {
   buildItemImageProjectionInputContract,
   canonicalItemImageProjectionHash,
 } from '../relation/item-image-projection-contract.mjs';
+import { validateArmorSourceEffectOwnerDecision } from '../relation/armor-source-effect-owner-decision.mjs';
+const ARMOR_CANONICAL_OPERATION_ID = 'canonical-armor-ingestion';
+const ARMOR_TYPED_EFFECT_OPERATION_ID = 'canonical-armor-typed-effect-publication';
+const ARMOR_SOURCE_EFFECT_OPERATION_ID = 'canonical-armor-source-effect-publication';
+const ARMOR_MISSING_ATTRIBUTE_OPERATION_ID = 'canonical-armor-missing-attribute-source';
+const ARMOR_ATTRIBUTE_RELATION_OPERATION_ID = 'canonical-armor-attribute-relation-publication';
+const ARMOR_ITEM_LINEAGE_REFRESH_OPERATION_ID = 'canonical-armor-item-lineage-refresh';
+const ARMOR_SHROOMITE_RELATION_ITEM_REFRESH_OPERATION_ID = 'canonical-armor-shroomite-relation-item-refresh';
+const ARMOR_RELATION_ITEM_NORMALIZATION_OPERATION_ID = 'canonical-armor-relation-item-normalization';
+const ARMOR_MISSING_ATTRIBUTE_OWNER_DECISION_SCHEMA = 'armor-missing-attribute-owner-decision/v1';
+const ARMOR_HISTORICAL_TUPLE_REPAIR_OPERATION_ID = 'canonical-armor-historical-tuple-repair';
 const ITEM_IMAGE_PROJECTION_MISSING_ROW_INSERT_OPERATION_ID =
   'canonical-item-image-projection-missing-row-insert';
 const ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID = 'canonical-item-source-local-npc-admission';
+const HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID =
+  'automation-l1-historical-source-hash-disposition';
+const SCHEDULER_ACTIVATION_POLICY_OPERATION_ID =
+  'automation-crawler-v2-scheduler-activation';
+const HISTORICAL_DISPOSITION_CANDIDATE_ROOT =
+  'reports/authorization/canonical/l1-historical-source-hash-disposition/';
+const HISTORICAL_DISPOSITION_CANDIDATE_PATH_PATTERN =
+  /^reports\/authorization\/canonical\/l1-historical-source-hash-disposition\/(items|projectiles|shimmer)\/([a-f0-9]{64})\/candidate\.json$/;
+const HISTORICAL_DISPOSITION_PACKET_PATH_PATTERN =
+  /^reports\/authorization\/canonical\/l1-historical-source-hash-disposition\/(items|projectiles|shimmer)\/([a-f0-9]{64})\/packet\.json$/;
+const ARMOR_TYPED_EFFECT_OWNER_DECISION_SCHEMA = 'armor-typed-effect-owner-decision/v1';
+const ARMOR_TYPED_EFFECT_GATE_IDS = Object.freeze([
+  'complete-armor-coverage',
+  'shroomite-canonical-owner',
+  'mining-identity-and-attributes',
+  'typed-set-effect-owner',
+  'recovery-owner',
+]);
 const EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS = Object.freeze({
   'canonical-item-image-projection-apply': Object.freeze({
     attemptKey: 'itemImageProjectionAttempt',
@@ -246,27 +275,110 @@ export function buildCanonicalAuthorizationRequestForOperation({
   generatedAt = new Date().toISOString(),
   expiresAt = new Date(Date.parse(generatedAt) + 24 * 60 * 60 * 1000).toISOString(),
 } = {}) {
-  return buildCanonicalAuthorizationRequest({
-    ...resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest }),
+  const resolved = resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest });
+  const request = buildCanonicalAuthorizationRequest({
+    ...resolved,
     serverFingerprint,
     policyRows,
     generatedAt,
     expiresAt,
   });
+  if (operationId !== HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID) return request;
+  const scope = resolved.executionManifest?.scope;
+  if (!scope || typeof scope !== 'object' || Array.isArray(scope)) {
+    throw new Error('historical disposition execution manifest scope is required');
+  }
+  const payload = { ...request, scope };
+  delete payload.requestHash;
+  return Object.freeze({ ...payload, requestHash: hashJson(payload) });
 }
 
 export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId, executionManifest = null }) {
   requireOperationId(operationId);
   const root = path.resolve(repoRoot);
-  const verifiedExecutionManifest = executionManifest == null
-    ? null
-    : verifyExecutionManifestCodeBundle(root, executionManifest, operationId);
+  const verifiedExecutionManifest = operationId === HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID
+    ? verifyHistoricalDispositionExecutionManifest(root, executionManifest)
+    : executionManifest == null
+      ? null
+      : verifyExecutionManifestCodeBundle(root, executionManifest, operationId);
   const schemaEntries = operationId === 'canonical-schema-v56-v58'
     ? readMigrationEntries(root)
     : [];
   let dataEntries;
-  if (operationId.startsWith('automation-')
-      && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) {
+  if (operationId === HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID) {
+    dataEntries = readHistoricalDispositionDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === 'canonical-armor-set-projection-incremental'
+      || operationId === 'canonical-armor-secondary-projection'
+      || operationId === 'canonical-armor-item-effect-source'
+      || operationId === ARMOR_SOURCE_EFFECT_OPERATION_ID
+      || operationId === 'canonical-armor-image-cache') {
+    if (verifiedExecutionManifest == null) throw new Error('Armor projection execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map(inputPath => readConfinedEntry(root, inputPath, {
+      label: 'Armor projection proposal', privateFile: true,
+    }));
+  } else if (operationId === 'canonical-buff-full-chain') {
+    if (verifiedExecutionManifest == null) throw new Error('Buff full-chain execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Buff full-chain envelope', privateFile: true,
+    }));
+  } else if (operationId === 'canonical-armor-semantic-repair') {
+    if (verifiedExecutionManifest == null) throw new Error('Armor semantic repair execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Armor semantic repair proposal', privateFile: true,
+    }));
+  } else if (operationId === ARMOR_HISTORICAL_TUPLE_REPAIR_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor historical tuple repair execution manifest is required');
+    dataEntries = verifiedExecutionManifest.inputPaths.map((inputPath) => readConfinedEntry(root, inputPath, {
+      label: 'Armor historical tuple repair proposal', privateFile: true,
+    }));
+    if (dataEntries.length !== 1) throw new Error('Armor historical tuple repair requires exactly one proposal input');
+    let proposal;
+    try { proposal = JSON.parse(dataEntries[0].bytes.toString('utf8')); }
+    catch { throw new Error('Armor historical tuple repair proposal must be valid JSON'); }
+    if (proposal?.schemaVersion !== 'armor-historical-tuple-repair/v2'
+        || proposal.operationId !== ARMOR_HISTORICAL_TUPLE_REPAIR_OPERATION_ID
+        || proposal.databaseWrites !== false || proposal.executable !== false || proposal.applyAllowed !== false) {
+      throw new Error('Armor historical tuple repair proposal identity or safety flags are invalid');
+    }
+    if (proposal.changes?.projectionArmorSetUpdates?.length !== 15
+        || proposal.counts?.projectionArmorSetUpdates !== 15
+        || proposal.projectionItemRows?.length === 0) {
+      throw new Error('Armor historical tuple repair projection ownership is incomplete');
+    }
+    const { proposalSha256, ...payload } = proposal;
+    if (!HASH_PATTERN.test(proposalSha256 ?? '') || hashJson(payload) !== proposalSha256) {
+      throw new Error('Armor historical tuple repair proposal hash drifted');
+    }
+  } else if (operationId === ARMOR_ITEM_LINEAGE_REFRESH_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor Iteminfo lineage execution manifest is required');
+    dataEntries = readArmorItemLineageRefreshProposalDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === ARMOR_SHROOMITE_RELATION_ITEM_REFRESH_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor Shroomite relation-item execution manifest is required');
+    dataEntries = readArmorShroomiteRelationItemRefreshProposalDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === ARMOR_RELATION_ITEM_NORMALIZATION_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor relation-item normalization execution manifest is required');
+    dataEntries = readArmorRelationItemNormalizationProposalDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === ARMOR_CANONICAL_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor canonical ingestion execution manifest is required');
+    dataEntries = readArmorCanonicalIntentDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === ARMOR_TYPED_EFFECT_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor typed-effect publication execution manifest is required');
+    dataEntries = readArmorTypedEffectProposalDataEntries(root, verifiedExecutionManifest);
+    if (verifiedExecutionManifest.typedEffectPublication?.executionReady !== true) {
+      throw new Error('Armor typed-effect publication execution is not execution-ready; source and owner gates remain open');
+    }
+  } else if (operationId === ARMOR_MISSING_ATTRIBUTE_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor missing-attribute source execution manifest is required');
+    dataEntries = readArmorMissingAttributeSourceDataEntries(root, verifiedExecutionManifest);
+    if (verifiedExecutionManifest.missingAttributeSource?.executionReady !== true) {
+      throw new Error('Armor missing-attribute source execution is not execution-ready; source and owner gates remain open');
+    }
+  } else if (operationId === ARMOR_ATTRIBUTE_RELATION_OPERATION_ID) {
+    if (verifiedExecutionManifest == null) throw new Error('Armor attribute relation execution manifest is required');
+    dataEntries = readArmorAttributeRelationProposalDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId.startsWith('automation-')
+      && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration')
+        || operationId.endsWith('-l2-reauthorization'))) {
     dataEntries = readL2AuthorizationDataEntries(root, operationId, verifiedExecutionManifest);
   } else if (operationId === ITEM_SOURCE_LOCAL_NPC_ADMISSION_OPERATION_ID) {
     if (verifiedExecutionManifest == null) {
@@ -299,6 +411,9 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
       throw new Error('canonical base-entity restoration execution manifest is required');
     }
     dataEntries = readItemCanonicalBaseEntityRestorationDataEntries(root, verifiedExecutionManifest);
+  } else if (operationId === SCHEDULER_ACTIVATION_POLICY_OPERATION_ID
+      && verifiedExecutionManifest != null) {
+    dataEntries = readSchedulerActivationPolicyDataEntries(root, operationId, verifiedExecutionManifest);
   } else {
     dataEntries = readCompleteEntries(root, CANONICAL_OPERATION_DATA_PATHS[operationId]);
   }
@@ -335,8 +450,152 @@ export function resolveCanonicalOperationTechnicalInput({ repoRoot, operationId,
   };
 }
 
+/**
+ * Historical source-hash dispositions are evidence/authorization contracts,
+ * not executable operations.  They still need a manifest so an independent
+ * resolver can reconstruct the exact candidate file from a packet.  Keep
+ * this validator separate from verifyExecutionManifestCodeBundle(), whose
+ * null-entrypoint fail-closed rule must remain in force for real operations.
+ */
+function verifyHistoricalDispositionExecutionManifest(repoRoot, manifest) {
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    throw new Error('historical disposition execution manifest is required');
+  }
+  if (manifest.schemaVersion !== 1
+      || manifest.operationId !== HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID
+      || manifest.executionClass !== 'historical_source_hash_disposition'
+      || !Array.isArray(manifest.command)
+      || manifest.command.length !== 2
+      || manifest.command[0] !== 'node'
+      || manifest.command[1] !== 'pipelines/automation/historical-source-hash-disposition.mjs'
+      || !Array.isArray(manifest.outputPaths) || manifest.outputPaths.length !== 0
+      || !Array.isArray(manifest.reportPaths) || manifest.reportPaths.length !== 0
+      || !Array.isArray(manifest.progressPaths) || manifest.progressPaths.length !== 0
+      || manifest.databaseWrites !== false
+      || manifest.networkAccess !== false) {
+    throw new Error('historical disposition execution manifest contract is invalid');
+  }
+
+  const binding = normalizeHistoricalDispositionCandidateBinding(manifest);
+  if (!Array.isArray(manifest.inputPaths) || manifest.inputPaths.length !== 1
+      || manifest.inputPaths[0] !== binding.candidatePath) {
+    throw new Error('historical disposition manifest must bind exactly one candidate input path');
+  }
+  if (!manifest.scope || typeof manifest.scope !== 'object' || Array.isArray(manifest.scope)
+      || manifest.scope.domainId !== binding.domainId
+      || manifest.scope.candidateArtifactHash !== binding.candidateArtifactHash
+      || !requireText(manifest.scope.runId, 'historical disposition manifest scope runId')) {
+    throw new Error('historical disposition manifest scope is invalid');
+  }
+  return manifest;
+}
+
+function normalizeHistoricalDispositionCandidateBinding(manifest) {
+  const candidates = [
+    ['historicalSourceHashDisposition', manifest?.historicalSourceHashDisposition],
+    ['historicalSourceHashDispositionCandidate', manifest?.historicalSourceHashDispositionCandidate],
+    ['historicalDispositionCandidate', manifest?.historicalDispositionCandidate],
+    ['candidate', manifest?.candidate],
+  ].filter(([, value]) => value != null);
+  if (candidates.length !== 1) {
+    throw new Error('historical disposition manifest candidate binding is required exactly once');
+  }
+  const [label, value] = candidates[0];
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} candidate binding is invalid`);
+  }
+  const candidatePath = requireConsistentAlias([
+    ['candidatePath', value.candidatePath],
+    ['path', value.path],
+  ], 'historical disposition candidate path', (candidate) => requireNormalizedPath(
+    candidate,
+    'historical disposition candidate path',
+  ));
+  const match = HISTORICAL_DISPOSITION_CANDIDATE_PATH_PATTERN.exec(candidatePath);
+  if (!match) {
+    throw new Error('historical disposition candidate path must be content-addressed');
+  }
+  const candidateFileSha256 = requireHash(
+    requireConsistentAlias([
+      ['candidateFileSha256', value.candidateFileSha256],
+      ['fileSha256', value.fileSha256],
+      ['sha256', value.sha256],
+    ], 'historical disposition candidate file hash'),
+    'historical disposition candidate file hash',
+  );
+  const candidateArtifactHash = requireHash(
+    requireConsistentAlias([
+      ['candidateArtifactHash', value.candidateArtifactHash],
+      ['artifactHash', value.artifactHash],
+    ], 'historical disposition candidate artifact hash'),
+    'historical disposition candidate artifact hash',
+  );
+  if (match[2] !== candidateArtifactHash.slice(7)) {
+    throw new Error('historical disposition candidate path hash does not match its artifact hash');
+  }
+  return {
+    candidatePath,
+    candidateFileSha256,
+    candidateArtifactHash,
+    domainId: match[1],
+  };
+}
+
+function requireConsistentAlias(entries, label, normalize = (value) => value) {
+  const present = entries.filter(([, value]) => value != null);
+  if (present.length === 0) throw new Error(`${label} is required`);
+  const first = normalize(present[0][1]);
+  for (const [, value] of present.slice(1)) {
+    if (normalize(value) !== first) {
+      throw new Error(`${label} aliases conflict`);
+    }
+  }
+  return first;
+}
+
+function readHistoricalDispositionDataEntries(repoRoot, manifest) {
+  const binding = normalizeHistoricalDispositionCandidateBinding(manifest);
+  const candidateEntry = readConfinedEntry(repoRoot, binding.candidatePath, {
+    label: 'historical disposition candidate',
+    privateFile: true,
+  });
+  const actualFileHash = `sha256:${createHash('sha256').update(candidateEntry.bytes).digest('hex')}`;
+  if (actualFileHash !== binding.candidateFileSha256) {
+    throw new Error('historical disposition candidate file hash drifted');
+  }
+  const candidate = parseJsonBytes(candidateEntry.bytes, 'historical disposition candidate');
+  assertHistoricalDispositionCandidate(candidate, binding, manifest.scope);
+  return [candidateEntry];
+}
+
+function assertHistoricalDispositionCandidate(candidate, binding, scope) {
+  if (!candidate || candidate.schemaVersion !== 1
+      || candidate.artifactKind !== 'l1-historical-source-hash-disposition'
+      || candidate.operationId !== HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID
+      || candidate.status !== 'candidate'
+      || candidate.proposalOnly !== true
+      || candidate.databaseName !== 'terria_v1_local'
+      || candidate.disposition !== 'exclude_from_l1_qualification'
+      || candidate.reasonCode !== 'legacy_semantic_json_source_hash'
+      || candidate.domainId !== binding.domainId
+      || !Array.isArray(candidate.entries) || candidate.entries.length !== 1
+      || !candidate.entries[0]?.runId
+      || candidate.artifactHash !== binding.candidateArtifactHash) {
+    throw new Error('historical disposition candidate identity is invalid');
+  }
+  const { artifactHash, ...payload } = candidate;
+  if (hashJson(payload) !== artifactHash) {
+    throw new Error('historical disposition candidate artifact hash drifted');
+  }
+  if (scope.domainId !== candidate.domainId
+      || scope.runId !== candidate.entries[0].runId
+      || scope.candidateArtifactHash !== candidate.artifactHash) {
+    throw new Error('historical disposition manifest scope does not match the candidate');
+  }
+}
+
 function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest = null) {
-  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const inputPath = resolveL2AuthorizationInputPath(operationId, executionManifest);
   const inputAbsolute = path.resolve(repoRoot, inputPath);
   if (!fs.existsSync(inputAbsolute) || !fs.statSync(inputAbsolute).isFile()) return null;
   const inputEntry = readConfinedEntry(repoRoot, inputPath, {
@@ -345,7 +604,13 @@ function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest
   });
   const input = parseJsonBytes(inputEntry.bytes, `${operationId} input`);
   const entries = [inputEntry];
-  if (operationId.endsWith('-l2-promotion')) {
+  if (operationId.endsWith('-l2-reauthorization')) {
+    entries.push(readProjectionBoundEntry(repoRoot, input.proposalPath, input.proposalSha256, {
+      label: `${operationId} proposal`,
+      privateFile: true,
+    }));
+    assertReauthorizationProposalBinding(input, entries.at(-1), operationId);
+  } else if (operationId.endsWith('-l2-promotion')) {
     entries.push(readProjectionBoundEntry(repoRoot, input.proposalPath, input.proposalSha256, {
       label: `${operationId} proposal`,
       privateFile: true,
@@ -392,6 +657,41 @@ function readL2AuthorizationDataEntries(repoRoot, operationId, executionManifest
     seen.add(entry.path);
   }
   return entries;
+}
+
+function assertReauthorizationProposalBinding(input, proposalEntry, operationId) {
+  const expectedPrefix = `reports/authorization/canonical/${operationId}/`;
+  const proposalPath = requireNormalizedPath(input.proposalPath, `${operationId} proposal path`);
+  if (!proposalPath.startsWith(expectedPrefix)
+      || !/^[a-f0-9]{64}\/proposal\.json$/.test(proposalPath.slice(expectedPrefix.length))) {
+    throw new Error(`${operationId} proposal path must be content-addressed`);
+  }
+  const proposal = parseJsonBytes(proposalEntry.bytes, `${operationId} proposal`);
+  if (proposal?.operationId !== operationId || proposal?.proposalOnly !== true
+      || proposal?.proposalHash !== input.proposalHash) {
+    throw new Error(`${operationId} proposal identity does not match the input`);
+  }
+  if (proposalPath.slice(expectedPrefix.length, expectedPrefix.length + 64)
+      !== String(input.proposalHash ?? '').slice(7)) {
+    throw new Error(`${operationId} proposal path does not match proposalHash`);
+  }
+}
+
+function resolveL2AuthorizationInputPath(operationId, executionManifest) {
+  const inputPath = executionManifest?.inputPaths?.[0]
+    ?? `reports/authorization/canonical/${operationId}.input.json`;
+  const normalized = requireNormalizedPath(inputPath, `${operationId} input path`);
+  const prefix = `reports/authorization/canonical/${operationId}`;
+  const match = new RegExp(`^${escapeRegExp(prefix)}(?:\\.([a-z0-9]+(?:-[a-z0-9]+)*))?\\.input\\.json$`).exec(normalized);
+  if (!match) throw new Error(`${operationId} input path must use the exact operation identity and optional retry label`);
+  if (executionManifest?.resultLabel != null && match[1] !== executionManifest.resultLabel) {
+    throw new Error(`${operationId} input path retry label does not match the execution manifest`);
+  }
+  return normalized;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function readItemImageLineageDataEntries(repoRoot, manifest) {
@@ -687,7 +987,7 @@ export function deriveCanonicalTechnicalIdentity(input) {
     executionManifest: input.executionManifest,
     serverFingerprint: input.serverFingerprint,
   });
-  return {
+  const technical = {
     operationId,
     targetDatabases,
     serverFingerprint: input.serverFingerprint == null
@@ -716,6 +1016,16 @@ export function deriveCanonicalTechnicalIdentity(input) {
       : requireExecutionManifest(input.executionManifest),
     requiredTechnicalFields,
   };
+  if (operationId === ARMOR_CANONICAL_OPERATION_ID && input.executionManifest?.armorCanonicalIntent) {
+    const binding = input.executionManifest.armorCanonicalIntent;
+    if (technical.serverFingerprint !== binding.serverFingerprint) {
+      throw new Error('Armor canonical operation server fingerprint drifted from the execution manifest binding');
+    }
+    if (technical.policySetHash !== binding.policySetHash) {
+      throw new Error('Armor canonical operation policy set drifted from the execution manifest binding');
+    }
+  }
+  return technical;
 }
 
 function deriveTechnicalIdentity(input) {
@@ -1039,6 +1349,385 @@ function readConfinedEntry(repoRoot, relativePath, { label, privateFile }) {
   return { path: normalized, bytes: fs.readFileSync(absolutePath) };
 }
 
+function readArmorTypedEffectProposalDataEntries(repoRoot, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1) {
+    throw new Error('Armor typed-effect publication proposal must be the sole manifest input');
+  }
+  const entry = readConfinedEntry(repoRoot, executionManifest.inputPaths[0], {
+    label: 'Armor typed-effect publication proposal', privateFile: true,
+  });
+  let proposal;
+  try {
+    proposal = JSON.parse(entry.bytes.toString('utf8'));
+  } catch {
+    throw new Error('Armor typed-effect publication proposal must be valid JSON');
+  }
+  if (!proposal || typeof proposal !== 'object' || Array.isArray(proposal)
+      || proposal.schemaVersion !== 'armor-typed-effect-publication/v1'
+      || proposal.operationId !== ARMOR_TYPED_EFFECT_OPERATION_ID
+      || proposal.databaseWrites !== false
+      || proposal.applyAllowed !== false
+      || !HASH_PATTERN.test(proposal.proposalSha256 ?? '')) {
+    throw new Error('Armor typed-effect publication proposal identity or no-write flags are invalid');
+  }
+  const { proposalSha256, ...payload } = proposal;
+  if (hashJson(payload) !== proposalSha256) {
+    throw new Error('Armor typed-effect publication proposal hash drifted');
+  }
+  if (executionManifest.typedEffectPublication?.executionReady !== true) {
+    return [entry];
+  }
+  const ownerDecisionPath = executionManifest.typedEffectPublication?.ownerDecisionPath;
+  if (typeof ownerDecisionPath !== 'string' || ownerDecisionPath.trim() === '') {
+    throw new Error('Armor typed-effect publication owner decision path is required when execution-ready');
+  }
+  const ownerDecisionEntry = readConfinedEntry(repoRoot, ownerDecisionPath, {
+    label: 'Armor typed-effect publication owner decision', privateFile: true,
+  });
+  const ownerDecision = parseJsonBytes(
+    ownerDecisionEntry.bytes,
+    'Armor typed-effect publication owner decision',
+  );
+  try {
+    const readiness = assertArmorTypedEffectOwnerDecisionBindingLocal(ownerDecision, {
+      proposalSha256,
+      sourceFingerprint: proposal.sourceFingerprint,
+      reconciliationPath: executionManifest.typedEffectPublication?.reconciliationPath,
+      repoRoot,
+    });
+    if (readiness.executionReady !== true) {
+      throw new Error(`owner decision remains blocked: ${readiness.blockers.join(', ')}`);
+    }
+  } catch (error) {
+    throw new Error(`Armor typed-effect publication owner decision is invalid: ${error.message}`, { cause: error });
+  }
+  return [entry, ownerDecisionEntry];
+}
+
+function readArmorMissingAttributeSourceDataEntries(repoRoot, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1) {
+    throw new Error('Armor missing-attribute source proposal must be the sole manifest input');
+  }
+  const proposalEntry = readConfinedEntry(repoRoot, executionManifest.inputPaths[0], {
+    label: 'Armor missing-attribute source proposal', privateFile: true,
+  });
+  let proposal;
+  try { proposal = JSON.parse(proposalEntry.bytes.toString('utf8')); }
+  catch { throw new Error('Armor missing-attribute source proposal must be valid JSON'); }
+  assertArmorMissingAttributeSourceProposalLocal(proposal);
+  const ownerDecisionPath = executionManifest.missingAttributeSource?.ownerDecisionPath;
+  if (typeof ownerDecisionPath !== 'string' || ownerDecisionPath.trim() === '') {
+    throw new Error('Armor missing-attribute source owner decision path is required when execution-ready');
+  }
+  const decisionEntry = readConfinedEntry(repoRoot, ownerDecisionPath, {
+    label: 'Armor missing-attribute source owner decision', privateFile: true,
+  });
+  let decision;
+  try { decision = JSON.parse(decisionEntry.bytes.toString('utf8')); }
+  catch { throw new Error('Armor missing-attribute source owner decision must be valid JSON'); }
+  if (decision?.schemaVersion !== ARMOR_MISSING_ATTRIBUTE_OWNER_DECISION_SCHEMA) {
+    throw new Error('Armor missing-attribute source owner decision schema is invalid');
+  }
+  const proposalEvidenceHash = proposal.candidate?.sourceEvidence?.sha256;
+  const readiness = assertArmorMissingAttributeOwnerDecisionBindingLocal(decision, {
+    repoRoot,
+    proposalSha256: proposal.proposalSha256,
+    evidenceSha256: proposalEvidenceHash,
+  });
+  if (readiness.executionReady !== true) {
+    throw new Error(`Armor missing-attribute source owner decision remains blocked: ${readiness.blockers.join(', ')}`);
+  }
+  return [proposalEntry, decisionEntry];
+}
+
+function readArmorAttributeRelationProposalDataEntries(repoRoot, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1) {
+    throw new Error('Armor attribute relation proposal must be the sole manifest input');
+  }
+  const entry = readConfinedEntry(repoRoot, executionManifest.inputPaths[0], {
+    label: 'Armor attribute relation proposal', privateFile: true,
+  });
+  let proposal;
+  try { proposal = JSON.parse(entry.bytes.toString('utf8')); }
+  catch { throw new Error('Armor attribute relation proposal must be valid JSON'); }
+  if (!proposal || proposal.schemaVersion !== 'armor-attribute-relation-publication-proposal/v1'
+      || proposal.operationId !== ARMOR_ATTRIBUTE_RELATION_OPERATION_ID
+      || proposal.executable !== false || proposal.databaseWrites !== false || proposal.applyAllowed !== false
+      || !HASH_PATTERN.test(proposal.proposalSha256 ?? '')
+      || JSON.stringify(proposal.candidate?.targetItemSourceIds) !== JSON.stringify([954, 955, 5524, 5588, 5589, 5590, 5591, 5592, 5593])
+      || JSON.stringify(proposal.candidate?.ownership) !== JSON.stringify([
+        'relation.relation_armor_attribute_rows.item_source_id.954,955,5524,5588-5593',
+        'relation.relation_equipment_effect_attributes.armor_attribute_cell.item_source_id.954,955,5524,5588-5593',
+      ])) {
+    throw new Error('Armor attribute relation proposal identity or scope is invalid');
+  }
+  const { proposalSha256, ...payload } = proposal;
+  if (hashJson(payload) !== proposalSha256) throw new Error('Armor attribute relation proposal hash drifted');
+  return [entry];
+}
+
+function assertArmorMissingAttributeSourceProposalLocal(proposal) {
+  if (!proposal || proposal.schemaVersion !== 'armor-missing-attribute-source-proposal/v1'
+      || proposal.operationId !== ARMOR_MISSING_ATTRIBUTE_OPERATION_ID
+      || !HASH_PATTERN.test(proposal.proposalSha256 ?? '')
+      || proposal.candidate?.schemaVersion !== 'armor-missing-attribute-maint-candidate/v1'
+      || proposal.candidate?.databaseWrites !== false
+      || proposal.candidate?.executable !== false
+      || proposal.candidate?.applyAllowed !== false) {
+    throw new Error('Armor missing-attribute source proposal identity or no-write flags are invalid');
+  }
+  const { proposalSha256, ...payload } = proposal;
+  if (hashJson(payload) !== proposalSha256) throw new Error('Armor missing-attribute source proposal hash drifted');
+  const { candidateSha256, ...candidatePayload } = proposal.candidate;
+  if (!HASH_PATTERN.test(candidateSha256 ?? '') || hashJson(candidatePayload) !== candidateSha256) {
+    throw new Error('Armor missing-attribute maint candidate hash drifted');
+  }
+}
+
+function assertArmorMissingAttributeOwnerDecisionBindingLocal(
+  decision,
+  { repoRoot, proposalSha256, evidenceSha256 } = {},
+) {
+  const gateIds = ['source-evidence', 'maint-item-identity', 'item-scoped-facts', 'set-owned-facts', 'recovery-owner'];
+  if (!decision || decision.schemaVersion !== ARMOR_MISSING_ATTRIBUTE_OWNER_DECISION_SCHEMA
+      || decision.operationId !== ARMOR_MISSING_ATTRIBUTE_OPERATION_ID
+      || decision.proposalSha256 !== proposalSha256
+      || decision.evidenceSha256 !== evidenceSha256
+      || decision.reviewStatus !== 'recorded'
+      || decision.formalAdmission !== false || decision.databaseWrites !== false || decision.applyAllowed !== false
+      || !HASH_PATTERN.test(decision.decisionSha256 ?? '')
+      || JSON.stringify(Object.keys(decision.gateDecisions ?? {}).sort()) !== JSON.stringify(gateIds.sort())) {
+    throw new Error('Armor missing-attribute owner decision binding or safety flags are invalid');
+  }
+  for (const gateId of gateIds) {
+    const gate = decision.gateDecisions[gateId];
+    if (!gate || !['resolved', 'blocked', 'not-reviewed'].includes(gate.status) || !requireText(gate.note, `${gateId} note`)) {
+      throw new Error(`Armor missing-attribute owner decision gate is invalid: ${gateId}`);
+    }
+    if (gate.status === 'resolved' && (!requireText(gate.evidencePath, `${gateId} evidence path`)
+        || !HASH_PATTERN.test(gate.evidenceSha256 ?? ''))) throw new Error(`Armor missing-attribute evidence is invalid: ${gateId}`);
+    if (gate.status === 'resolved') {
+      const evidence = readConfinedEntry(repoRoot, gate.evidencePath, {
+        label: `Armor missing-attribute owner evidence ${gateId}`, privateFile: true,
+      });
+      const actual = `sha256:${createHash('sha256').update(evidence.bytes).digest('hex')}`;
+      if (actual !== gate.evidenceSha256) throw new Error(`Armor missing-attribute evidence hash drifted: ${gateId}`);
+    }
+    if (gate.status !== 'resolved' && (gate.evidencePath != null || gate.evidenceSha256 != null)) {
+      throw new Error(`Armor missing-attribute unresolved gate has evidence: ${gateId}`);
+    }
+  }
+  const { decisionSha256, ...payload } = decision;
+  if (hashJson(payload) !== decisionSha256) throw new Error('Armor missing-attribute owner decision hash drifted');
+  const executionReady = gateIds.every(gateId => decision.gateDecisions[gateId].status === 'resolved');
+  if (decision.reviewComplete !== executionReady || decision.executionReady !== executionReady) {
+    throw new Error('Armor missing-attribute owner decision readiness drifted');
+  }
+  return { executionReady, blockers: gateIds.filter(gateId => decision.gateDecisions[gateId].status !== 'resolved') };
+}
+
+function assertArmorTypedEffectOwnerDecisionBindingLocal(
+  decision,
+  { proposalSha256, sourceFingerprint, reconciliationPath, repoRoot } = {},
+) {
+  const expectedDecisionKeys = [
+    'actor', 'applyAllowed', 'authorizationReference', 'databaseWrites',
+    'decisionIdentity', 'decisionSha256', 'executionReady', 'formalAdmission',
+    'gateDecisions', 'operationId', 'proposalSha256',
+    'rationale', 'reviewComplete', 'reviewStatus', 'schemaVersion',
+    'sourceFingerprint', 'reviewedAt',
+  ].sort();
+  if (!decision || typeof decision !== 'object' || Array.isArray(decision)
+      || decision.schemaVersion !== ARMOR_TYPED_EFFECT_OWNER_DECISION_SCHEMA
+      || decision.operationId !== ARMOR_TYPED_EFFECT_OPERATION_ID
+      || decision.reviewStatus !== 'recorded'
+      || decision.formalAdmission !== false
+      || decision.databaseWrites !== false
+      || decision.applyAllowed !== false
+      || decision.proposalSha256 !== proposalSha256
+      || !HASH_PATTERN.test(String(decision.decisionSha256 ?? ''))
+      || !Array.isArray(ARMOR_TYPED_EFFECT_GATE_IDS)
+      || !decision.gateDecisions || typeof decision.gateDecisions !== 'object'
+      || JSON.stringify(Object.keys(decision).sort()) !== JSON.stringify(expectedDecisionKeys)
+      || JSON.stringify(Object.keys(decision.gateDecisions).sort())
+        !== JSON.stringify([...ARMOR_TYPED_EFFECT_GATE_IDS].sort())) {
+    throw new Error('Armor typed-effect owner decision identity or safety flags are invalid');
+  }
+  const fingerprint = decision.sourceFingerprint;
+  if (!fingerprint || typeof fingerprint !== 'object'
+      || JSON.stringify(Object.keys(fingerprint).sort())
+        !== JSON.stringify(['armorSetsRevisionId', 'iteminfoRevisionId', 'pageRevisionId'])) {
+    throw new Error('Armor typed-effect owner decision source fingerprint is invalid');
+  }
+  if (JSON.stringify(stableValue(fingerprint)) !== JSON.stringify(stableValue(sourceFingerprint))) {
+    throw new Error('Armor typed-effect owner decision source fingerprint drifted');
+  }
+  for (const gateId of ARMOR_TYPED_EFFECT_GATE_IDS) {
+    const gate = decision.gateDecisions[gateId];
+    if (!gate || !['resolved', 'blocked', 'not-reviewed'].includes(gate.status)
+        || !requireText(gate.note, `${gateId} note`)) {
+      throw new Error(`Armor typed-effect owner decision gate is invalid: ${gateId}`);
+    }
+    if (gate.evidencePath != null
+        && (gate.evidencePath.startsWith('/') || gate.evidencePath.includes('\\')
+          || path.posix.normalize(gate.evidencePath) !== gate.evidencePath
+          || gate.evidencePath.split('/').some(segment => segment === '' || segment === '.' || segment === '..'))) {
+      throw new Error(`Armor typed-effect owner decision evidence path is invalid: ${gateId}`);
+    }
+    if (gate.status === 'resolved'
+        && (!requireText(gate.evidencePath, `${gateId} evidence path`)
+          || !HASH_PATTERN.test(String(gate.evidenceSha256 ?? '')))) {
+      throw new Error(`Armor typed-effect owner decision resolved evidence is invalid: ${gateId}`);
+    }
+    if (gate.status === 'resolved') {
+      const evidence = readConfinedEntry(repoRoot, gate.evidencePath, {
+        label: `Armor typed-effect owner decision evidence ${gateId}`,
+        privateFile: true,
+      });
+      const actual = `sha256:${createHash('sha256').update(evidence.bytes).digest('hex')}`;
+      if (actual !== gate.evidenceSha256) {
+        throw new Error(`Armor typed-effect owner decision evidence hash drifted: ${gateId}`);
+      }
+      if (gateId === 'recovery-owner') {
+        let recoveryEvidence;
+        try {
+          recoveryEvidence = JSON.parse(evidence.bytes.toString('utf8'));
+        } catch (error) {
+          throw new Error(`Armor typed-effect recovery owner evidence is not valid JSON: ${error.message}`, { cause: error });
+        }
+        try {
+          assertArmorTypedEffectRecoveryOwnerBindingLocal(recoveryEvidence, {
+            proposalSha256,
+            sourceFingerprint,
+            reconciliationPath,
+            decisionIdentity: decision.decisionIdentity,
+          });
+        } catch (error) {
+          throw new Error(`Armor typed-effect recovery owner evidence is invalid: ${error.message}`, { cause: error });
+        }
+      }
+      if (gateId === 'typed-set-effect-owner') {
+        let sourceEffectEvidence;
+        try {
+          sourceEffectEvidence = JSON.parse(evidence.bytes.toString('utf8'));
+        } catch (error) {
+          throw new Error(`Armor source-effect owner evidence is not valid JSON: ${error.message}`, { cause: error });
+        }
+        const expectedEvidenceKeys = [
+          'applyAllowed', 'assignments', 'classificationSha256', 'databaseWrites',
+          'decisionSha256', 'executionReady', 'formalAdmission', 'operationId',
+          'proposalSha256', 'schemaVersion', 'sourceEvidenceHash', 'sourceFingerprint',
+        ];
+        if (Object.hasOwn(sourceEffectEvidence ?? {}, 'partialPolicy')) {
+          expectedEvidenceKeys.push('partialPolicy');
+        }
+        if (sourceEffectEvidence?.schemaVersion !== 'armor-source-effect-owner-decision/v1'
+            || sourceEffectEvidence.operationId !== ARMOR_TYPED_EFFECT_OPERATION_ID
+            || sourceEffectEvidence.formalAdmission !== false
+            || sourceEffectEvidence.databaseWrites !== false
+            || sourceEffectEvidence.applyAllowed !== false
+            || sourceEffectEvidence.proposalSha256 !== proposalSha256
+            || !HASH_PATTERN.test(sourceEffectEvidence.sourceEvidenceHash ?? '')
+            || !HASH_PATTERN.test(sourceEffectEvidence.classificationSha256 ?? '')
+            || !HASH_PATTERN.test(sourceEffectEvidence.decisionSha256 ?? '')
+            || sourceEffectEvidence.executionReady !== true
+            || !Array.isArray(sourceEffectEvidence.assignments)
+            || JSON.stringify(expectedEvidenceKeys.sort()) !== JSON.stringify(Object.keys(sourceEffectEvidence).filter(key => key !== 'actor' && key !== 'authorizationReference' && key !== 'decisionIdentity' && key !== 'entries' && key !== 'reviewComplete' && key !== 'reviewStatus' && key !== 'rationale' && key !== 'reviewedAt').sort())) {
+          throw new Error('Armor source-effect owner evidence schema, binding or readiness is invalid');
+        }
+        try {
+          validateArmorSourceEffectOwnerDecision(sourceEffectEvidence);
+        } catch (error) {
+          throw new Error(`Armor source-effect owner evidence is invalid: ${error.message}`, { cause: error });
+        }
+        const { decisionSha256, ...decisionPayload } = sourceEffectEvidence;
+        if (hashJson(decisionPayload) !== decisionSha256) {
+          throw new Error('Armor source-effect owner evidence hash drifted');
+        }
+      }
+    }
+  }
+  const reviewComplete = ARMOR_TYPED_EFFECT_GATE_IDS
+    .every(gateId => decision.gateDecisions[gateId].status === 'resolved');
+  if (decision.reviewComplete !== reviewComplete) {
+    throw new Error('Armor typed-effect owner decision review completeness drifted');
+  }
+  const { decisionSha256, ...payload } = decision;
+  if (hashJson(payload) !== decisionSha256) {
+    throw new Error('Armor typed-effect owner decision hash drifted');
+  }
+  const executionReady = reviewComplete;
+  if (decision.executionReady !== executionReady) {
+    throw new Error('Armor typed-effect owner decision readiness drifted');
+  }
+  return {
+    executionReady: executionReady && decision.executionReady === true,
+    blockers: ARMOR_TYPED_EFFECT_GATE_IDS
+      .filter(gateId => decision.gateDecisions[gateId].status !== 'resolved')
+      .map(gateId => `${gateId}: ${decision.gateDecisions[gateId].status}`),
+  };
+}
+
+function assertArmorTypedEffectRecoveryOwnerBindingLocal(
+  evidence,
+  { proposalSha256, sourceFingerprint, reconciliationPath, decisionIdentity } = {},
+) {
+  const statuses = [
+    'ROLLBACK_CONFIRMED', 'COMMITTED_READBACK_REQUIRED',
+    'EXPECTED_STATE_PRESENT', 'RECONCILIATION_REQUIRED',
+  ];
+  const expectedKeys = [
+    'allowedStatuses', 'bindingSha256', 'databaseWrites', 'decisionIdentity',
+    'operationId', 'ownerIdentity', 'ownerRole', 'permitReplayAllowed',
+    'proposalSha256', 'rationale', 'reconciliationPath', 'reviewedAt',
+    'schemaVersion', 'sourceFingerprint',
+  ].sort();
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)
+      || JSON.stringify(Object.keys(evidence).sort()) !== JSON.stringify(expectedKeys)
+      || evidence.schemaVersion !== 'armor-typed-effect-recovery-owner/v1'
+      || evidence.operationId !== ARMOR_TYPED_EFFECT_OPERATION_ID
+      || evidence.databaseWrites !== false || evidence.permitReplayAllowed !== false
+      || evidence.proposalSha256 !== proposalSha256
+      || evidence.decisionIdentity !== decisionIdentity
+      || evidence.reconciliationPath !== reconciliationPath
+      || JSON.stringify(stableValue(evidence.sourceFingerprint)) !== JSON.stringify(stableValue(sourceFingerprint))
+      || !HASH_PATTERN.test(evidence.bindingSha256 ?? '')
+      || !Array.isArray(evidence.allowedStatuses)
+      || JSON.stringify([...evidence.allowedStatuses].sort()) !== JSON.stringify([...statuses].sort())) {
+    throw new Error('Armor typed-effect recovery owner evidence binding or safety flags are invalid');
+  }
+  for (const [value, label] of [
+    [evidence.ownerIdentity, 'owner identity'],
+    [evidence.ownerRole, 'owner role'],
+    [evidence.decisionIdentity, 'decision identity'],
+    [evidence.rationale, 'rationale'],
+  ]) {
+    requireText(value, `Armor typed-effect recovery owner ${label}`);
+  }
+  if (!Number.isFinite(Date.parse(evidence.reviewedAt))) {
+    throw new Error('Armor typed-effect recovery owner reviewedAt is invalid');
+  }
+  const fingerprintKeys = ['armorSetsRevisionId', 'iteminfoRevisionId', 'pageRevisionId'];
+  if (!evidence.sourceFingerprint || typeof evidence.sourceFingerprint !== 'object'
+      || JSON.stringify(Object.keys(evidence.sourceFingerprint).sort()) !== JSON.stringify(fingerprintKeys)) {
+    throw new Error('Armor typed-effect recovery owner source fingerprint is invalid');
+  }
+  for (const key of fingerprintKeys) {
+    if (typeof evidence.sourceFingerprint[key] !== 'number'
+        || !Number.isSafeInteger(evidence.sourceFingerprint[key]) || evidence.sourceFingerprint[key] <= 0) {
+      throw new Error(`Armor typed-effect recovery owner source revision is invalid: ${key}`);
+    }
+  }
+  if (path.posix.normalize(evidence.reconciliationPath) !== evidence.reconciliationPath
+      || evidence.reconciliationPath.startsWith('/') || evidence.reconciliationPath.includes('\\')
+      || evidence.reconciliationPath.split('/').some(segment => segment === '' || segment === '.' || segment === '..')) {
+    throw new Error('Armor typed-effect recovery owner reconciliation path is not repository-relative');
+  }
+  const { bindingSha256, ...payload } = evidence;
+  if (hashJson(payload) !== bindingSha256) throw new Error('Armor typed-effect recovery owner evidence hash drifted');
+  return true;
+}
+
 function assertProjectionProposalAuthorization(value, input) {
   const expectedKeys = [
     'schemaVersion',
@@ -1160,6 +1849,184 @@ function readCompleteEntries(repoRoot, relativePaths) {
   return readRequiredEntries(repoRoot, relativePaths);
 }
 
+function readSchedulerActivationPolicyDataEntries(repoRoot, operationId, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1) {
+    throw new Error('scheduler activation execution manifest must declare exactly one input path');
+  }
+  const inputPath = requireNormalizedPath(
+    executionManifest.inputPaths[0],
+    'scheduler activation execution manifest input path',
+  );
+  const prefix = `reports/authorization/canonical/${operationId}`;
+  const match = new RegExp(
+    `^${escapeRegExp(prefix)}(?:\\.([a-z0-9]+(?:-[a-z0-9]+)*))?\\.input\\.json$`,
+  ).exec(inputPath);
+  if (!match || (executionManifest.resultLabel != null && match[1] !== executionManifest.resultLabel)) {
+    throw new Error('scheduler activation manifest input path must match its retry label');
+  }
+  return [readConfinedEntry(repoRoot, inputPath, {
+    label: 'scheduler activation policy input',
+    privateFile: true,
+  })];
+}
+
+function readArmorItemLineageRefreshProposalDataEntries(repoRoot, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1
+      || executionManifest.resultLabel == null) {
+    throw new Error('Armor Iteminfo lineage proposal must be the sole result-label-bound manifest input');
+  }
+  const expectedPath = `reports/authorization/canonical/${ARMOR_ITEM_LINEAGE_REFRESH_OPERATION_ID}.${executionManifest.resultLabel}.proposal.json`;
+  if (executionManifest.inputPaths[0] !== expectedPath) {
+    throw new Error('Armor Iteminfo lineage proposal path drifted from the result label');
+  }
+  const entry = readConfinedEntry(repoRoot, expectedPath, {
+    label: 'Armor Iteminfo lineage proposal', privateFile: true,
+  });
+  const proposal = parseJsonBytes(entry.bytes, 'Armor Iteminfo lineage proposal');
+  if (!proposal || typeof proposal !== 'object' || Array.isArray(proposal)
+      || proposal.schemaVersion !== 'armor-item-lineage-refresh-proposal/v1'
+      || proposal.operationId !== ARMOR_ITEM_LINEAGE_REFRESH_OPERATION_ID
+      || proposal.executable !== false || proposal.databaseWrites !== false
+      || proposal.applyAllowed !== false || !HASH_PATTERN.test(proposal.proposalSha256 ?? '')) {
+    throw new Error('Armor Iteminfo lineage proposal identity or no-write flags are invalid');
+  }
+  const { proposalSha256, ...proposalPayload } = proposal;
+  if (hashJson(proposalPayload) !== proposalSha256) {
+    throw new Error('Armor Iteminfo lineage proposal hash drifted');
+  }
+  const candidate = proposal.candidate;
+  if (!candidate || candidate.schemaVersion !== 'armor-item-lineage-refresh-candidate/v1'
+      || candidate.operationId !== ARMOR_ITEM_LINEAGE_REFRESH_OPERATION_ID
+      || candidate.executable !== false || candidate.databaseWrites !== false
+      || candidate.applyAllowed !== false || !HASH_PATTERN.test(candidate.candidateSha256 ?? '')
+      || JSON.stringify(candidate.targetItemSourceIds) !== JSON.stringify([1546, 1547, 1548, 1549, 1550])
+      || Number(candidate.source?.revisionId) !== 1023241
+      || candidate.source?.revisionTimestamp !== '2026-08-22T03:26:22Z'
+      || candidate.proposedLanding?.source_key !== 'wiki.module.iteminfo.armor-shroomite.1023241'
+      || candidate.changes?.localLanding?.inserts?.length !== 1
+      || candidate.changes?.maintLanding?.inserts?.length !== 1
+      || candidate.changes?.maintItems?.updates?.length !== 5
+      || candidate.changes?.maintItems?.inserts?.length !== 0
+      || candidate.acceptance?.globalIteminfoLandingUntouched !== true) {
+    throw new Error('Armor Iteminfo lineage candidate identity or bounded scope is invalid');
+  }
+  const { candidateSha256, ...candidatePayload } = candidate;
+  if (hashJson(candidatePayload) !== candidateSha256) {
+    throw new Error('Armor Iteminfo lineage candidate hash drifted');
+  }
+  return [entry];
+}
+
+function readArmorShroomiteRelationItemRefreshProposalDataEntries(repoRoot, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1
+      || executionManifest.resultLabel == null) {
+    throw new Error('Armor Shroomite relation-item proposal must be the sole result-label-bound manifest input');
+  }
+  const expectedPath = `reports/authorization/canonical/${ARMOR_SHROOMITE_RELATION_ITEM_REFRESH_OPERATION_ID}.${executionManifest.resultLabel}.proposal.json`;
+  if (executionManifest.inputPaths[0] !== expectedPath) {
+    throw new Error('Armor Shroomite relation-item proposal path drifted from the result label');
+  }
+  const entry = readConfinedEntry(repoRoot, expectedPath, { label: 'Armor Shroomite relation-item proposal', privateFile: true });
+  const proposal = parseJsonBytes(entry.bytes, 'Armor Shroomite relation-item proposal');
+  if (!proposal || typeof proposal !== 'object' || Array.isArray(proposal)
+      || proposal.schemaVersion !== 'armor-shroomite-relation-item-refresh-proposal/v1'
+      || proposal.operationId !== ARMOR_SHROOMITE_RELATION_ITEM_REFRESH_OPERATION_ID
+      || proposal.executable !== false || proposal.databaseWrites !== false
+      || proposal.applyAllowed !== false || !HASH_PATTERN.test(proposal.proposalSha256 ?? '')) {
+    throw new Error('Armor Shroomite relation-item proposal identity or no-write flags are invalid');
+  }
+  const { proposalSha256, ...proposalPayload } = proposal;
+  if (hashJson(proposalPayload) !== proposalSha256) throw new Error('Armor Shroomite relation-item proposal hash drifted');
+  const candidate = proposal.candidate;
+  if (!candidate || candidate.schemaVersion !== 'armor-shroomite-relation-item-refresh-candidate/v1'
+      || candidate.operationId !== ARMOR_SHROOMITE_RELATION_ITEM_REFRESH_OPERATION_ID
+      || candidate.executable !== false || candidate.databaseWrites !== false
+      || candidate.applyAllowed !== false || !HASH_PATTERN.test(candidate.candidateSha256 ?? '')
+      || JSON.stringify(candidate.targetItemSourceIds) !== JSON.stringify([1546, 1547, 1548, 1549, 1550])
+      || candidate.changes?.relationItems?.updates?.length !== 5
+      || candidate.acceptance?.relationItemsOnly !== true) {
+    throw new Error('Armor Shroomite relation-item candidate identity or bounded scope is invalid');
+  }
+  const { candidateSha256, ...candidatePayload } = candidate;
+  if (hashJson(candidatePayload) !== candidateSha256) throw new Error('Armor Shroomite relation-item candidate hash drifted');
+  return [entry];
+}
+
+function readArmorRelationItemNormalizationProposalDataEntries(repoRoot, executionManifest) {
+  if (!Array.isArray(executionManifest?.inputPaths) || executionManifest.inputPaths.length !== 1
+      || executionManifest.resultLabel == null) {
+    throw new Error('Armor relation-item normalization proposal must be the sole result-label-bound manifest input');
+  }
+  const expectedPath = `reports/authorization/canonical/${ARMOR_RELATION_ITEM_NORMALIZATION_OPERATION_ID}.${executionManifest.resultLabel}.proposal.json`;
+  if (executionManifest.inputPaths[0] !== expectedPath) throw new Error('Armor relation-item normalization proposal path drifted from the result label');
+  const entry = readConfinedEntry(repoRoot, expectedPath, { label: 'Armor relation-item normalization proposal', privateFile: true });
+  const proposal = parseJsonBytes(entry.bytes, 'Armor relation-item normalization proposal');
+  if (!proposal || typeof proposal !== 'object' || Array.isArray(proposal)
+      || proposal.schemaVersion !== 'armor-relation-item-normalization-proposal/v1'
+      || proposal.operationId !== ARMOR_RELATION_ITEM_NORMALIZATION_OPERATION_ID
+      || proposal.executable !== false || proposal.databaseWrites !== false
+      || proposal.applyAllowed !== false || !HASH_PATTERN.test(proposal.proposalSha256 ?? '')) {
+    throw new Error('Armor relation-item normalization proposal identity or no-write flags are invalid');
+  }
+  const { proposalSha256, ...proposalPayload } = proposal;
+  if (hashJson(proposalPayload) !== proposalSha256) throw new Error('Armor relation-item normalization proposal hash drifted');
+  const candidate = proposal.candidate;
+  if (!candidate || candidate.schemaVersion !== 'armor-relation-item-normalization-candidate/v1'
+      || candidate.operationId !== ARMOR_RELATION_ITEM_NORMALIZATION_OPERATION_ID
+      || candidate.executable !== false || candidate.databaseWrites !== false
+      || candidate.applyAllowed !== false || !HASH_PATTERN.test(candidate.candidateSha256 ?? '')
+      || JSON.stringify(candidate.targetItemSourceIds) !== JSON.stringify([729, 1282])
+      || candidate.changes?.relationItems?.updates?.length !== 2
+      || candidate.acceptance?.defenseNullCanonicalizationOnly !== true) {
+    throw new Error('Armor relation-item normalization candidate identity or bounded scope is invalid');
+  }
+  const { candidateSha256, ...candidatePayload } = candidate;
+  if (hashJson(candidatePayload) !== candidateSha256) throw new Error('Armor relation-item normalization candidate hash drifted');
+  return [entry];
+}
+
+function readArmorCanonicalIntentDataEntries(repoRoot, executionManifest) {
+  const binding = executionManifest?.armorCanonicalIntent;
+  const intentPath = requireNormalizedPath(binding?.intentPath, 'Armor canonical intent path');
+  if (!Array.isArray(executionManifest?.inputPaths)
+      || executionManifest.inputPaths.length !== 1
+      || executionManifest.inputPaths[0] !== intentPath
+      || executionManifest.resultLabel == null
+      || intentPath !== `reports/authorization/canonical/${ARMOR_CANONICAL_OPERATION_ID}.${executionManifest.resultLabel}.intent.json`) {
+    throw new Error('Armor canonical intent execution manifest path drifted');
+  }
+  if (binding.schemaVersion !== 'armor-canonical-operation-binding/v1'
+      || binding.operationId !== ARMOR_CANONICAL_OPERATION_ID
+      || !HASH_PATTERN.test(binding.intentFileSha256 ?? '')
+      || !HASH_PATTERN.test(binding.fullChainSha256 ?? '')
+      || !HASH_PATTERN.test(binding.serverFingerprint ?? '')
+      || !HASH_PATTERN.test(binding.policySetHash ?? '')
+      || typeof binding.runId !== 'string' || !binding.runId.trim()
+      || typeof binding.fenceToken !== 'string' || !binding.fenceToken.trim()
+      || !binding.fenceCommit || !Number.isSafeInteger(binding.fenceCommit.generation)
+      || binding.fenceCommit.generation < 1 || typeof binding.fenceCommit.marker !== 'string'
+      || !binding.fenceCommit.marker.trim()) {
+    throw new Error('Armor canonical intent operation binding is incomplete');
+  }
+  const entry = readConfinedEntry(repoRoot, intentPath, {
+    label: 'Armor canonical full-chain intent', privateFile: true,
+  });
+  const actual = `sha256:${createHash('sha256').update(entry.bytes).digest('hex')}`;
+  if (actual !== binding.intentFileSha256) throw new Error('Armor canonical full-chain intent bytes drifted');
+  let intent;
+  try { intent = JSON.parse(entry.bytes.toString('utf8')); }
+  catch { throw new Error('Armor canonical full-chain intent must be valid JSON'); }
+  if (intent.schemaVersion !== 'armor-canonical-full-chain-intent/v1'
+      || intent.operationId !== ARMOR_CANONICAL_OPERATION_ID
+      || intent.executable !== false
+      || intent.executionBlocker !== 'registered-full-chain-executor-required'
+      || !HASH_PATTERN.test(intent.fullChainSha256 ?? '')) {
+    throw new Error('Armor canonical full-chain intent identity is invalid');
+  }
+  if (intent.fullChainSha256 !== binding.fullChainSha256) throw new Error('Armor canonical full-chain hash drifted from binding');
+  return [entry];
+}
+
 function readNpcCrawlerEntries(repoRoot) {
   const inputPath = 'reports/authorization/canonical/canonical-npc-apply.input.json';
   const fullInputPath = path.join(repoRoot, inputPath);
@@ -1236,6 +2103,12 @@ function requireText(value, label) {
   return text;
 }
 
+function requireHash(value, label) {
+  const hash = requireText(value, label);
+  if (!HASH_PATTERN.test(hash)) throw new Error(`${label} must be a sha256 hash`);
+  return hash;
+}
+
 function requireTimestamp(value, label) {
   const text = requireText(value, label);
   if (!Number.isFinite(Date.parse(text))) throw new Error(`${label} must be a valid timestamp`);
@@ -1308,6 +2181,47 @@ function exactAttemptAuthorizationCliPaths({
   outputPath,
   requestPath = null,
 }) {
+  if (operationId === HISTORICAL_SOURCE_HASH_DISPOSITION_OPERATION_ID) {
+    const scope = executionManifest?.scope;
+    const domainId = requireText(scope?.domainId, 'historical disposition manifest scope domain');
+    const candidateArtifactHash = requireHash(
+      scope?.candidateArtifactHash,
+      'historical disposition manifest candidate artifact hash',
+    );
+    const expectedCandidatePath = `${HISTORICAL_DISPOSITION_CANDIDATE_ROOT}${domainId}/${candidateArtifactHash.slice(7)}/candidate.json`;
+    const candidateBinding = executionManifest?.historicalSourceHashDisposition
+      ?? executionManifest?.historicalSourceHashDispositionCandidate
+      ?? executionManifest?.historicalDispositionCandidate
+      ?? executionManifest?.candidate;
+    if (!candidateBinding || requireNormalizedPath(
+      candidateBinding.candidatePath ?? candidateBinding.path,
+      'historical disposition candidate path',
+    ) !== expectedCandidatePath) {
+      throw new Error('historical disposition manifest candidate path does not match its scope');
+    }
+    const expectedPacketPath = `${HISTORICAL_DISPOSITION_CANDIDATE_ROOT}${domainId}/${candidateArtifactHash.slice(7)}/packet.json`;
+    const expectedRequestPath = `${HISTORICAL_DISPOSITION_CANDIDATE_ROOT}${domainId}/${candidateArtifactHash.slice(7)}/request.json`;
+    if (!HISTORICAL_DISPOSITION_PACKET_PATH_PATTERN.test(expectedPacketPath)) {
+      throw new Error('historical disposition manifest scope is not a supported candidate path');
+    }
+    const normalizedOutput = requireNormalizedPath(outputPath, 'historical disposition authorization output path');
+    const expectedOutput = mode === 'request' ? expectedRequestPath : expectedPacketPath;
+    if (normalizedOutput !== expectedOutput) {
+      throw new Error(`historical disposition ${mode} output must be the exact candidate-scoped ${path.posix.basename(expectedOutput)} path`);
+    }
+    if (mode === 'authorize') {
+      const normalizedRequest = requireNormalizedPath(requestPath, 'historical disposition request path');
+      if (normalizedRequest !== expectedRequestPath) {
+        throw new Error('historical disposition authorization must read the exact candidate-scoped request path');
+      }
+    }
+    const output = assertRepositoryPathConfinement({
+      repoRoot,
+      filePath: path.resolve(repoRoot, normalizedOutput),
+      label: `historical disposition ${mode} output`,
+    });
+    return { output, noOverwrite: true };
+  }
   const operation = EXACT_ATTEMPT_AUTHORIZATION_OPERATIONS[operationId];
   if (operation == null) {
     return { output: path.resolve(outputPath), noOverwrite: false };

@@ -348,7 +348,7 @@ function loadLocalNpcRows(options = {}) {
   });
 }
 
-function loadLocalBgmDisplayNameRows(options = {}) {
+export function loadLocalBgmDisplayNameRows(options = {}) {
   const displayNamePath = options.displayNamePath ?? LOCAL_BGM_DISPLAY_NAMES_PATH;
   const payload = readJsonIfExists(displayNamePath);
   const displayNames = payload?.displayNames;
@@ -628,9 +628,12 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
   const metadata = JSON.parse(fs.readFileSync(options.inputJsonPath, 'utf8'));
   const validation = validateAudioMetadata(metadata);
   const assets = metadata.assets ?? [];
-  const localItemRows = dependencies.localItemRows ?? loadLocalItemRows(dependencies.localDataOptions?.items);
-  const localNpcRows = dependencies.localNpcRows ?? loadLocalNpcRows(dependencies.localDataOptions?.npcs);
-  const localBgmDisplayNameRows = dependencies.localBgmDisplayNameRows ?? loadLocalBgmDisplayNameRows(dependencies.localDataOptions?.bgm);
+  const localItemRows = dependencies.localItemRows
+    ?? (dependencies.itemRows == null ? loadLocalItemRows(dependencies.localDataOptions?.items) : []);
+  const localNpcRows = dependencies.localNpcRows
+    ?? (dependencies.npcRows == null ? loadLocalNpcRows(dependencies.localDataOptions?.npcs) : []);
+  const localBgmDisplayNameRows = dependencies.localBgmDisplayNameRows
+    ?? (dependencies.bgmDisplayNameRows == null ? loadLocalBgmDisplayNameRows(dependencies.localDataOptions?.bgm) : []);
   let itemRows = mergeRowsByIdentity(dependencies.itemRows ?? [], localItemRows);
   let npcRows = mergeRowsByIdentity(dependencies.npcRows ?? [], localNpcRows);
   const assetRows = buildAudioAssetRows(assets, { reportPath: options.reportPath, itemRows, npcRows, bgmDisplayNameRows: localBgmDisplayNameRows });

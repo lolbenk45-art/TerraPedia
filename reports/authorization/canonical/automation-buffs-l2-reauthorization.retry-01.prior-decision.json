@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-buffs-l2-promotion-20260830-admin-01",
+  "packetHash": "sha256:c65d73d241263cdbe97423d4c904757358220e99e52a0d0d1e5c8903fa7c49d5",
+  "policySetHash": "sha256:344e0b5f03fd2e3989992cc39f52519d0f4f0fe5a5a6245a574697ece55fd235",
+  "expiresAt": "2026-08-31T15:13:00.000Z",
+  "domainId": "buffs"
+}

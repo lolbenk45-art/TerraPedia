@@ -6,6 +6,7 @@ import com.terraria.skills.config.CrawlerQueueV2Properties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
@@ -299,6 +300,7 @@ class CrawlerQueueV2RecoveryServiceTest {
         writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
         when(repository.readEngineState()).thenReturn(engine("epoch-1"));
         when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue(live)));
         when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
         CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
 
@@ -319,6 +321,7 @@ class CrawlerQueueV2RecoveryServiceTest {
         writeManifest(artifacts, paused, CrawlerQueueV2Status.PAUSED);
         when(repository.readEngineState()).thenReturn(engine("epoch-1"));
         when(repository.findLiveAttempts()).thenReturn(List.of(paused));
+        when(repository.findQueue(paused.queueId())).thenReturn(Optional.of(queue(paused)));
         when(supervisor.recoverExactProcess(paused, true)).thenReturn(true);
         CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
 
@@ -326,6 +329,55 @@ class CrawlerQueueV2RecoveryServiceTest {
 
         verify(supervisor).recoverExactProcess(paused, true);
         verify(repository, never()).mutate(any());
+    }
+
+    @Test
+    void normalRestartMustNotAdoptAnAttemptWhenItsQueueRecordIsMissing() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        CrawlerQueueV2Attempt live = attempt("attempt-missing-queue", CrawlerQueueV2Status.RUNNING, "epoch-1", 89L);
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.empty());
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+        assertStalledWithTheCurrentFence(repository, live);
+    }
+
+    @Test
+    void normalRestartFailsClosedWhenReadingTheQueueRecordThrows() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        CrawlerQueueV2Attempt live = attempt(
+            "attempt-queue-read-failure", CrawlerQueueV2Status.RUNNING, "epoch-1", 90L
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenThrow(new CrawlerQueueV2Exception(
+            org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+            CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE
+        ));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        CrawlerQueueV2RecoveryService.RecoveryResult result = recovery.recoverOnStartup();
+
+        assertTrue(result.resetRequired());
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE, result.reasonCode());
+        verify(repository, never()).mutate(any());
+        verifyNoInteractions(supervisor);
     }
 
     @Test
@@ -339,12 +391,102 @@ class CrawlerQueueV2RecoveryServiceTest {
         writeManifest(artifacts, cancelling, CrawlerQueueV2Status.CANCEL_REQUESTED);
         when(repository.readEngineState()).thenReturn(engine("epoch-1"));
         when(repository.findLiveAttempts()).thenReturn(List.of(cancelling));
+        when(repository.findQueue(cancelling.queueId())).thenReturn(Optional.of(queue(cancelling)));
         when(supervisor.cancel(cancelling)).thenReturn(withStatus(cancelling, CrawlerQueueV2Status.CANCELLED));
         CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
 
         recovery.recoverOnStartup();
 
         verify(supervisor).cancel(cancelling);
+    }
+
+    @Test
+    void normalRestartStallsIdentityBearingCancelRequestBeforeProcessLookupWhenQueueOriginIsAbsent() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("9", "2026-07-12T11:59:00Z", "a");
+        CrawlerQueueV2Attempt cancelling = withSourceIdentity(
+            attempt("attempt-cancelling-absent-origin", CrawlerQueueV2Status.CANCEL_REQUESTED, "epoch-1", 90L),
+            identity
+        );
+        writeManifest(artifacts, cancelling, CrawlerQueueV2Status.CANCEL_REQUESTED);
+        artifacts.bindSourceDispatchIdentity(cancelling.attemptId(), identity);
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            cancelling.stateStoreEpoch(),
+            cancelling.queueId(),
+            cancelling.lane(),
+            cancelling.domain(),
+            cancelling.coveredDomains(),
+            cancelling.actionId(),
+            cancelling.lane() + ":" + cancelling.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            cancelling.requestedAt(),
+            "v2-automation",
+            cancelling.attemptId(),
+            List.of(cancelling.attemptId()),
+            null,
+            null
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(cancelling));
+        when(repository.findQueue(cancelling.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(cancelling, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.cancel(cancelling)).thenReturn(withStatus(cancelling, CrawlerQueueV2Status.CANCELLED));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, cancelling);
+        verify(supervisor, never()).cancel(any());
+    }
+
+    @Test
+    void normalRestartStallsSchedulerCancelWhenManifestCoreIdentityDiffers() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("b", "2026-07-12T11:59:00Z", "c");
+        CrawlerQueueV2Attempt cancelling = withSourceIdentity(
+            withArtifacts(
+                attempt("attempt-cancelling-manifest-drift", CrawlerQueueV2Status.CANCEL_REQUESTED, "epoch-1", 91L),
+                new CrawlerQueueV2Artifacts(
+                    "reports/crawler-monitor/v2/2026-07-12/attempt-cancelling-manifest-drift/progress.json",
+                    "reports/crawler-monitor/v2/2026-07-12/attempt-cancelling-manifest-drift/run.log",
+                    null,
+                    null
+                )
+            ),
+            identity
+        );
+        CrawlerQueueV2Attempt manifestSnapshot = withSourceIdentity(
+            withFenceToken(cancelling, 999L),
+            identity
+        );
+        writeManifest(artifacts, manifestSnapshot, CrawlerQueueV2Status.CANCEL_REQUESTED);
+        artifacts.bindSourceDispatchIdentity(cancelling.attemptId(), identity);
+        artifacts.writeOperationPlan(cancelling.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", cancelling.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        CrawlerQueueV2Queue queue = schedulerQueue(cancelling, identity);
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(cancelling));
+        when(repository.findQueue(cancelling.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(cancelling, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.cancel(cancelling)).thenReturn(withStatus(cancelling, CrawlerQueueV2Status.CANCELLED));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, cancelling);
+        verify(supervisor, never()).cancel(any());
     }
 
     @ParameterizedTest(name = "{0}")
@@ -480,6 +622,620 @@ class CrawlerQueueV2RecoveryServiceTest {
 
         assertStalledWithTheCurrentFence(repository, live);
         verifyNoInteractions(supervisor);
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenManifestSourceIdentityDoesNotMatchRedis() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity expected = sourceIdentity("a", "2026-07-12T11:59:00Z", "b");
+        SourceDispatchIdentity manifestIdentity = sourceIdentity("c", "2026-07-12T11:58:00Z", "d");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-source-mismatch", CrawlerQueueV2Status.RUNNING, "epoch-1", 92L),
+            expected
+        );
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = artifacts.prepare(
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.attemptId(),
+            live.domain(),
+            live.actionId(),
+            live.requestedAt(),
+            new CrawlerQueueV2Artifacts(
+                "reports/crawler-monitor/v2/2026-07-12/" + live.attemptId() + "/progress.json",
+                "reports/crawler-monitor/v2/2026-07-12/" + live.attemptId() + "/run.log",
+                null,
+                null
+            ),
+            manifestIdentity
+        );
+        artifacts.writeManifest(new CrawlerAttemptManifest(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.attemptId(),
+            live.fenceToken(),
+            live.domain(),
+            live.actionId(),
+            live.status(),
+            live.startedAt(),
+            live.completedAt(),
+            live.reasonCode(),
+            null,
+            live.pid(),
+            live.processStartedAt(),
+            prepared.progressPath(),
+            prepared.logPath(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of(),
+            manifestIdentity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(schedulerQueue(live, expected)));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verifyNoInteractions(supervisor);
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenOperationPlanIsMissing() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("e", "2026-07-12T11:59:00Z", "f");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-plan-missing", CrawlerQueueV2Status.RUNNING, "epoch-1", 93L),
+            identity
+        );
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = artifacts.prepare(
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.attemptId(),
+            live.domain(),
+            live.actionId(),
+            live.requestedAt(),
+            new CrawlerQueueV2Artifacts(
+                "reports/crawler-monitor/v2/2026-07-12/" + live.attemptId() + "/progress.json",
+                "reports/crawler-monitor/v2/2026-07-12/" + live.attemptId() + "/run.log",
+                null,
+                null
+            ),
+            identity
+        );
+        artifacts.writeManifest(new CrawlerAttemptManifest(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.attemptId(),
+            live.fenceToken(),
+            live.domain(),
+            live.actionId(),
+            live.status(),
+            live.startedAt(),
+            live.completedAt(),
+            live.reasonCode(),
+            null,
+            live.pid(),
+            live.processStartedAt(),
+            prepared.progressPath(),
+            prepared.logPath(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of(),
+            identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(schedulerQueue(live, identity)));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verifyNoInteractions(supervisor);
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenLegacySourceIdentityIsMissing() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        CrawlerQueueV2Attempt live = attempt(
+            "attempt-legacy-scheduler-identity", CrawlerQueueV2Status.RUNNING, "epoch-1", 94L
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(schedulerQueue(live, null)));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verifyNoInteractions(supervisor);
+    }
+
+    @Test
+    void normalRestartStallsIdentityBearingAttemptWhenQueueOriginIsManual() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("a", "2026-07-12T11:59:00Z", "b");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-manual-origin-identity", CrawlerQueueV2Status.RUNNING, "epoch-1", 98L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue(live)));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @Test
+    void normalRestartStallsIdentityFreeAttemptWhenSchedulerOriginHasTheWrongRequester() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        CrawlerQueueV2Attempt live = attempt(
+            "attempt-scheduler-origin-wrong-requester", CrawlerQueueV2Status.RUNNING, "epoch-1", 98L
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.lane(),
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            live.lane() + ":" + live.actionId(),
+            live.requestedAt(),
+            "admin",
+            live.attemptId(),
+            List.of(live.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("untrustedSchedulerOrigins")
+    void normalRestartStallsIdentityBearingAttemptWhenPersistedQueueOriginIsUntrusted(
+        String name,
+        String origin
+    ) throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("c", "2026-07-12T11:59:00Z", "d");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-" + name + "-origin-identity", CrawlerQueueV2Status.RUNNING, "epoch-1", 98L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        artifacts.writeOperationPlan(live.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", live.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.lane(),
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            live.lane() + ":" + live.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            live.requestedAt(),
+            "v2-automation",
+            live.attemptId(),
+            List.of(live.attemptId()),
+            null,
+            origin
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    private static Stream<Arguments> untrustedSchedulerOrigins() {
+        return Stream.of(
+            Arguments.of("absent", null),
+            Arguments.of("blank", ""),
+            Arguments.of("uppercase", "SCHEDULER"),
+            Arguments.of("whitespace", "scheduler ")
+        );
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenQueueLaneDiffers() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("e", "2026-07-12T11:59:00Z", "f");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-queue-lane-drift", CrawlerQueueV2Status.RUNNING, "epoch-1", 98L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        artifacts.writeOperationPlan(live.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", live.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            "alternate",
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            "alternate:" + live.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            live.requestedAt(),
+            "v2-automation",
+            live.attemptId(),
+            List.of(live.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenQueueContractVersionDiffers() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("7", "2026-07-12T11:59:00Z", "8");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-queue-contract-drift", CrawlerQueueV2Status.RUNNING, "epoch-1", 98L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        artifacts.writeOperationPlan(live.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", live.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            3,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.lane(),
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            live.lane() + ":" + live.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            live.requestedAt(),
+            "v2-automation",
+            live.attemptId(),
+            List.of(live.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenQueueIdentityIsMissing() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-missing-queue-identity", CrawlerQueueV2Status.RUNNING, "epoch-1", 95L),
+            sourceIdentity("f", "2026-07-12T11:59:00Z", "e")
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(repository).findQueue(live.queueId());
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenQueueCurrentAttemptIdentityDiffers() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("1", "2026-07-12T11:59:00Z", "2");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-queue-drift", CrawlerQueueV2Status.RUNNING, "epoch-1", 95L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        artifacts.writeOperationPlan(live.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", live.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue driftedQueue = new CrawlerQueueV2Queue(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.lane(),
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            live.lane() + ":" + live.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            live.requestedAt(),
+            "v2-automation",
+            "attempt-different",
+            List.of("attempt-different"),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(driftedQueue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenQueueDedupeFingerprintDiffers() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("3", "2026-07-12T11:59:00Z", "4");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-queue-dedupe-drift", CrawlerQueueV2Status.RUNNING, "epoch-1", 96L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        artifacts.writeOperationPlan(live.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", live.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.lane(),
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            live.lane() + ":" + live.actionId() + ":sha256:" + "5".repeat(64) + ":fresh",
+            live.requestedAt(),
+            "v2-automation",
+            live.attemptId(),
+            List.of(live.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenFingerprintIsOnlyEmbeddedInDedupeKey() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("c", "2026-07-12T11:59:00Z", "d");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-queue-dedupe-embedded", CrawlerQueueV2Status.RUNNING, "epoch-1", 99L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        artifacts.writeOperationPlan(live.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", live.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.lane(),
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            "unexpected:" + identity.sourceFingerprint() + ":" + live.lane() + ":" + live.actionId() + ":fresh",
+            live.requestedAt(),
+            "v2-automation",
+            live.attemptId(),
+            List.of(live.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
+    }
+
+    @Test
+    void normalRestartStallsSchedulerAttemptWhenQueueDedupeKeyIsMissing() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        SourceDispatchIdentity identity = sourceIdentity("6", "2026-07-12T11:59:00Z", "7");
+        CrawlerQueueV2Attempt live = withSourceIdentity(
+            attempt("attempt-queue-dedupe-blank", CrawlerQueueV2Status.RUNNING, "epoch-1", 97L),
+            identity
+        );
+        writeManifest(artifacts, live, CrawlerQueueV2Status.RUNNING);
+        artifacts.bindSourceDispatchIdentity(live.attemptId(), identity);
+        artifacts.writeOperationPlan(live.attemptId(), new CrawlerOperationPlanSnapshot(
+            "fresh", live.actionId(), "bosses", "check", true, "Module:Bosses/data", "none", "none",
+            1L, 1L, false, true, null, "summary", NOW, identity
+        ));
+        writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
+        CrawlerQueueV2Queue queue = new CrawlerQueueV2Queue(
+            2,
+            live.stateStoreEpoch(),
+            live.queueId(),
+            live.lane(),
+            live.domain(),
+            live.coveredDomains(),
+            live.actionId(),
+            null,
+            live.requestedAt(),
+            "v2-automation",
+            live.attemptId(),
+            List.of(live.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(repository.findQueue(live.queueId())).thenReturn(Optional.of(queue));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            copy(live, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED),
+            "1-0"
+        ));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        assertStalledWithTheCurrentFence(repository, live);
+        verify(supervisor, never()).recoverExactProcess(any(), any(Boolean.class));
     }
 
     @Test
@@ -905,6 +1661,41 @@ class CrawlerQueueV2RecoveryServiceTest {
         );
     }
 
+    private CrawlerQueueV2Queue schedulerQueue(
+        CrawlerQueueV2Attempt attempt,
+        SourceDispatchIdentity identity
+    ) {
+        String fingerprint = identity == null ? "legacy" : identity.sourceFingerprint();
+        return new CrawlerQueueV2Queue(
+            2,
+            attempt.stateStoreEpoch(),
+            attempt.queueId(),
+            attempt.lane(),
+            attempt.domain(),
+            attempt.coveredDomains(),
+            attempt.actionId(),
+            attempt.lane() + ":" + attempt.actionId() + ":" + fingerprint + ":fresh",
+            attempt.requestedAt(),
+            "v2-automation",
+            attempt.attemptId(),
+            List.of(attempt.attemptId()),
+            null,
+            "scheduler"
+        );
+    }
+
+    private static SourceDispatchIdentity sourceIdentity(
+        String fingerprintCharacter,
+        String runIdentity,
+        String contentCharacter
+    ) {
+        return new SourceDispatchIdentity(
+            "sha256:" + fingerprintCharacter.repeat(64),
+            runIdentity,
+            "sha256:" + contentCharacter.repeat(64)
+        );
+    }
+
     private CrawlerQueueV2Attempt attempt(
         String attemptId,
         CrawlerQueueV2Status status,
@@ -941,6 +1732,36 @@ class CrawlerQueueV2RecoveryServiceTest {
             "working",
             null,
             new CrawlerQueueV2Artifacts(null, null, null, null)
+        );
+    }
+
+    private static CrawlerQueueV2Attempt withSourceIdentity(
+        CrawlerQueueV2Attempt source,
+        SourceDispatchIdentity identity
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), source.artifacts(), identity
+        );
+    }
+
+    private static CrawlerQueueV2Attempt withArtifacts(
+        CrawlerQueueV2Attempt source,
+        CrawlerQueueV2Artifacts artifacts
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), artifacts, source.sourceDispatchIdentity()
         );
     }
 

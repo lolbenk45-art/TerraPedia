@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "l1-historical-source-hash-disposition",
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "status": "approved",
+  "proposalOnly": false,
+  "generatedAt": "2026-09-18T09:51:38.735Z",
+  "databaseName": "terria_v1_local",
+  "domainId": "projectiles",
+  "currentPolicy": {
+    "domainId": "projectiles",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:d6c05402d50334f2f502794cd5eaf88133886c24cae974f1e1d2caed5b25b29a",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "disposition": "exclude_from_l1_qualification",
+  "reasonCode": "legacy_semantic_json_source_hash",
+  "entries": [
+    {
+      "domainId": "projectiles",
+      "runId": "projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e",
+      "runStatus": "COMPLETED",
+      "applyStatus": "COMMITTED",
+      "bundle": {
+        "databasePrivatePath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-projectiles-projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e.bundle.json",
+        "relativePath": "reports/authorization/canonical/automation-projectiles-projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e.bundle.json",
+        "hash": "sha256:0d3d3d5cd297941c08286b472f14971f1b8dd7fc4c7d422722ab03214a11b57f",
+        "fileSha256": "sha256:22427076897b22fa4f6a9f288cd961457ef647c27aac1528f9a96bbe4631cc1e",
+        "evidenceHash": "sha256:5dcc01333344f0cbbd8053c73a784f3a1fccaa1293dcb2b87e8445ed257419d4",
+        "baselineFingerprint": "sha256:10a624001d36a415531f4d6fd29de17d4143336ac27b26ec762cf166d7d0aa5a",
+        "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+      },
+      "source": {
+        "path": "reports/authorization/canonical/automation-projectiles-projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e.source.json",
+        "declaredSha256": "sha256:5eea01eed37d7fcfdf3cd50eb6b2ba519dd1a6671bf9b4c32b381a4fd2e6c651",
+        "semanticJsonSha256": "sha256:5eea01eed37d7fcfdf3cd50eb6b2ba519dd1a6671bf9b4c32b381a4fd2e6c651",
+        "actualByteSha256": "sha256:c4159a616856c982adf5ae77634475fe6ead4c73dae959172469697e39b2c937",
+        "bytes": 7192333,
+        "encoding": "utf8"
+      },
+      "exclusion": "legacy_semantic_json_source_hash"
+    }
+  ],
+  "approval": {
+    "actor": "admin",
+    "reason": "User-authorized fresh immutable Projectiles historical source-hash disposition after packet expiry; bind H0 policy rows and exclude only the proven legacy semantic-JSON hash mismatch.",
+    "reference": "user://conversation/2026-09-18/l1-historical-source-hash-disposition/projectiles-retry-03",
+    "authorizationReference": "user://conversation/2026-09-18/l1-historical-source-hash-disposition/projectiles-retry-03",
+    "decisionIdentity": "automation-l1-historical-source-hash-disposition-projectiles-20260918-admin-04",
+    "packetHash": "sha256:d929a55009152dd5154fb3eb12b84e0dcdf7098eac124dca3aa4f201ef97fc4a",
+    "packetPath": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/d2c2dbb7ed2fa30ecc27fb86a66c0c0ee3d8bad13cf64893d5bac94403edaf08/packet.json",
+    "packetFileSha256": "sha256:57d17e6b3bcabf28c504d1cce40cbe5851bc015adde5c727c9234b039990ab6b",
+    "authorizedAt": "2026-09-18T09:52:41.656Z",
+    "expiresAt": "2026-09-18T10:52:41.575Z",
+    "approvedAt": "2026-09-18T09:52:41.656Z",
+    "technical": {
+      "operationId": "automation-l1-historical-source-hash-disposition",
+      "targetDatabases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ],
+      "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+      "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+      "schemaBundleEntries": [],
+      "dataBundleSha256": "sha256:5333e79a749408b9f8cc53e54e72c4fb1e39b531b371a3e9302276409cdf428d",
+      "dataBundleEntries": [
+        {
+          "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/d2c2dbb7ed2fa30ecc27fb86a66c0c0ee3d8bad13cf64893d5bac94403edaf08/candidate.json",
+          "sizeBytes": 2478,
+          "contentHash": "sha256:94152d409b2cb39289ad5bd175e5f39d68748e5fe92b7cb7bd4b275b99f95cd3"
+        }
+      ],
+      "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+      "executionManifestHash": "sha256:75174ce016a077707f254d980315329aa72f2373eabac0d35b676e98954ecf1c",
+      "executionManifest": {
+        "command": [
+          "node",
+          "pipelines/automation/historical-source-hash-disposition.mjs"
+        ],
+        "databaseWrites": false,
+        "executionClass": "historical_source_hash_disposition",
+        "historicalSourceHashDisposition": {
+          "candidateArtifactHash": "sha256:d2c2dbb7ed2fa30ecc27fb86a66c0c0ee3d8bad13cf64893d5bac94403edaf08",
+          "candidateFileSha256": "sha256:94152d409b2cb39289ad5bd175e5f39d68748e5fe92b7cb7bd4b275b99f95cd3",
+          "candidatePath": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/d2c2dbb7ed2fa30ecc27fb86a66c0c0ee3d8bad13cf64893d5bac94403edaf08/candidate.json"
+        },
+        "inputPaths": [
+          "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/d2c2dbb7ed2fa30ecc27fb86a66c0c0ee3d8bad13cf64893d5bac94403edaf08/candidate.json"
+        ],
+        "networkAccess": false,
+        "operationId": "automation-l1-historical-source-hash-disposition",
+        "outputPaths": [],
+        "progressPaths": [],
+        "reportPaths": [],
+        "schemaVersion": 1,
+        "scope": {
+          "candidateArtifactHash": "sha256:d2c2dbb7ed2fa30ecc27fb86a66c0c0ee3d8bad13cf64893d5bac94403edaf08",
+          "domainId": "projectiles",
+          "runId": "projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e"
+        }
+      },
+      "requiredTechnicalFields": [
+        "serverFingerprint",
+        "schemaBundleSha256",
+        "dataBundleSha256",
+        "policySetHash",
+        "executionManifestHash"
+      ]
+    }
+  },
+  "scope": {
+    "domainId": "projectiles",
+    "runId": "projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e",
+    "candidateArtifactHash": "sha256:d2c2dbb7ed2fa30ecc27fb86a66c0c0ee3d8bad13cf64893d5bac94403edaf08"
+  },
+  "artifactHash": "sha256:a710f2e8bdf3b92b7a36441a0894b74a4024339cc993e6183da578094bb9c072"
+}

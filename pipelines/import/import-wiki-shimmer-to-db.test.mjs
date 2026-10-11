@@ -7,6 +7,7 @@ import test from 'node:test';
 
 import * as shimmerImporter from './import-wiki-shimmer-to-db.mjs';
 import { hashOrderedBundleBytes } from '../automation/build-canonical-cutover-authorization.mjs';
+import { SHIMMER_PARTITION_SCOPES } from '../automation/shimmer-partition-contract.mjs';
 import { publishShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
 const { importShimmerItemTransforms } = shimmerImporter;
@@ -1787,6 +1788,76 @@ test('verified shimmer apply requires a canonical private contract before transa
   );
 
   assert.deepEqual(calls, []);
+});
+
+test('six-scope shimmer authorization fails closed before transaction when cross-owner partition is missing', async () => {
+  const calls = [];
+  const bundle = createVerifiedBundleIdentity();
+  const preview = createAuthorizedPreview(bundle);
+  const inputContract = createTestInputContract(bundle, preview);
+  const authorizedContext = createAuthorizedContext(bundle, preview, inputContract);
+  authorizedContext.executionManifest.ownershipKeys = [
+    'local.world_contexts.shimmer_context',
+    'local.entity_source_snapshots.shimmer_source_lineage',
+    ...preview.providerScope.tables.map((table) => `local.${table}.shimmer_source_page`),
+  ];
+
+  await assert.rejects(
+    shimmerImporter.applyVerifiedShimmerImport({
+      authorizedContext,
+      bundle,
+      inputContract,
+      connection: createTransactionConnection(calls),
+      consumeDispatchPermit: () => calls.push('consume'),
+      currentTargetFingerprintSha256: preview.targetFingerprintSha256,
+      preview,
+      readLockedBefore: async () => createEmptyShimmerScope(preview),
+      applyChanges: async () => calls.push('apply'),
+      verifyAfter: async () => calls.push('verify'),
+    }),
+    /six-scope|partition/i,
+  );
+  assert.deepEqual(calls, []);
+});
+
+test('six-scope shimmer authorization accepts a matching fenced partition before DML', async () => {
+  const calls = [];
+  const bundle = createVerifiedBundleIdentity();
+  const preview = createAuthorizedPreview(bundle);
+  const inputContract = createTestInputContract(bundle, preview);
+  const authorizedContext = createAuthorizedContext(bundle, preview, inputContract);
+  authorizedContext.executionManifest.ownershipKeys = [
+    'local.world_contexts.shimmer_context',
+    'local.entity_source_snapshots.shimmer_source_lineage',
+    ...preview.providerScope.tables.map((table) => `local.${table}.shimmer_source_page`),
+  ];
+  authorizedContext.executionManifest.shimmerPartition = {
+    scopes: SHIMMER_PARTITION_SCOPES.map((scope) => ({ ...scope })),
+    ownerApprovals: ['shimmer', 'items', 'town_npc_maintenance'],
+    fences: SHIMMER_PARTITION_SCOPES.map((scope, index) => ({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      logicalPredicateHash: scope.logicalPredicateHash,
+      generation: index,
+      fenceToken: `fence-${index}`,
+    })),
+    generationId: bundle.generationId,
+    previewSha256: preview.previewSha256,
+  };
+
+  await shimmerImporter.applyVerifiedShimmerImport({
+    authorizedContext,
+    bundle,
+    inputContract,
+    connection: createTransactionConnection(calls),
+    consumeDispatchPermit: () => calls.push('consume'),
+    currentTargetFingerprintSha256: preview.targetFingerprintSha256,
+    preview,
+    readLockedBefore: async () => createEmptyShimmerScope(preview),
+    applyChanges: async () => calls.push('apply'),
+    verifyAfter: async () => calls.push('verify'),
+  });
+  assert.deepEqual(calls, ['begin', 'consume', 'apply', 'verify', 'commit']);
 });
 
 test('verified shimmer apply rejects preview descriptor tampering before permit consumption', async () => {

@@ -1,0 +1,1191 @@
+{
+  "operationId": "canonical-armor-image-cache",
+  "proposalSha256": "sha256:b0549222b1f824cc56852f82cb2a25e192fc1786ae063f0335dde2ae87354fa9",
+  "databaseWrites": false,
+  "status": "FAILED",
+  "attemptedFiles": [
+    "Adamantite_armor_(demo).gif",
+    "Adamantite_armor_female.png",
+    "Adamantite_armor.png",
+    "Adamantite_Breastplate.png",
+    "Adamantite_Headgear.png",
+    "Adamantite_Helmet.png",
+    "Adamantite_Leggings.png",
+    "Adamantite_Mask.png",
+    "Amber_Robe_(equipped)_female.png",
+    "Amber_Robe_(equipped).png",
+    "Amber_Robe.png",
+    "Amethyst_Robe_(equipped)_female.png",
+    "Amethyst_Robe_(equipped).png",
+    "Amethyst_Robe.png",
+    "Ancient_Gold_Helmet_(equipped)_female.png",
+    "Ancient_Iron_Helmet_(equipped)_female.png",
+    "Ancient_Necro_Helmet_(equipped)_female.png",
+    "Angler_armor_female.png",
+    "Angler_armor.png",
+    "Angler_Hat.png",
+    "Angler_Pants.png",
+    "Apprentice_armor_female.png",
+    "Apprentice_armor.png",
+    "Apprentice's_Hat.png",
+    "Apprentice's_Robe.png",
+    "Ash_Wood_armor_female.png",
+    "Ash_Wood_armor.png",
+    "Ash_Wood_Breastplate.png",
+    "Ash_Wood_Greaves.png",
+    "Ash_Wood_Helmet.png",
+    "Bee_armor_female.png",
+    "Bee_armor.png",
+    "Bee_Breastplate.png",
+    "Bee_Greaves.png",
+    "Bee_Headgear.png",
+    "Beetle_armor_(demo).gif",
+    "Beetle_armor_female.png",
+    "Beetle_armor.png",
+    "Beetle_Helmet.png",
+    "Beetle_Leggings.png",
+    "Cactus_armor_(demo).gif",
+    "Cactus_armor_female.png",
+    "Cactus_armor.png",
+    "Cactus_Breastplate.png",
+    "Cactus_Helmet.png",
+    "Cactus_Leggings.png",
+    "Chlorophyte_armor_(demo).gif",
+    "Chlorophyte_armor_female.png",
+    "Chlorophyte_armor.png",
+    "Chlorophyte_Greaves.png",
+    "Chlorophyte_Headgear.png",
+    "Chlorophyte_Helmet.png",
+    "Chlorophyte_Mask.png",
+    "Cobalt_armor_female.png",
+    "Cobalt_armor.png",
+    "Cobalt_Breastplate.png",
+    "Cobalt_Hat.png",
+    "Cobalt_Helmet.png",
+    "Cobalt_Leggings.png",
+    "Cobalt_Mask.png",
+    "Copper_armor_female.png",
+    "Copper_armor.png",
+    "Copper_Greaves.png",
+    "Copper_Helmet.png",
+    "Crimson_armor_female.png",
+    "Crimson_armor.png",
+    "Crimson_Greaves.png",
+    "Crimson_Helmet.png",
+    "Crystal_Assassin_Armor_(demo).gif",
+    "Crystal_Assassin_armor_female.png",
+    "Crystal_Assassin_armor.png",
+    "Crystal_Assassin_Hood.png",
+    "Crystal_Assassin_Pants.png",
+    "Crystal_Assassin_Shirt.png",
+    "Dark_Artist_armor_female.png",
+    "Dark_Artist_armor.png",
+    "Dark_Artist's_Hat.png",
+    "Dark_Artist's_Leggings.png",
+    "Diamond_Robe_(equipped)_female.png",
+    "Diamond_Robe_(equipped).png",
+    "Diamond_Robe_hitbox_increase_visualization_for_Topaz_Staff_explosion.png",
+    "Diamond_Robe_hitbox_increase_visualization.png",
+    "Diamond_Robe.png",
+    "Emerald_Robe_(equipped)_female.png",
+    "Emerald_Robe_(equipped).png",
+    "Emerald_Robe.png",
+    "Forbidden_armor_(demo).gif",
+    "Forbidden_armor_(Safeman).gif",
+    "Forbidden_armor_female.png",
+    "Forbidden_armor.png",
+    "Forbidden_Mask.png",
+    "Fossil_armor_female.png",
+    "Fossil_armor.png",
+    "Fossil_Greaves.png",
+    "Fossil_Helmet.png",
+    "Frost_armor_(demo).gif",
+    "Frost_armor_female.png",
+    "Frost_armor.png",
+    "Frost_Breastplate.png",
+    "Frost_Helmet.png",
+    "Frost_Leggings.png",
+    "Frostspark_Boots.png",
+    "Gladiator_armor_female.png",
+    "Gladiator_armor.png",
+    "Gladiator_Breastplate.png",
+    "Gladiator_Helmet.png",
+    "Gladiator_Leggings.png",
+    "Gold_armor_female.png",
+    "Gold_armor.png",
+    "Gold_Greaves.png",
+    "Gold_Helmet.png",
+    "Hallowed_armor_female.png",
+    "Hallowed_armor.png",
+    "Hallowed_Greaves.png",
+    "Hallowed_Headgear.png",
+    "Hallowed_Helmet.png",
+    "Hallowed_Hood.png",
+    "Hallowed_Mask.png",
+    "Holy_Protection_(demo).gif",
+    "Huntress_armor_female.png",
+    "Huntress_armor.png",
+    "Huntress's_Pants.png",
+    "Iron_armor_female.png",
+    "Iron_armor.png",
+    "Iron_Greaves.png",
+    "Iron_Helmet.png",
+    "Jungle_armor_female.png",
+    "Jungle_armor.png",
+    "Jungle_Hat.png",
+    "Jungle_Pants.png",
+    "Jungle_Shirt.png",
+    "Lead_armor_female.png",
+    "Lead_armor.png",
+    "Lead_Greaves.png",
+    "Lead_Helmet.png",
+    "Magic_Hat_(equipped)_female.png",
+    "Magic_Hat_(equipped).png",
+    "Magic_Hat.png",
+    "Meteor_armor_(1.0).png",
+    "Meteor_armor_female.png",
+    "Meteor_armor.png",
+    "Meteor_Helmet_(1.0).png",
+    "Meteor_Helmet.png",
+    "Meteor_Leggings.png",
+    "Mining_armor_female.png",
+    "Mining_armor.png",
+    "Mining_Helmet.png",
+    "Mining_Pants.png",
+    "Mining_Shirt.png",
+    "Molten_armor_female.png",
+    "Molten_armor.png",
+    "Molten_Breastplate.png",
+    "Molten_Greaves.png",
+    "Molten_Helmet.png",
+    "Monk_armor_female.png",
+    "Monk_armor.png",
+    "Monk's_Pants.png",
+    "Monk's_Shirt.png",
+    "Mystic_Robe_(equipped)_female.png",
+    "Mystic_Robe_(equipped).png",
+    "Mystic_Robe.png",
+    "Mythril_armor_female.png",
+    "Mythril_armor.png",
+    "Mythril_Greaves.png",
+    "Mythril_Hat.png",
+    "Mythril_Helmet.png",
+    "Mythril_Hood.png"
+  ],
+  "requiresObjectReconciliation": true,
+  "uploaded": [
+    {
+      "sourceFileTitle": "Adamantite_armor_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/bd658e8d91414e0b8f16d005a348c18d.gif",
+      "sha256": "sha256:a0b5c3c83c003e2e7dff5dfc8f1111f29db8801a65de9f0afde8d87349b3a00b",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Adamantite_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/41ea1d38ea71415bb5ad4b06a2298048.png",
+      "sha256": "sha256:46523b20a733f937a76304919075f9b2fa86eee401d4778356ff7e39ddac0ac9",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Adamantite_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e1f48282cad34e968bdbdf7e9cc91049.png",
+      "sha256": "sha256:29ba983363a85c543b0d7aaef13b668a5e14a5a857b08630b114a1630b432d6e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Adamantite_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/0b2d67ce153647c1889fd588e89d72c2.png",
+      "sha256": "sha256:6478f11f4c97edf05e4e1e87bd1f4d1d9b7751d74a94c33a31ed3c93456c0e54",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Adamantite_Headgear.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/606b7120dfe74183bac4efdabcf218e0.png",
+      "sha256": "sha256:f94e9fc42af3e121681ef004ee215c3eb20b483a8dc07675a4b5cd612ddfa110",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Adamantite_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d5abf026a69e4b9c94e1c547b5ef4ddb.png",
+      "sha256": "sha256:f3fef9c7ed3ed99c0862d4eacc4548b9a531366bb1688d34ee89f69273a7ffe2",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Adamantite_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d6e2f63f13b94703b256c2b822b0b6de.png",
+      "sha256": "sha256:586556e0771f659cab3013a15139626c72dea361e6976cd531e06f2ce9df0119",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Adamantite_Mask.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7606c0a749914c26a7c4faa56ae96832.png",
+      "sha256": "sha256:eefdb9888174cf5987855bc09f32f1213bab37eabdc01eb8b9eefa1bec75ed76",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Amber_Robe_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7cd9aa4c8a584acb96bc6e8791374615.png",
+      "sha256": "sha256:e7e369b4356e8ae9ec99e6c76e6b9ac867f55faa13d10a86c8d32a4809448795",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Amber_Robe_(equipped).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d3599c06ec1648deaedb680c940aa4af.png",
+      "sha256": "sha256:198f8f94738a3919e8bd544af85e9fd7ed948f66aed37579cfd51193b8c6bb95",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Amber_Robe.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/90d8bf4dcc364bfa9c7f498767188099.png",
+      "sha256": "sha256:6e912da895466abe86da3cbdc83afc315ff7a236108e9813563983a35bd92c99",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Amethyst_Robe_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/dcbaf729303744b1a84ff0512d950283.png",
+      "sha256": "sha256:8d405a7810e7670a09b1252ffb3849870a7443899c031dea961c1c1b1f738538",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Amethyst_Robe_(equipped).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4c91fc480ff44beeaf087b8686a5d7b6.png",
+      "sha256": "sha256:de72e8c04094ea799bc5644e0e4fb8029d5a89548ccd9ba005d17d007c258d59",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Amethyst_Robe.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7afffe623eec4f04907cb25a9b9468d6.png",
+      "sha256": "sha256:932c2b853dd9db3ecedcfd1266851a303f6027ffdd37d3b6a1e30f568df4394e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ancient_Gold_Helmet_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/6ff49f36c88b4788ba260ace25d3d079.png",
+      "sha256": "sha256:2016f2f99f97eaa343c2c8751da129fac6beeb6905a4766f8df65cdf943c71b8",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ancient_Iron_Helmet_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/954b88aefee0411a9a52a77439045f8b.png",
+      "sha256": "sha256:0b58596ac16c978832f82beb66bbd1534b8f6d7217fda25c9ee5364e9e9df1fc",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ancient_Necro_Helmet_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4e647d78d5ad4f1196be8aec81098855.png",
+      "sha256": "sha256:3c2d6585031379484d4bb9d91fe23011cbd2f6d1472d33eed4ff5f55f100c532",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Angler_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4466edd772ec4b8f8301d0811dcb49fa.png",
+      "sha256": "sha256:d61c151f2449ec79366e0bcd9ea28d48940495ad6d1eef51e6e4a22dae95418a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Angler_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/b97aeeca45064d94a61a9bd7b6077189.png",
+      "sha256": "sha256:cc726ec0289be00ffedfebc735d40ffe3b2834b7e59ee4c2349c26755e101c4a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Angler_Hat.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/432fb808b22842e899d32383fb87378b.png",
+      "sha256": "sha256:3af5af749a8228e6729ec2b710e66b3539d7299bf2e4bd1e4abc60d4144db90c",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Angler_Pants.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/110999fc425c4af29208e75e0e66af72.png",
+      "sha256": "sha256:7fdc9457b08e1585f6fbcaa71fbdd6c7b7f46716c6c88dfeb724561109dcf6bb",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Apprentice_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4a8fe1fbf3404943bf3238f322226bd7.png",
+      "sha256": "sha256:260c7f2d77d9235e8bafa3d8d7606b557d96d427afa284d82553b5a51950aab4",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Apprentice_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/2147042905c94e6b9f7ab3f5c32dc976.png",
+      "sha256": "sha256:aa41ea465c0671d2b7cad4aeef34cb065cf5388cf028c3eec398171190a86800",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Apprentice's_Hat.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/847bff34caf94f1eac6a9fa0f5077b8a.png",
+      "sha256": "sha256:f5756c0d1e4d7ade0e254fab3f0d85096a5eec0e0fe4828c41b05a52cc0d4faa",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Apprentice's_Robe.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/869c8dc7684543bebfefe5998bd604c7.png",
+      "sha256": "sha256:6dba595367a18eee88c5219058b25a4a6fcc18ebb99c9a08c7e3cd62fa158e9e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ash_Wood_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/de15ebdf1cab4da284f7e77aca566c47.png",
+      "sha256": "sha256:beeca56dab4e726f0f38828e9e1ada60e8c5f37715b22bd1b31b4f4fac1abc96",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ash_Wood_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/1e0b4e17a246403ca14274301c60e94a.png",
+      "sha256": "sha256:88d56d1f8130e10cd8d20d0759e1ed00af091757d56b47e98ec6c7719d75151d",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ash_Wood_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/df2a07ef627b4b4eb971514b8eecdcc8.png",
+      "sha256": "sha256:1ecfe5ef256f1bb19e59c8c6472229e570265b26ca7cd6005c6c134843388960",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ash_Wood_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/f418698019484718b320218da689e34a.png",
+      "sha256": "sha256:43ba94246340d1aa1275cb78f20a560ab14779e1207dec67617e77d9f5db3a3e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Ash_Wood_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/f6b1a7b08eec4925ad219a41c6ae1c07.png",
+      "sha256": "sha256:90b455d57c7cefccf7d6446d243a867e2783e6a1c4ca739036c91bcbdb22a71f",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Bee_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/c54d5e308ff240e9b4847a13dec95438.png",
+      "sha256": "sha256:f7a56966eafa2b3e5f1d940f188225cdb9be8991a8503a8567e87430b6bc602a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Bee_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d0cfabc848c34e7ea2534375eafb2819.png",
+      "sha256": "sha256:fb02d09dc03cef1cd096cec0bd8dc814e6aa0379e0c6eda8b83a670a8396a4e0",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Bee_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d5d7ebbc7f704c0f8ffaf7045db1f61f.png",
+      "sha256": "sha256:2642fffe7ad7fa31697839939661049e0c6d50843e33c24e1980cbf92c7f3356",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Bee_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/f47e0556a23746aca96bc646af733bff.png",
+      "sha256": "sha256:f0da4f3f1e113c928dbde9415921225a9aa2a1e5389eae069cb38b1fadb4eba4",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Bee_Headgear.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e1d228ba82ca4d22a4efdf01ab49c8a6.png",
+      "sha256": "sha256:ab253b01959c2f79f004b4cf4afc50032e08f58e4914cdb1b3f5fe2f8bc1cbad",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Beetle_armor_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/0f77ebdcc1a64cc4a714f83009ce77a6.gif",
+      "sha256": "sha256:fec4817a4d35c6200d9f0ffde900fe0d5c7db1476f92e8fd16f06b8bfa91e2c9",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Beetle_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/07581b603bfe4695aa39f6847640238e.png",
+      "sha256": "sha256:e0cf8283d0cae08f647b377a375cec06d1916ad74ef1e167b80eac58442004ef",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Beetle_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/352965a9ecb14f5196e5dcecb071bf41.png",
+      "sha256": "sha256:6dafd567b37f7081d2785675226ecff7aa4f0e8380237c22f82bdd8d7f983f8d",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Beetle_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/0641f33197524b6f870be43bb8796d3e.png",
+      "sha256": "sha256:b843762e9cc5c5d351d8d48b27cf1e4f98dc7df5c00c05484f4d6a261417c611",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Beetle_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e02726a56644406ebfb1294b5a640dbd.png",
+      "sha256": "sha256:f47240ceaf3af5a9bf91da0f0f2fd990222853ffb453f7f5e5dfa3c66161b25b",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cactus_armor_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7cda51473aee4a1b9c603b0df2a0d437.gif",
+      "sha256": "sha256:9ec35f34437715a256e15ae765ad33364bc532f604ef5e5ddf26b80ad8ef19cc",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cactus_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/375d2504b93a443ab3c5b6080124e352.png",
+      "sha256": "sha256:803dbd4c5a7cc82d9c40cfb8ebfe5ea5894d67dc7a0edadd239a6ada794a5730",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cactus_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4ea5248fe1db4a348f4e6d70ddd8532e.png",
+      "sha256": "sha256:bb37df654f1f841c02478a9d1d3364802b20567c443098a20fad490a77c0ef75",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cactus_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/f32318f686d84eea8b1a693e47a9aeb2.png",
+      "sha256": "sha256:d664228c9e0372d876316ae1bfda105a41dd54b2f147d21b95b275fc8e143ba1",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cactus_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/8fc0913bbe4f4824bb8479db5b3e7732.png",
+      "sha256": "sha256:5b337a1782c98b1589c24e6a05af95e65af7d87b63e53c80ec6b7a1a7b6acb02",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cactus_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d2ceeb859673426eb1e6880c1e9c260e.png",
+      "sha256": "sha256:459a4a1d028c9aaa819b0cefedff1a1a47ccf24efa0c248f510c4c0bd33653f3",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Chlorophyte_armor_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/2dbf04a03de64e01aaa59a52c01de03e.gif",
+      "sha256": "sha256:788f5f3b41f5c94f9317b5080aecb1a4e068b974766185eead78076305ffbfdb",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Chlorophyte_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d657014072664d778c584d1e2ecbe7d6.png",
+      "sha256": "sha256:07283e54a3bd2959ffaefab1b893601eb714b08e0cc8dac8d9bff575e4ddaeaa",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Chlorophyte_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/81364d9032d841a687ba6804cafedcfa.png",
+      "sha256": "sha256:ba428b35a9c6744a1c4a386daf42828570f79175d3b9f4c33c6e25da1b007525",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Chlorophyte_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/237624472a7142c7842e3ce293765ed8.png",
+      "sha256": "sha256:e50c7577cf1af9c0283b38146fc1a6836caf85179f9b6fe025346d4c1e4f26e0",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Chlorophyte_Headgear.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7395fe93323e472880e7807517c231a4.png",
+      "sha256": "sha256:29d27cf42726f7b439ea9ea76b3dc6507c56708d0e3d1f9859bca3654c3e04dd",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Chlorophyte_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/3d9fc8780ef141329691c439fc416b79.png",
+      "sha256": "sha256:914bb49b8e9ef4b05286d6d173cde6d96a5176bfb74b02538793f0f09905fc5c",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Chlorophyte_Mask.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/a7967b146e9f45b69263061cb9d608a1.png",
+      "sha256": "sha256:9a87ec94c8e9c6fd0ffdbfdf23e221f9a759366c9f4e02603f1354064384c7c6",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cobalt_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/8474321752074d8b9b3d2e6833ad83f8.png",
+      "sha256": "sha256:68ac555816e168e6454ad5cf5b4fbb04df9f0212334711519fde8e7e9a872763",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cobalt_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/6fcd97ad251c4095bd02c9b9d76cb5f5.png",
+      "sha256": "sha256:63c05573d073880404aebfbee9967939e86c78816916373fd853e142a2b7922f",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cobalt_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/6ece02a2b5334026aef0348aa5142049.png",
+      "sha256": "sha256:46b78740dd3bc4f2aa6a45783dfdcf8c919d3cb1a5538fa7e6e7355cf5231673",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cobalt_Hat.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/f460bd07a07c4110ad4655604467e6fe.png",
+      "sha256": "sha256:bef8e2b378d9b5ab0ee5aca0694d82d190b5f455afa2cc88471660e034038cd7",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cobalt_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/0fc2eee4d4224c11a631396f9f56b1b9.png",
+      "sha256": "sha256:19194bec31bdb43cc64c40e79603f3c0f66b8d6c0156b1a7f6c864cfa6d97fb1",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cobalt_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7800f99ab79644cea60b12ba0b0dbd97.png",
+      "sha256": "sha256:382bacaa51df0bb02aebf17ca25af20161fd2ce1d3ba4f4993aaf851a107ba11",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Cobalt_Mask.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/0623162a1c5a4cc194e52ad6eb4577a0.png",
+      "sha256": "sha256:d4ec8ce44ef4a03093ee58f4dbbf892804ee7abe6298b6eae15a48676538f39e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Copper_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/ae986d1bfc36417b8cd786159a8f40a8.png",
+      "sha256": "sha256:89dfcbe1e933fb8e7248aa93a8e8cbb2614a78f36f120d7125ec0ce282882f4c",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Copper_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/16353ef30b534589ae7fb4e2300312ae.png",
+      "sha256": "sha256:0d36d793d2f1a567bda70ef87cc9d2df112a3724fd230e03abaa359166a07589",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Copper_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/54761cdfc1e4412fb354128d9295ff72.png",
+      "sha256": "sha256:8bc15acba0cd38f8522776aeb3fbe81b81d9dbb4e3f78cc41f78b64d7928a378",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Copper_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/5c3238af3dfd47678027abe817f6b104.png",
+      "sha256": "sha256:1905e857cf47d15976f77dc2f77a390d218f1f6cc8bacd14d4b058979bdd2fea",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crimson_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/489b2499b40b47d4821427637e4ac48b.png",
+      "sha256": "sha256:a73b8915b11c61d2a7a1d0b3496ec439df67162072a6d107b8ac8abf305876e5",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crimson_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/fc85eea13fb8407cb12492d0135fb3f8.png",
+      "sha256": "sha256:18ab09927af85650cdf209c45000ccb63545c39f6fa9caa03a4bbe3236eb38a7",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crimson_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4a6d5b1801894153838b022ad38fba61.png",
+      "sha256": "sha256:07d354c24d92495ffad5f6fc1073f7a84be19aab292f4d493be01f74ccd8f9a6",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crimson_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/27446e0ca3f2415ab06bb390f3e95f9b.png",
+      "sha256": "sha256:e9f91e4e2457a636f33f300da5f138ec12755e49c61e2c3df773d7cb70f3e192",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crystal_Assassin_Armor_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/6afe3afbbdfa4983810c3bb20482d888.gif",
+      "sha256": "sha256:e80d4dd3a3b05c45fcfab32d85fe3c24dd5e6a8d925a155b902a3b9c1d962662",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crystal_Assassin_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e040f906c67b474a9dad6db129d92993.png",
+      "sha256": "sha256:3a50c9268939b93d7111a3ba5577118f78cdffd22e88a6ed2bce928151681652",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crystal_Assassin_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/8481b5f5c2a04e7dbd4433bfe8997219.png",
+      "sha256": "sha256:6b187b539876f04af57526657ac17c4637c1bfc6b28e64505dbaaafe7a417354",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crystal_Assassin_Hood.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/9230d6f227fe4ed1b8ac2f6a4ba6c32e.png",
+      "sha256": "sha256:d3c6ce0df1fb8a9e7eb9e8d7ed5190449ad98077e902ba58ea244ab2ec4c19e5",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crystal_Assassin_Pants.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/ee53d22b4af94b34b2d858321116b405.png",
+      "sha256": "sha256:eb1baf891ee26022e683197ef038eccb74166c97daf64e797c481c9a276a3e9f",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Crystal_Assassin_Shirt.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/9b5147cd2c7b409585cf0b6c2e403425.png",
+      "sha256": "sha256:78e8504cc6ae25be48cc49ca10f225e864870816fef2d610db0e70bfb6158bb5",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Dark_Artist_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/dfe173a7b82f4dc3accaeeb4ec2dd1c7.png",
+      "sha256": "sha256:300771f2d7e69baebd1b126a81fa1a6a763cc05a15a0fd0baf13a0821ae1887e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Dark_Artist_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/8d0ba98a5d534cbc96bedab6ae8dd858.png",
+      "sha256": "sha256:300771f2d7e69baebd1b126a81fa1a6a763cc05a15a0fd0baf13a0821ae1887e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Dark_Artist's_Hat.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e6c2f1bddc484b38a7ccc4329a3b0ec9.png",
+      "sha256": "sha256:d95ec0364496a85ff3eebf0b05fac2bd6fc30157f2232d50f0868c79cc9ede09",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Dark_Artist's_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/84410f32d8964a9bbf59105cc40adf12.png",
+      "sha256": "sha256:6d83aa50d522e4d490f13e7a90c80701d9a3e5bcd351a270142fb674d22e672a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Diamond_Robe_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/9da1fee849dc47d48f0f343ff08faea8.png",
+      "sha256": "sha256:c293de3c6c73cb9db912059e9e02d16793d9f03972352be1b1d7d6f99159436a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Diamond_Robe_(equipped).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/1b18a6988ef6411bb16224b2f2a73762.png",
+      "sha256": "sha256:be80f34870c0e94938e9e1e96db3b415b01537dacbc259263106915ac9adbe77",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Diamond_Robe_hitbox_increase_visualization_for_Topaz_Staff_explosion.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/b0a0a323a9614d53b8a56746edf11832.png",
+      "sha256": "sha256:bf61ea59750e17f7225ecc943ce52859e5ac521902ec1051dd2307ef229a0dc4",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Diamond_Robe_hitbox_increase_visualization.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/1eec1e1820bc4fca86c9f0c483575b36.png",
+      "sha256": "sha256:e12d1c8312836e3c1e0afe5fd2f58e1e6d6ad1b927e0f0f19e05dfec798ef55e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Diamond_Robe.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/f9b8fad4223a4354a1c027f8b013871a.png",
+      "sha256": "sha256:4df8a716720094900901c12a675eb4a2495e0aaae4882d14fdbd4bd04c4cea35",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Emerald_Robe_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/943ffeb9f44e49bdb49244ca4ced32f3.png",
+      "sha256": "sha256:af5e18eb2541f17846dbb847ca0ca83cfa434a8d2609c8e54ddd36ca307c6b44",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Emerald_Robe_(equipped).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7cfaa72bc28043e3822f07a48b3ec88f.png",
+      "sha256": "sha256:ae5d1d242bd42689cd77f6ced7bea99fd748b73dac4237c380d38d0f33afe3c1",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Emerald_Robe.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/fa93b92b9ff94d3fa60dbc0c72317c78.png",
+      "sha256": "sha256:105f32283dcf3893a58e1150c860ae9c329852e0b77621bf806b7b167070fb9a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Forbidden_armor_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/7c2343e9c28b481098101f40986cf417.gif",
+      "sha256": "sha256:eab298c354d6aeee4d5cff90dcb33c987cfe77b6d14059e6a89870aac9c4d3bb",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Forbidden_armor_(Safeman).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/b2fe9fddd1bc491fb331b1cf3e060073.gif",
+      "sha256": "sha256:eb687d578f922adf8f8347900f1115abbf108d4dde36b20cfc39ed3a61fb1723",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Forbidden_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/6ee91cfd5a124a42955551f023c8f31f.png",
+      "sha256": "sha256:def846a2a32f51159f5413b2019a1cecf2487c10b2c80bc30c5b4253354fd90a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Forbidden_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4e09c976d592429d945fae8da0555e92.png",
+      "sha256": "sha256:073e4820581768ca2651ba7fa21ab2eef8f9488e9de011895a0f771b6a7c5638",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Forbidden_Mask.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/9a9d4e268c814e4e9b261368ac9210e1.png",
+      "sha256": "sha256:32ccc430375ce1931b63eb173c631f8333d48ce56fbfe3545135fcfbe16eaca2",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Fossil_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/b47eb6aebc204fdf9162687150c70d64.png",
+      "sha256": "sha256:a2fdc2167f485b7d5f911fec9089a96a68a7c25f18d75925223ccad739c2ea9b",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Fossil_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/c80296d922994814a45edf0008d5badd.png",
+      "sha256": "sha256:0eae32009fe2de3d6fac6d22c940290ce352129085ec0fb798f8af757863bca8",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Fossil_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/bb7de348d04243c9aaece5fcfc8be67e.png",
+      "sha256": "sha256:58d5518648040f025cae38bd9ebfbb2d70b0f7867beab5b58cecf5ed2dee32ad",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Fossil_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/183d26a954c84b13bfe6bb448cae125a.png",
+      "sha256": "sha256:6fd4de603ecf0b25e0992ec540cf5c9339692f23680ed7879df9fb3cf18a61ab",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Frost_armor_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/5852fdce6adf4ec194d17233ba147cf8.gif",
+      "sha256": "sha256:754f8d5eb2c97f45f6c1c373468017bf17f6fdb2edb0c094eff6296a28cb529d",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Frost_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/a7614e2a4cc64528a3303392151f4dbf.png",
+      "sha256": "sha256:52dd0cb3a1a03d35b59dbeeceb933cfbb628e8074fa4bb445c11a3c9794e0d3b",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Frost_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/223876fb24884c8da28e7853d627b611.png",
+      "sha256": "sha256:52da494500a9adca9486ce76565be916ec543e07e32389c57bcfdac822bb378c",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Frost_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e0f551b30fc64434a550a08c0180305c.png",
+      "sha256": "sha256:49918c79511db22863c2b80d96294747e99bad3322f7819bafdaa57c3309f631",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Frost_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/6569f61ca91548bf874ac2c9fd3ccb88.png",
+      "sha256": "sha256:358eba3a77ee88b5f2a9536fd35f730a7bd6f08cf89d61790824a6c2d20e2a04",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Frost_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/93c905d14fde4db2b3854e47dc4e81f2.png",
+      "sha256": "sha256:d3a3fbe5dba7fe4b09762180368c9cd9e5c62ebcf50839c3a46a691c7a6a744b",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Frostspark_Boots.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/b3966c32dc044095979d2649f020a6a3.png",
+      "sha256": "sha256:c0593bb334d6aff73c36995cd47401a1ce229d358f1b4aecdf4f9deb04c1e411",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gladiator_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/5ad515d9d3094104aa2040221b154cd0.png",
+      "sha256": "sha256:5a6f86e7be1301d595fc34b0e2e29193af14863a081db137f8ec9bdd2c851655",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gladiator_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/20fa403011a94e1baf74e3bc86666ba9.png",
+      "sha256": "sha256:d05afb5280103d7d69f8499d2d02f6421f1522b368f640998e77166a015e608f",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gladiator_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/aaffc8de45f34ef8984ae026836467fa.png",
+      "sha256": "sha256:580c8eb23c4301eea6e15aedb5750fae6d4bd9ec5640455835872a0fd7c0894e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gladiator_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/49e6e07c9853462e8b913911b8bb9e26.png",
+      "sha256": "sha256:395a3e7c22be1c8b24ca5add3275853edc2ddabf9da52347604933627fce9326",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gladiator_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4f1d863e78d544b7b849cf8ef48e13ea.png",
+      "sha256": "sha256:8b30035ba600073b5801b0d6ceb58d92387d975fd4f44510a7fbc255c0beaebf",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gold_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/b248d1c6abd94a8eac5448ef5d1300e1.png",
+      "sha256": "sha256:a91d817b2f1388a8beb5f1afe5b06b57516959eb3f4365fd9b7411a40534937f",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gold_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/77283f7073db47268a655e1f95dd8492.png",
+      "sha256": "sha256:a777d623eb61b9ce6b27bfec0868b783224775c5bd77af1d219e74d5c893680c",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gold_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/90fceb9bb06f4477be6387881967dea0.png",
+      "sha256": "sha256:2cbff1c8e769a51667b6fc4afd00da5fc2614e3c00ac3d3072433ec7ce111204",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Gold_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/5c41a4dfdd8047c18e368b9706f39dc4.png",
+      "sha256": "sha256:518ac8437352d014b72e369583e9bddf9c557502d82ea4e552a7ece06282efc0",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Hallowed_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/167990c8754f46e4857010fee12efd2e.png",
+      "sha256": "sha256:b32630c23fa3008b5db8ac385821894ff9c7154a4ef5309857443d7071418558",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Hallowed_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/9bd9c3de030d4f76ae8182ed77841b3b.png",
+      "sha256": "sha256:ad093caeb76d865046e551fbf37bd1a3eba553d0d76172686a5386adc1389c68",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Hallowed_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/42f93699cb4744eeaa14e06e7ec0966f.png",
+      "sha256": "sha256:def0d6f826f92d08f920a1aa8f7032ff5cf91f46959a7e6e7fcad67419cb4cd9",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Hallowed_Headgear.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/66d176726811489987c69f03a6ebcc9c.png",
+      "sha256": "sha256:140b016d826e44c0fcc7d157452a2965facb4b00be0e63b2cd91c7befc1cc91a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Hallowed_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e9281cae539b460ab89928213999e0c3.png",
+      "sha256": "sha256:722a8bae19257d04e11dfcab8211af12d13c4647b6d5c4f503ed7a2a0a4ea8f1",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Hallowed_Hood.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/9d522681f89a4258b908c9ac09fd52a2.png",
+      "sha256": "sha256:12d2096847f6d5c5109e873935d0a670c7a03971b479bd91868cce5d617d098a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Hallowed_Mask.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/89cd691cb4e240c9b7e2ded3cc0f81c3.png",
+      "sha256": "sha256:435f3ef5c5d1c9b91dd07d49a68cbbcf301a126fa99b5e03c5e4714d2670ef26",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Holy_Protection_(demo).gif",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4333970dbf554076973d72c7d64ba26a.gif",
+      "sha256": "sha256:b54c64669298b1766ce0a20f98d5cf2ef93e6bf13374a5bb0280fe89a557a539",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Huntress_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/3d2c402d6b9e49c0a7855cf3f4d2d9c3.png",
+      "sha256": "sha256:e2e5790d11a7db505d7139ffac8727f4c613de1761f76469abf6e1a3c0444ab9",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Huntress_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/ef1f78f3ba5c43dea2d38927b4bbeffc.png",
+      "sha256": "sha256:29bbd661fcc579d73d218f13a0f3c24670ec64fcc8f37cc7df799ebb03892f6a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Huntress's_Pants.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/3720ed063d6d4e12a5131e9b35c973a6.png",
+      "sha256": "sha256:000bd5d67792d5d4eee650146ce6e601fba60c10403ddb8f2869a8b63443f8bc",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Iron_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e017ba8b3b21458bb188ebd3be36d7a8.png",
+      "sha256": "sha256:8a207c21bde60ef0ad19c4ba25d12a02a77e0db9ae2e04ffd48eca3516b94309",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Iron_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/31bef90256c44dbfa8518110c898a6d4.png",
+      "sha256": "sha256:334160a8638d4c480e9327fc6e02fa599c1f5c3fe9cdd6cb7a44a8d498617be8",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Iron_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/80191eabe4fa440e8637780793df24ab.png",
+      "sha256": "sha256:20bd1545a5e8eb08c151bffd1a6cde3f8e612a816d0e766f9a117e4d1bc8cfba",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Iron_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/501f7223b4d14e6e9417bcc44d99f4f3.png",
+      "sha256": "sha256:3f7be0d500c868d4032bf0c27c413d15c837869dff7464a2a41c595c481bd407",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Jungle_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/2be1a4316cc649ad8a873dfd43d04739.png",
+      "sha256": "sha256:779679673ab572e1ca25a7b78986c407fc77d118d3873fa3c02d0de6d1f1c6e7",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Jungle_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/bed5cbee6480449fadb555f13554b0db.png",
+      "sha256": "sha256:c323b021c34c1c32e48f205106cdea08e761bea90ebe8f44d2d87dbd724848d4",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Jungle_Hat.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/ccc6f49930624cc39acade7c2fcb9335.png",
+      "sha256": "sha256:9a9637cb88900694cb8d010391de96e92a986030bc1f009d78ca7ad33c2de905",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Jungle_Pants.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/08eb1546f3164ede8b1017fd0c61014a.png",
+      "sha256": "sha256:8348bad45f76be5686fdb56150ed1d1cdfae27a2680121a3e1d03a79c196eab1",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Jungle_Shirt.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/3430a6c40ea4438cad4a63cf0a7b3548.png",
+      "sha256": "sha256:ed17f93affd3a2171561a80b2223e2c0822b9e0d0514c9269157921c0e938061",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Lead_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/fa5773cdf0aa43fab4ab581039fb10d1.png",
+      "sha256": "sha256:84cd41e4c1189921b76650328b898094c1e8957e29aabe464097ceab27045124",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Lead_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/ad471e2c140e4b9bbae41af60ef4ea66.png",
+      "sha256": "sha256:60ef48ff3ca9848783c028c5f68e12c3a9f95652a99d03e107b7ab1f26782069",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Lead_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/2fa3c2ce5a534a62a6877c1e2480202a.png",
+      "sha256": "sha256:ce4e841d22597c37fc134a780815c4dc913bd6032589aba22b659fb5399e99c0",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Lead_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/a4971ea7c92f446f838f11de7fd23a5d.png",
+      "sha256": "sha256:4b8d589f74fc221372703aaf5a442a4910808a9d3d2417a6fe1cb251e5fecd1f",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Magic_Hat_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/344922f4293e4c2582f0186770f2f8ca.png",
+      "sha256": "sha256:c0f420f047ce40b3efc6c95530b3978c3254401a9d2c3b9c4b8cc7beeb574716",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Magic_Hat_(equipped).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4bef85c8c17247a49e80269643c8e767.png",
+      "sha256": "sha256:04f6946a8cbccf20243bf30d5289cc7b3361f64e9dc76d776385d931b9c9ba5c",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Magic_Hat.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/eab627cefb6446f6b8e8f0319fd78d15.png",
+      "sha256": "sha256:1ad87763db1f1e536115b694d4ef61da1c630ae6ce9b25148b8077e3efe9500a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Meteor_armor_(1.0).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/3baa4f7b90bc4f7d857b6658ab778436.png",
+      "sha256": "sha256:f51c4389beae2efcf22f9e05659ac7cba763b75b31cd36cc3e8f937605dce861",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Meteor_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/04e0c614a0bd40ca9b8302c881ab6cad.png",
+      "sha256": "sha256:281dcd1f615e3efb65c745a14986cdd35e8d287a6b7f4590268d028a61716911",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Meteor_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/ee74e03a02284b189c651d34dbedb3bb.png",
+      "sha256": "sha256:2fda8ed43bfd6d0fbb3aefbda6f4b3fdb5cb4f0013ecdad0093ef9c08d43f729",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Meteor_Helmet_(1.0).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/f4d808e7f5684918b54519b4c51bc280.png",
+      "sha256": "sha256:ca35ec953ea5fade3e4912814c07ccb624a807a68d204d8ba05504e6a106b17d",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Meteor_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/dbd11018070a48819f3e1976848e2dea.png",
+      "sha256": "sha256:7a00d12daa5b6095054400143035bd98a573b48d561fdc46558185c271d60b61",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Meteor_Leggings.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d5635866012346ec9a92872b7f29ce23.png",
+      "sha256": "sha256:0eb989b31795a63043e064cb634803620271bd28016e4fb9a0bd767f50be7410",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mining_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e3b5c0c6875545cc8947bf8e739984f4.png",
+      "sha256": "sha256:16b3ce2342b9ab6e254fae19463f151674a3e49ff771b8ea356bc5472a6f9da8",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mining_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/75bf41f9d396462eb79e8a4bf25ab062.png",
+      "sha256": "sha256:cd57d518ba59e03322f9062289cce598cceeba8abc23ab3ec69676344b344e93",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mining_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e4103025cfb1421c91915e3172273f44.png",
+      "sha256": "sha256:5e34eba01b2a01a7c636baf56f834d85fc9ae1aba864c9777e2a0e2ee7ab10de",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mining_Pants.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/1d27a67e80be4bbfb8590646e5618fb2.png",
+      "sha256": "sha256:a2b871266f9a7d94845e5ae4018770b589e822f4c6b437adc4e6c64440e54d9d",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mining_Shirt.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/5a94aa5788a34133bfb8a21eb9d33454.png",
+      "sha256": "sha256:9d7eb08d1d84eba0ad891eeaa5671efbf2c26e19172512137ac0bf5b3b2119e3",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Molten_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/9749ca281fde41df8ff7ff2dfc0747bc.png",
+      "sha256": "sha256:cbaa461043a63bbd30980194b8d01f3c5eddf034c28b86c445e0b207b54e8997",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Molten_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/17e389f38ad44792bccfc2315a13a53f.png",
+      "sha256": "sha256:b02e3ca725f8f9308997422cf30892e85140549f10d6b558b9f5d440b65e7175",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Molten_Breastplate.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/e7e2c3534b8940da86f919a6cc5c3d80.png",
+      "sha256": "sha256:b775ca7793016a0cae03e6726dd39a829b30382504b5246c1b814b7b7b586d89",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Molten_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/6b9335522de448e29d84bc039ed83983.png",
+      "sha256": "sha256:fda23b3f3a71dff2ec7726e4d5aac327f874e950b3a0e15ec7a706319f550ba9",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Molten_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/3dba9c5e62fd4534846f659a752cf62f.png",
+      "sha256": "sha256:0160f0b4e154b9d20e8f514b25e44c39c7e14bacdd02e584229f738d835decb1",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Monk_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/fd38e1bf7d0b468e948f6f2a4d774fe7.png",
+      "sha256": "sha256:b29a6174738b4faaeed08801b9d02b6f77c815ea5b93eedfc074eca15efc56c1",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Monk_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/ae2e71c341244b48ac2fb30727e920a6.png",
+      "sha256": "sha256:5806481144d531c5bd76f45f15c85b0708e514b0807f6d6a7103c21e586f6d73",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Monk's_Pants.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/436957ce3ec04b35a82daadf79a9873f.png",
+      "sha256": "sha256:253c0d7baf4d8e0e160f92298221441cbf041d46b1398115b85a43a11c8d3a9e",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Monk's_Shirt.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/1f4baa7fcb6a44ed88f03a6e09ee26a3.png",
+      "sha256": "sha256:77eed8c418c53d46b48816aeb4e16b9ef092708c4baa4a9ffc01386b76caa738",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mystic_Robe_(equipped)_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/2b26cf627bc84a35b7e0768b84b9b00f.png",
+      "sha256": "sha256:0595ba094b8ffaa4181742b73f49ed25f9cfe49f8b978ad556a5c5c5af6cc5cd",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mystic_Robe_(equipped).png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/13273c620e7a4f59934500df716b67b7.png",
+      "sha256": "sha256:8a4635c0957846e2b88190b7df3910f4a624b808ee48b8c3cb7408965573cc45",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mystic_Robe.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/12bd9bd427524bfda0ace9a387a67359.png",
+      "sha256": "sha256:0ecb651ee5f60f92196469d5687db971da87bbed0abeff002bd147ab928161be",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mythril_armor_female.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/4934f91a157c4272b57e55fcd62e9ee0.png",
+      "sha256": "sha256:c3dde028581a2462e9a2668d9f3f27f78f6a207dd23efe3c1c6fbb1ae9f5121a",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mythril_armor.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/aeecb1421a7749429effe04b9351d0ab.png",
+      "sha256": "sha256:ca847364803e6f3561b9d52332b61fa266bb0eb4ec7ed5d65fa155318d5dd243",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mythril_Greaves.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/221f49ed73ca4b7fbf355e8398a00863.png",
+      "sha256": "sha256:3660d9b0ff30d4653089eb14912d062def9c2476c3ad93c76e86c8181dd55637",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mythril_Hat.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/d313cf38bea44aad9d505e039a574269.png",
+      "sha256": "sha256:d040482bb3bc77ff5dfb3c194ce32db63a74b833527fe3594f1d62bea792ebd3",
+      "verified": true
+    },
+    {
+      "sourceFileTitle": "Mythril_Helmet.png",
+      "cachedUrl": "/terrapedia-images/items/2026/09/27/1f9a7f762868430d886a424dbcf8132b.png",
+      "sha256": "sha256:19c62e2dd6ef06ca001359767d94bb40d3f19c1524358dad4b1b27a0a3a87f65",
+      "verified": true
+    }
+  ],
+  "reason": "Armor cache local API HTTP 429",
+  "authorization": {
+    "decisionIdentity": "armor-image-cache-a63-20260927-31",
+    "packetHash": "sha256:96564a112debb9148fe688a2d0e18b4d80aa7506d4ac5a902dff792e60d4dbde",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-09-27T09:26:07.224Z"
+}

@@ -36,6 +36,7 @@ public class AdminArmorAttributeController {
 
     private static final String ARMOR_TABLE = "`terria_v1_relation`.`projection_item_armor_attributes`";
     private static final String EFFECT_TABLE = "`terria_v1_relation`.`projection_equipment_effect_attributes`";
+    private static final String EFFECT_SOURCE_KINDS = "('armor_attribute_cell','armor_item_page')";
     private static final TypeReference<Map<String, Object>> RAW_CELLS_TYPE = new TypeReference<>() {
     };
 
@@ -49,16 +50,14 @@ public class AdminArmorAttributeController {
         data.put("totalRows", scalar("SELECT COUNT(*) FROM " + ARMOR_TABLE + " WHERE deleted = 0"));
         data.put("matchedItemRows", scalar("SELECT COUNT(*) FROM " + ARMOR_TABLE + " WHERE deleted = 0 AND item_id IS NOT NULL"));
         data.put("unmatchedItemRows", scalar("SELECT COUNT(*) FROM " + ARMOR_TABLE + " WHERE deleted = 0 AND item_id IS NULL"));
-        data.put("effectRows", scalar("SELECT COUNT(*) FROM " + EFFECT_TABLE + " WHERE deleted = 0 AND owner_kind = 'item' AND source_kind = 'armor_attribute_cell'"));
+        data.put("effectRows", scalar("SELECT COUNT(*) FROM " + EFFECT_TABLE + " WHERE deleted = 0 AND owner_kind = 'item' AND source_kind IN " + EFFECT_SOURCE_KINDS));
         data.put("rowsWithDefense", scalar("SELECT COUNT(*) FROM " + ARMOR_TABLE + " WHERE deleted = 0 AND defense_value IS NOT NULL"));
-        data.put("rowsWithEffects", scalar("""
-            SELECT COUNT(DISTINCT owner_id)
-            FROM """ + EFFECT_TABLE + """
-            WHERE deleted = 0
-              AND owner_kind = 'item'
-              AND source_kind = 'armor_attribute_cell'
-              AND owner_id IS NOT NULL
-            """));
+        data.put("rowsWithEffects", scalar(
+            "SELECT COUNT(DISTINCT owner_id) FROM " + EFFECT_TABLE
+                + " WHERE deleted = 0 AND owner_kind = 'item'"
+                + " AND source_kind IN " + EFFECT_SOURCE_KINDS
+                + " AND owner_id IS NOT NULL"
+        ));
         data.put("slotCounts", groupedCounts("slot_group"));
         data.put("sectionCounts", groupedCounts("section_code"));
         return ResponseEntity.ok(ApiResponse.success(data));
@@ -96,7 +95,7 @@ public class AdminArmorAttributeController {
             + "a.source_provider, a.source_page, a.source_revision_timestamp, "
             + "(SELECT COUNT(*) FROM " + EFFECT_TABLE + " e "
             + "WHERE e.deleted = 0 AND e.owner_kind = 'item' "
-            + "AND e.source_kind = 'armor_attribute_cell' AND e.owner_id = a.item_id) AS effect_count "
+                + "AND e.source_kind IN " + EFFECT_SOURCE_KINDS + " AND e.owner_id = a.item_id) AS effect_count "
             + "FROM " + ARMOR_TABLE + " a"
             + where + effectsFilter
             + " ORDER BY a.section_code ASC, a.slot_group ASC, a.item_name_zh ASC, a.id ASC "
@@ -121,7 +120,7 @@ public class AdminArmorAttributeController {
             + "a.source_provider, a.source_page, a.source_revision_timestamp, "
             + "(SELECT COUNT(*) FROM " + EFFECT_TABLE + " e "
             + "WHERE e.deleted = 0 AND e.owner_kind = 'item' "
-            + "AND e.source_kind = 'armor_attribute_cell' AND e.owner_id = a.item_id) AS effect_count "
+            + "AND e.source_kind IN " + EFFECT_SOURCE_KINDS + " AND e.owner_id = a.item_id) AS effect_count "
             + "FROM " + ARMOR_TABLE + " a "
             + "WHERE a.deleted = 0 AND a.item_id = ? "
             + (attributeRowId == null ? "" : "AND a.id = ? ")
@@ -136,9 +135,11 @@ public class AdminArmorAttributeController {
 
         String effectsSql = "SELECT id, owner_id, item_internal_name, owner_kind, owner_key, source_kind, source_line, "
             + "source_line_index, effect_index, apply_scope, slot_type, stat_key, stat_label_zh, "
-            + "class_scope, operation, value_decimal, value_max_decimal, unit, condition_text, raw_text, parse_status "
+            + "class_scope, operation, value_decimal, value_max_decimal, unit, condition_text, raw_text, parse_status, "
+            + "source_maint_table, source_maint_record_key, source_maint_id, landing_source_id, landing_source_key, "
+            + "landing_content_hash, source_provider, source_page, source_revision_timestamp "
             + "FROM " + EFFECT_TABLE + " "
-            + "WHERE deleted = 0 AND owner_kind = 'item' AND source_kind = 'armor_attribute_cell' AND owner_id = ? "
+            + "WHERE deleted = 0 AND owner_kind = 'item' AND source_kind IN " + EFFECT_SOURCE_KINDS + " AND owner_id = ? "
             + "ORDER BY effect_index ASC, id ASC";
         List<Map<String, Object>> effects = jdbcTemplate.queryForList(effectsSql, itemId);
 
@@ -203,7 +204,7 @@ public class AdminArmorAttributeController {
         }
         String exists = "EXISTS (SELECT 1 FROM " + EFFECT_TABLE + " e "
             + "WHERE e.deleted = 0 AND e.owner_kind = 'item' "
-            + "AND e.source_kind = 'armor_attribute_cell' AND e.owner_id = a.item_id)";
+                + "AND e.source_kind IN " + EFFECT_SOURCE_KINDS + " AND e.owner_id = a.item_id)";
         return Boolean.TRUE.equals(hasEffects) ? " AND " + exists : " AND NOT " + exists;
     }
 
@@ -249,6 +250,15 @@ public class AdminArmorAttributeController {
         payload.put("conditionText", text(row.get("condition_text")));
         payload.put("rawText", text(row.get("raw_text")));
         payload.put("parseStatus", text(row.get("parse_status")));
+        payload.put("sourceMaintTable", text(row.get("source_maint_table")));
+        payload.put("sourceMaintRecordKey", text(row.get("source_maint_record_key")));
+        payload.put("sourceMaintId", toLongObject(row.get("source_maint_id")));
+        payload.put("landingSourceId", toLongObject(row.get("landing_source_id")));
+        payload.put("landingSourceKey", text(row.get("landing_source_key")));
+        payload.put("landingContentHash", text(row.get("landing_content_hash")));
+        payload.put("sourceProvider", text(row.get("source_provider")));
+        payload.put("sourcePage", text(row.get("source_page")));
+        payload.put("sourceRevisionTimestamp", timestampText(row.get("source_revision_timestamp")));
         return payload;
     }
 

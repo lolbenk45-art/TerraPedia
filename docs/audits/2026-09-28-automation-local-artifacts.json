@@ -1,0 +1,1744 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Local retained runtime artifacts; hashes are inventory, not execution authorization.",
+  "archivePath": ".local/archives/2026-09-28-automation-runtime.tar.gz",
+  "archiveSha256": "5c8e755a0ea7aeaf8f889408a83fcf8201f347c3f352434b2227060fd6fbb83e",
+  "originalsRetained": true,
+  "files": [
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0091c97e96bd51fa864bf2869ff2cfe88ed881418ca4be628ce6d146716ef72d.json",
+      "bytes": 1197,
+      "sha256": "0242cb75d2a3c0602500ed24fc8d7d993f3b9b33d5ad15fcc176e768a100d7fe"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/00d63ca27873198187270deb11f0b6d3d52ae01ea72f8f99dd2fcd68b09c2047.json",
+      "bytes": 1443,
+      "sha256": "f1a0a6829d33773c051d42ca782c55d5a1f343ecc80431233e0f2704bcb1b688"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/012bafdad81555459e3418b00c2bb0254d3bb25d137a22011ff0c57db60eb4cc.json",
+      "bytes": 2137,
+      "sha256": "d2948abae16e4a897cd00a94c3b269e533ea33a49cbffbf705c39eb379063469"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/027179204385eb9143315a9fe8a39525fa87be95a74fbcaea672f7e61b679db2.json",
+      "bytes": 1333,
+      "sha256": "ce585931fca39b792fa947b597705b43d8fa90e631a2b2c2596e2589412dfca1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/02fb8715b296015bdc103cd0231bb70ed7567748dc0c71c95b84052c7a9eb751.json",
+      "bytes": 1415,
+      "sha256": "3428afcc0d4132ed9d84615f7bf45c96dc1c3cc871f6601e5d2cccdd4d702ad3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0372e9a5a2a59009e01f614064021321f4caa91a8b1f7f058939064ea23d39f5.json",
+      "bytes": 1781,
+      "sha256": "405786bb37cb6102f2d8e84a83edea07bcda455c470e02a08fba3de29e753abb"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/03bae3c1b1eddbf2bcc7fe2491fbcd175f14345eeddf13d4c1c35722c5c65ae4.json",
+      "bytes": 1146,
+      "sha256": "25504ab684f561b0d1be2abf9396a07bc542ae09f4aadee458d33b4525db88fb"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/03f2921314c66578821b2a8682509e41d9b1ad4a2da821b9b01f57bb4e071a0c.json",
+      "bytes": 1209,
+      "sha256": "f1584670b7d95a451134d468c5e59b1c6e3edf30255cd12ee8887e93785edb84"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/03ffc827de620d0c8384fa8c372a73c4b2195be7f4e1726b7df64a30be015b3f.json",
+      "bytes": 1277,
+      "sha256": "3ab7fb5cc0987f7835453d84fb35281d26d148405291a340b2efa67d44194935"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/04634c25fb5aa9e31e4305372c9312f4e63601ee60d24ac0c7133464b09ac77b.json",
+      "bytes": 1893,
+      "sha256": "a6057776a3fe3aeff697ec4de0d496a70c71ea8ce0dccf63bbbd24580bb97fe8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/047de9598d7cadafabdf2843babb4cadb5d2266394cf35ef2677eea113c8e012.json",
+      "bytes": 2017,
+      "sha256": "83dabefc1d250d4654a0d9e360a19f85c47a18f3c2754f6c5c7d00ae98ef1e40"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/051960a78a878e3bfa2cdbd66d9d0660bc245b424a123dc2aafd49514470637b.json",
+      "bytes": 670390,
+      "sha256": "2080e43a6d08233ca2eb94f9231e273c639de4f059c84f2c5fc679dba61e459f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0528564a131f0f1e8389233143c5e34ba570f6e18f49b094ca68cc2e32e8ac3e.json",
+      "bytes": 2259,
+      "sha256": "e7b6562b830d7679a395c1c966650d7c2e69609f6015da68b4d3f459ccdbd697"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/06d851eeebc35e827f63e8cfd6b074d626da56ac19fcafbcfab7ca5afb0c934a.json",
+      "bytes": 1083,
+      "sha256": "9418091f8aff5a26a39f5745c0bb9dd78ac85c3b50805ebfb068fd5d77474ad0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/076371b17a477d865da6935be048a01eea5abb78aac44d3fcd9c77d62b7e33c8.json",
+      "bytes": 1545,
+      "sha256": "66ead6cf6f422cf126065f113bfa6caec1d8b112cd77a95511cf88d07ef8128c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/086d462bae863d32eb176dbc2c20977f4325ad529b59eb44973b1bbbaa03d801.json",
+      "bytes": 1298,
+      "sha256": "2c1baf3233686262db58cc6def5332bf5b1cf4abb82f0fd6162c5d3039c59edd"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0978ce8d8f0eba2e96c193b6a3dd6f8955462422ee3b9f2ec5f6c8668a87a330.json",
+      "bytes": 1363,
+      "sha256": "55b2b6e00179a334560b91bc6fe3fbb81fe84ea9fefa398118907ce3f11f8333"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/09e0a8b11a7ab6688198a47b7bee9a1c70beba9a9e99c3b4d1fbe3cc7ce45105.json",
+      "bytes": 1241,
+      "sha256": "c143538211b71a8951b7cea7f84f735cc7952608e4224ec1e672c99422d0bdd9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0a5b1792cdc47fe0bd9155088f53a80ee821baf2ac79763c40bf157b6bbefe8f.json",
+      "bytes": 1161,
+      "sha256": "6934e2bf39c7b69d3c68981317d867deab4a514921a34d73efb2f896226bf900"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0b27f81a7cc008bd31efe595ef5f63607119154d70d2bcb36fb3e63e075a441f.json",
+      "bytes": 1098,
+      "sha256": "e52ffb4bed90a45d2d6ebd9250139db9ec090d46638851932a4c3cafa8ec343f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0c22f51275b7530f2668d13a511d6cbb7d2da0b993a795df9ee8b1f8536d604d.json",
+      "bytes": 1697,
+      "sha256": "6ff6a903ec7e89c23fd461ae72f5a4b4fd58499da79b514baaa833aa47fce81c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0c3d3e7a7a4f591425b850d2ef99b3f97ad01f2788fa4e947ab585ec81c9a3fd.json",
+      "bytes": 2125,
+      "sha256": "830efb33202dd26a6f3682b1b298e209ad8e351376cfc79804947172758610da"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0ddcd433f00acc60e4f96a7b33f1103c7ca8f440e2f779c073233f6b4d4ca223.json",
+      "bytes": 1237,
+      "sha256": "90033d141d6b9719077c7382dd0761657060c6fc1803e72e67b954d32feef246"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/0f51e578bd637e752071a5e91133aa4380e4d582e4194c96aa52197a4c9fe184.json",
+      "bytes": 1142,
+      "sha256": "34fa5da780e418b748d32084d0f635467a0780f472946836b7543263b32afa72"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/11425b203820b4068b420afd554a7ba811d666efe85ad45387b06a1c6eb05e1f.json",
+      "bytes": 738082,
+      "sha256": "434659bc316d48a28768b71ec77be68f1ab43d5acf951c5226163de6eb03e274"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/120d475f64e42b95fec145055c63dff8b6498e72ca1066702710f356e755d7b9.json",
+      "bytes": 1331,
+      "sha256": "994fffa7c85699957cd3a5e0ae4dd97ddc36ae9aa92bf39a11c4f6724bd0fa67"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/136d72403bb2644b9436b101763aee2d8ce8ad4f2655686bc07943f7b83aa569.json",
+      "bytes": 1261,
+      "sha256": "10d370e541b6052f1b30766135ac40351aebf9f964c9e3e9ccde27fa8951e57c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/13ed8b5dea46a4dd9bc0c354714ce3280eef051aa97018189980634cffdd761d.json",
+      "bytes": 1277,
+      "sha256": "fb3141dc282fb33e5e3eb40f0cf15040bc58ef430bf996535e6b9b8ee493a493"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/14f841d45e8dfa112624549dfb3590b39f6e1abba81977a333fe0330c71b2d71.json",
+      "bytes": 1249,
+      "sha256": "f857d63ef2b93b87d6afe6f8217f71a4ab6b108b420f9471fd43f398d0e79a5b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/15a9b4a33b63cac6063eef741000b41f1982964dd7717065d2211ff22884bd83.json",
+      "bytes": 1201,
+      "sha256": "63f38a4e32b68242fd6878b113a3ac125496af6514404a484079c7151943acd0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/166bd8c0044ea6fb27ab557f3170952459edd764272aba9e8df9aa171a640651.json",
+      "bytes": 1797,
+      "sha256": "68a01061714ec35e046e6ba915e9055c38064ef036bfbc79263a13802eff012e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/174993e5e678faf3e9c742f955401cf9c39d65988b6e83e26259765618e43548.json",
+      "bytes": 1189,
+      "sha256": "d885972d68ff34088123f11265d0b2774601b1accda8304b26afa3d0dd2c7c9c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/18a3b61adde93a7273e56d25f9536189ebd19c01ff27eb8f498c214c2e3818b6.json",
+      "bytes": 1179,
+      "sha256": "bbdf05bc60c04e35aa18526a7a327c3d661b8eb8b0e0bccfb9c108fa9bd63839"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/199de7dcc742d1ab0c836eb51277554d17556627e0f73d69363e74e8835a0b75.json",
+      "bytes": 1301,
+      "sha256": "cdff4b7aa24b211026581f0b118c77168e692e1ef6dc7f623cd3bf3b5dd31fcc"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1ac04b056761f9585477691c83a0a57fcfaf3ac26d333024702111414398d323.json",
+      "bytes": 1297,
+      "sha256": "b98ec7cc6afdf21750d3858f3067419b703fc7128273688ed9d05ce218e8f79a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1beaa4c38a5d4c5e9f32f171177f8f2f5d3b5699c23994d7bef1eed857259faa.json",
+      "bytes": 1913,
+      "sha256": "da5657b457ef512b976a9c1bdf1e3959887ce662299487ce6c4a5e8d3fec8303"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1bfb073c99c76734ccf7753493a58864aec87e432a1b78d5d972b6f2f406d047.json",
+      "bytes": 2083,
+      "sha256": "e5041f8080925603e9b675a1e55ff9a788f695b2af17c6c50ddaa32437e6252c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1c80a0931e6ee80880c0e76c489f19439d2504eae69f5a962455214bf764fa3d.json",
+      "bytes": 1249,
+      "sha256": "8f18b5f295b3e30364416994040e372675aeab3bf71a69a5d1ea77a8e24eacf2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1c8e5d50c7460ce499d30811b03890dd6cc4e449e3c93cdc2a04d57911d8a182.json",
+      "bytes": 1136,
+      "sha256": "4821931a9f6212b7d4e1a04d08348741184b0384e3d7560f0eb146bf903f01db"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1f30ca559b19b6bc027e2a50985e333fe383b86b9d5d4856e555d6b0a5d36ae5.json",
+      "bytes": 1385,
+      "sha256": "6748b9b982b62036ad1d4508677c395aadb5a92ee3422ce4b9f1ebf75b1e0a39"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1fd4dc639d27a088b4900362397e05d86750cd914cd18104d5685d63c25a81f9.json",
+      "bytes": 1213,
+      "sha256": "b938f4c2c371eb71bee86701dc58f61f741a62491bf0bfa941de5756a35a8be2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/1feb426c9250d0b0445d58ec3fc588943c3a276b5db96b6f94ca9f762a2603a6.json",
+      "bytes": 1081,
+      "sha256": "de6e6b20db16cffd84074bed8cc5a160df5702dac26462c3c467a95394f178aa"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/228f2e8e40545330cb23958b8380e929b256142773ae1ddb7427a4d32262fbcf.json",
+      "bytes": 1295,
+      "sha256": "2d5f037add300bd8b33e7cba7d16090bcc5cac612c1fc00d01c097226d6ba4a1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/25629f46ce49c96e36f0777d093168e7c50709e5b4db270c9b1188eea557aade.json",
+      "bytes": 1089,
+      "sha256": "d2c3b4b20ec415cf01737f7c1a221684ae14a197fb336da9657eb0b335409974"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/25a4e060465ba7b0c23b1e763f91d5916201cc32cb873f705e6e3cdb7d1d7c60.json",
+      "bytes": 3212785,
+      "sha256": "ab7e46e7b08a8d305c6cf05782172da4aa3f6e9951a9b2621357a27e4a62c6dd"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/25f1e99a21ced2dd440fadf708d29cd0fe725436aca57b83af17981b3170feec.json",
+      "bytes": 1187,
+      "sha256": "f0fcd6f7bef837204c80fa3d182e05920785992c226953113861fb89d7a3a948"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/26431255914281c7b0fec9744e8dbc38f92bb9a34e33a471d9fa4928f7e5f716.json",
+      "bytes": 1769,
+      "sha256": "eaa2e55e10b27854c399b837e7ac09d1f9f907e028732c568f97185aa1a538da"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/27455a944ab8102cdc389fe8aea3d67af6adec2782b28deac16056d697c3a6b6.json",
+      "bytes": 1123,
+      "sha256": "9ede550139ccbeb2875c016fb0dba7102bdfca10bb030d5397d81e37fbc592d3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/27633a61ebc733563a5d5de7f24f8f843f1c6604a1e9cac3e8c6680eace376dc.json",
+      "bytes": 1383,
+      "sha256": "a0c3494aa3be713dd7127dc1441d93e80bf0af7c79960653bfc11fbf75259500"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2875cf3e368286bdb83c4321d3e43ad9ce60c10e2c283b760cbd4044d1b56990.json",
+      "bytes": 2860,
+      "sha256": "ba0c34cfea38724a5d465a4228d48c8e6878e7bb9592d5a805d679e19b5330dc"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/294ba851c2d2012e427aa7f8445602a645fc0ef3a173bd4c0dc98279f7a77a46.json",
+      "bytes": 1821,
+      "sha256": "db421ceb31636765675b6b32827f4423ffa76e92427aaa96f594a3480d57c480"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2983543e84681a034eb26b22cc5c40c0474fd46508492f0b999f8708504cc7fd.json",
+      "bytes": 1177,
+      "sha256": "9c2077711d6fea0badc6e4291b09d6761633dc8599731770ed50259b94c21bea"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2a146e23a867cac4caa23d741adff188999a8ba967befef557c82d426b4f02cb.json",
+      "bytes": 1179,
+      "sha256": "febd0170364a5bb34c31e87309d445ab94e0d7c06c0ee2b7aaa3c5bfab2701bc"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2aff42c4ff861f3a80f6eb140459229d118bab0eef3eb4532fa7dc24aa886c11.json",
+      "bytes": 1416,
+      "sha256": "533214da9b9087b33d0e5507d32207b45f00ed9e8fa6e4ff734b54a814e472bd"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2b543ff4cba0f855b6d0e91c7d7b40a6718115c4af54f331c4904a4578ffe9d4.json",
+      "bytes": 1233,
+      "sha256": "9763b5cf7878832c8f053138a91cdb07ad29d11dff9eb189e425fea5eba68ce1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2b77aea4fc6029e51bbcd5f0a11b0cd2de164866070cfde84d4010ae4552f911.json",
+      "bytes": 1229,
+      "sha256": "16708791b075979342dbb6c91748f7675f532317c05e11e900e7c76710090d0b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2c1448015f0f185cc71360762cef46e6a35ed4be639de42be7442b18d59da146.json",
+      "bytes": 1241,
+      "sha256": "75851f9977d272081cf237d4d19d5c6c05cc5e52299e78d41c2e6709e87982f5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2c9b48da9ef47e772ba8053f1d18094bdd87661f24da929c8bf048ea7f4a553f.json",
+      "bytes": 1656,
+      "sha256": "e5567245ce3760cee2e2e25eaa89298712f26dafc9b58f8f9766c765505e0f24"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/2dbef8c2a427aa828f965eb704da7528931b4c7bad62f02fa323bb8d510b2c82.json",
+      "bytes": 1148,
+      "sha256": "94fe9316a9f39093e364f995c0ecae0eceef130abda7f931477b89fd4d0d2db8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3071ea3f0de2ddbe06cc4b0ed65c09248ec0a9e35dfd27545d0d393a7ed401c1.json",
+      "bytes": 1402,
+      "sha256": "45bf3bd233e686ec0f1764ffa86a8d20469d76044b85c87e177253ad7b00abd2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/307aa945792ca29fb86744464d011fd66170525ec145f7c82345249d18625271.json",
+      "bytes": 1564,
+      "sha256": "b9ece07008fc64f5e45172e8d207fd26f8767e2ac3d914c14f4a90cc606b9c7c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3133c6868f273e8220a8693aa47e90cb8d24c365aeabd37ad261c133a1b655a4.json",
+      "bytes": 1167,
+      "sha256": "46f03dd4c2c6ecc4443b9c566c5af32d8e6e9714bdce25198a6c09e80ca80324"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/31bc75ff1b215a2a2618adbffade62d621113cfea6542bf5893137e6d13e9fa0.json",
+      "bytes": 3268105,
+      "sha256": "75588a701d599873d5fc50d56de51bc462ddd78113a6a046c36a15b21d9f74ce"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/31c4b2ffe8bf92e0f5d92aeaad8ed3bff7753e0f7675dbb2a5136f32975ad2c0.json",
+      "bytes": 1825,
+      "sha256": "e23373e6fc83c94f414eb7168b63b5021adec95f4247342426f4110cf8ed8585"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/31fcccce6bfd6b39feed94ebf84bc81c83fdac2312780e8fc9b1ad75ac038671.json",
+      "bytes": 1118,
+      "sha256": "8aeb0e926b260e6f2f728e374133ecbe8351d3bf6c6294edda6a9dcd48c69c7a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3308d01111c431ae037caf9a973abf999b44d1aa049253ac10561c31a495012e.json",
+      "bytes": 717840,
+      "sha256": "1b556b36417bd54b37cc9cbb4e40a2961b336d35ade51851936359c3ff550fa6"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/330a3b3ae585689ee63a0e3de7006709a8c2d9d5f908d3bc58a5aab70cbd2ba0.json",
+      "bytes": 1797,
+      "sha256": "8a4a044ebd99a65a4dc7aeaf5eb9e5e82f274da418ed14a9c3eb79e9493e4cda"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3336a6771d3f3dfd86260534e9d50f4fac3b77c3ffa3facba0c43b2837bea75e.json",
+      "bytes": 1333,
+      "sha256": "03a48025aa90307400afd04dc857c64af32d93e7d9e035ebc42bdc5dd3186f01"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3336d991feaec4f47175acda9f7162f2372e32f6894c5800ae6c92756ff4b300.json",
+      "bytes": 1662,
+      "sha256": "5d631d5d13d8458de3286dc7db759117f280634e8c58d32bb96feb7d839873fa"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/34efb49bb7c803a2ed81943bfc175b1cbd6cf7896eb48a6b49b41b89babb432a.json",
+      "bytes": 1197,
+      "sha256": "0a07003c17bdd220aac3df62fe62f56b03a1d8dabc751f371c4924eb2e482d6a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/36d1995b7625525e82db9d5235d1ed51ad3d2cb4192eb8fd1958d9e9c1898277.json",
+      "bytes": 1149,
+      "sha256": "e7797d7f184b84370c2d4f428a7689e74325fc0b6983b156a3f6ebd41a89f8df"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/38b55df174bedb1c4552e6b9d634802958fc4177643971cd708a1af5e7be8120.json",
+      "bytes": 1337,
+      "sha256": "f3cc023f88399749b8ba25c674f9b7cec829d7874449dc1239918c00fb151865"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3969affa3b321be35f2f45d40adf492bbad44ab5af99ce94bc04e81d5d6f439a.json",
+      "bytes": 2573781,
+      "sha256": "d977dcaace6b89bdc0f64b1550b961b707e4657598f4ea3325651bf75c0ef0d6"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3973777d7251ce09bf1456e2b10f2d8d2ab77ebe940852dd78123c75389fe7a3.json",
+      "bytes": 1395,
+      "sha256": "0da4e094e811c2ce8fb829da3d62588dbce6d27d43d41a5c2c22cc47f3b047e8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/39a3137638e5f787126d7c08a97b2fc41a883c84990e9f21bf5659716a7b9515.json",
+      "bytes": 1145,
+      "sha256": "a1384cac31f7020405d045cfd346fe0cd9a45843f00f9dc690d168d557664cb3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3be92dae43ea1bcc5bb69fce51b052c3134bd5ff7f587fb881ed45c455d80f8d.json",
+      "bytes": 1290,
+      "sha256": "db00fde07116dc3d843ac75c1c91cc685e0dc2eae4853365878fe8f1d51d707e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3c07744acc698be77e55db411ae89e79154c88b29d0155a8c9aad515d31615d8.json",
+      "bytes": 1374,
+      "sha256": "88517207b5d925b96baca5e93aa3feaaa6f27c690127b06bc3081e50cd675225"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3cf5269661f5109503a3acc4a5ab7c5af4cd230f275d3ec195779bd3054d3cba.json",
+      "bytes": 1106,
+      "sha256": "457218debd83c9f0ed853821c31cd4799e8f9977efe92f870a79edf891f9f64a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3e19bf5ffaaa68657987c364b127aa008415016469f546fb1e6761ce950206a9.json",
+      "bytes": 1514,
+      "sha256": "fb6a73ed9e962d34d699dea6b5efdac8afb7fb52c4f16ba38400a6f8e8985185"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3e7b121d70cef9024628f96080e9c6726a093f912c1f1d3d9114083a7ec620d0.json",
+      "bytes": 1544,
+      "sha256": "2f53270e0f580c49834ff9edfc903dba4a3b832e0bd9fe852518b9c80ecb9e14"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3f5794d78188b1d499a6868e3617cf64fa236c891b201c0c1d748c75ef8014ec.json",
+      "bytes": 1552,
+      "sha256": "dd8647cf98092f260a0ebfee33e2e19b320cafa0ed2a605893ce06ecad4da6b5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3fafd37f1be6b0ef0a9a2cd36474948718771296913bd4f4655062df5515ff86.json",
+      "bytes": 1321,
+      "sha256": "800b0c40d62eecbd9f278e866a6d13a02518a7bb31558a397e6b2c1de7846dda"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/3fb55a8666ba3bef6900d4befc445f5955e5d09d2eaf0eea3343fc0dc50276d1.json",
+      "bytes": 1371,
+      "sha256": "46ab4a7632cd8c7b6c9d1daf5204eda9ab8c6c5d447b72b9372f9366726a5ccf"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/403c715bc8da9d26e0de26c6ffb32f4f74eba3eb1183057b0d84300255e43c63.json",
+      "bytes": 1719,
+      "sha256": "12ef6f0271c35f44d140c204d278f25c5b668586e85a212224471d4ec8b98002"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/40a1249b8d11ef55712d7869cc926689db870cf2a970af9dde2c1e7eb1361310.json",
+      "bytes": 1249,
+      "sha256": "e88a7521a87bbddffa14d3071ada2c3743fb9baaf196880a7babf5e3b0392e54"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/421fabc297474e60e69ab1dbbf353e9489fbe915522e63b7fea055af4332c648.json",
+      "bytes": 1725,
+      "sha256": "722b7bdea36b541516d7f3a4d89faabe423ce75da7022c50fe31045ee461f56f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/434f3e4ff71005ac9e8c9e7189a2614e9e878730b25a660d72ce352b6709af3d.json",
+      "bytes": 1095,
+      "sha256": "55bb778152fb93b905a1f36abe71af2f8f18b02f17ef88d33d3410c46b84a9c5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/441bd64cf951ffb63fa289f807712973b51c221f960a9b56e208a8a5926a4669.json",
+      "bytes": 1251,
+      "sha256": "762b8f34920f15ba223d30c0c167a4157d16f1622e6421b3d455ba96fc975151"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/446c55d1b42085552360f2ebdf697c7afbb1a9cad010b1ef472248c4c440247f.json",
+      "bytes": 1424,
+      "sha256": "a463f49d3dc93a450ce80611a3cfbe12d859a48a8d669e882fde0d75e122ad8d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/44726364ba706c229ef62361f28bcfa8a5f528d07b82d1a62d3f52f8426981de.json",
+      "bytes": 1048182,
+      "sha256": "625f1bdf155d7d6ddf8782ef65ad410adef16ea7e69851eb5f3d0f4696b45dd5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/447a066d3784aa478e0795ac05a8e422705518a62176078d5fabaa01737e61d3.json",
+      "bytes": 16989,
+      "sha256": "1945281a439c0da3965b64c8a141ca5c429b9e68777c7bb908ec03550136401d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/449856aba659939b60ee3af7f6ef0d6bf5047831d573c489bf885f0372e2003d.json",
+      "bytes": 1149,
+      "sha256": "913cfcfaaf91f8d4cc86273b4869a1657925d06d109a7aabac9d1b8b9ebf88e0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/45980dc9d9f144c06f260d2ed572a26affc8992209bedea0f670b7d02a6673ec.json",
+      "bytes": 1256326,
+      "sha256": "3000d578227796ba88f339d9ba716f6d4003a2a64c6b243d1b94791c2df2c6f1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/4624cf54b1c4c813ec41ce92c2911fbe51cc6f356db178203819d87e7d00541f.json",
+      "bytes": 1537,
+      "sha256": "3802cb67f75c1d568d0fa22d9b13f4bd787bdf966444b9bed1020bb88f9b15cd"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/467403fc78e3fed9ca24c1e3d7274b1164503f05418f6efb3f09db036e9f6a02.json",
+      "bytes": 2193,
+      "sha256": "f276feb6830c6a0e159ab4694744d243cf53247764505c3abe9a302cee05ad1a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/46fb9df5c32bcb7665dced4d41ab29e957e0a0644781490454024e9a24cad46e.json",
+      "bytes": 1426,
+      "sha256": "fd0a6ccd4a2030c77df55be4405e1323ae335e62ec2aeeca1824f77b736888e4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/4a5a1380e1be242b5d785f49f7d8ad343f95323a89197b6bb24957c0dc5fd521.json",
+      "bytes": 1186,
+      "sha256": "e6ccb559f22edc4251ed039ec4b18bba0795834a30889c241b074b7568818bca"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/4b19b5f27282a8070527d5c5a9db6d5817cf09ba01e37b461dee309b6814ea96.json",
+      "bytes": 1116,
+      "sha256": "f1e3a8307c97146127a2634285e6cbe0f42628e6b73aae3bf7b68cdb918b7b58"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/4c97e9c931c1a12e07491e8e0801ebe4957d13fe4cbe3e9489a3432f0b636af4.json",
+      "bytes": 1047,
+      "sha256": "0493004386b3e167da029e1d4427b6d0d897282502d5e42d11e0e728f6659f51"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/4c9aa5b26404810fb6652b7311ff8177a37f0860a3cb8ac1e9d9b2fc075149b0.json",
+      "bytes": 1071,
+      "sha256": "d6c213d16984c77814294d8928db84de6cd2a2a770ccda03884145476b814835"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/4d518b35515099b1aab1879f3e76b0230d7c19fbb426551c91be16e42e6344ba.json",
+      "bytes": 1649,
+      "sha256": "dd32dcf57b341f081d5fdd1e070732bb6072a65fbced9b3dfb5ebebbfba712f5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/50470f78e690cda0dbaa55f9c8df05d4b15a7a753cb348d7df9f08874173105c.json",
+      "bytes": 1052214,
+      "sha256": "d134986887fa9d6a4dae989704aa1b56c4c44083fb1023fc4051076ffd8b585e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5189cbb8e9351c586a999895718521d6c1a28a1815af2846277fd82977fe8e70.json",
+      "bytes": 1277,
+      "sha256": "6b0b72860a076710e53ab77ed0b4559c39a332095b9875826974c802cc9e88a7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/53121afc6ddf8eebd4ea2176f5781ca1412a7aca099a878cc651c0539b8989a6.json",
+      "bytes": 1088,
+      "sha256": "7ca236b758e1d79a8680fea31c32d825a77da51fbf0a560e1b36327f626e9236"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/53923959176ac9cbe203601fc2e97b226fb1a86f9a51c5604c0df77c140dd502.json",
+      "bytes": 1426,
+      "sha256": "ead0a29562efe2863221a454395c6e65f8c8c482bbb1347bd1b601f79d76726a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/551bb3d6241ec9aae2283eced7689aa4c7672d5dd67486f27abccae85f874c9b.json",
+      "bytes": 1162,
+      "sha256": "f79ca27759d5713d0c34415c5091e8d63d49cd8e3c32dda49552a84876d1364d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/55832910025f0e77a7b392f8e6bbdc9affedd88fe1adf04074b8a80b1e53f695.json",
+      "bytes": 1229,
+      "sha256": "3863f1f7e8202f9f808ac255a2561414c5072dab0c564a82db95c6df13c9b409"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/572c64756c35e80aff3c72a80c9a9426a40f98a034d29299f2dcd053cf545250.json",
+      "bytes": 1229,
+      "sha256": "9646f32bd9811017340bc7c0d9d3b90da8a448a64a2813d4404c8d738d08e4c6"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5743bf0927360b10d14588f4f8a3ba4f7bf7e430834716c14bf0a54f26ecb2a4.json",
+      "bytes": 1556,
+      "sha256": "01b3a862682ec873b659190e4ee3f22758a8d0fbae24eb2ef73187bea85f609e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5780ab934d0daf7e3cae777f63cc6e3ed44f41407da5895069418be1118255f8.json",
+      "bytes": 1416,
+      "sha256": "031cab3776f5c06c36f671ee9aff289855abe117fa2aaad13447f46af687b20e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5915f61218684d382a815058925d8fe9ac262a9fc8870ae549757abee816ec3e.json",
+      "bytes": 1541,
+      "sha256": "dec75227a25c1ecdde011af104cbea2fdf7b1769657807da3b9e6620a1ce7cda"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5bf9aedb5a89b9be8f14fe4347e2927403762aa05e4718ddcc002f9e12ae897c.json",
+      "bytes": 1661,
+      "sha256": "701585bf2d42658ce3850db43e4949936581344aea160189314d3a05baf33767"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5c7791eff0b38fa697e9b5fd55d9a111285eee99f79d7c817b3f34b58971a1be.json",
+      "bytes": 1121,
+      "sha256": "0ecfad4fa0582279fe5710d80ce21909124736332072c24b69427f7a751c68c0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5d41801c5d5acce3ee67d7a5edcfc7a4143cf0a3374b2c7180775ac36e15d052.json",
+      "bytes": 1861,
+      "sha256": "3e4a3d0b93ec186a90d6118346b9ff358a5ae36c738c001c5da7f4c58840d0d0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/5e34e18ea6fef7cb5049bc0b20c27260d3d790461e789b9e5f4dd8b8ac255318.json",
+      "bytes": 1539,
+      "sha256": "157ee8505e7a4ac96f0e5e4112b48a4a4d1b1e3a269f6355dfa8da54079485f9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/603ef9da7c7be16ebda225fdc763ba9dd5084fd967e03e85ff5298ce4ceb16aa.json",
+      "bytes": 1626,
+      "sha256": "ed66daf37df9902619f8aa99400d59ba3720099c296f5a0e4a83be6a2f74f54e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/60b92a1f42dec346c4861f92d13fc55e512774697888e6c73dedc09f62b00bca.json",
+      "bytes": 1119,
+      "sha256": "92f1088543caee3e619ee06efe028c696e5ad5b67693fe3d87bc2dfcaf207f2a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/60d5e651510b2cc18b81c8ec0b4d7a712b0a79213db242dc97ba539738ef4cd4.json",
+      "bytes": 1350,
+      "sha256": "4e8c826a45bd99cb80dd165b6e6d6f9b84426b1d20ab78a38e9e340f72de049f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/61a8192aab92b93a4f5b06b5a27a0860f5b535c7e600c8f705d4cc7d5669e0e3.json",
+      "bytes": 1090,
+      "sha256": "e5881ae17ec85648309c496a2c79f415044a92df29caf5315861ed396da98bf6"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/621c6690b518c3815ef7757699822307658c1aee7a3417c9aa71a21b89cf3be1.json",
+      "bytes": 1248,
+      "sha256": "0540e5286555ddc839c43a036ca141bc27b755c680e9185f2b597db123f3f131"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/62ba79b3998b4c8951714d16afdd55af0fefab0d548e43a530b275667c3fdb0e.json",
+      "bytes": 1773,
+      "sha256": "e4981fa41915bde09797256d064a8f263304192e50901738c2baa5847f23c5f8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/64658a125c39f01f58478ae84b3925d7db7b1cdf47ce68e756688c8693baed63.json",
+      "bytes": 1185,
+      "sha256": "15682a712020a06e6f4a121deb3f8768b01c2485c08443e89e8afc085016c9cf"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/665aa25ee262f0abe9fc5534b071aa599c32612a4861b610de68f38e5023aad8.json",
+      "bytes": 802522,
+      "sha256": "be77a75f087349cbe1019882bba67d3ce983c5f848159cf868f588daac4518d2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/666214b25cbc5914d1d52e884ce49762c438695f7b491b05743a90294486e3da.json",
+      "bytes": 1097,
+      "sha256": "90cf036608d4a308542ab9b4974ff6b05d176763708d58c8842625d172551625"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/67f9686d42b7fc5ab440a888646435128cd3612d3134c81fb1b558b7f001386b.json",
+      "bytes": 1329,
+      "sha256": "7d11645b52a6865ea3c865d0c2a0b94a7b49e1a74227a5a29ffc6dc15fbae3b5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/684267f9c3f0d8e036c68ccb3238685deaf202946d232421caa7e4ccd6e9453e.json",
+      "bytes": 1233,
+      "sha256": "95602453bb3e9ced6b8777476c5c9ecfa0739d7a08b008d4d984cb7f02f1cdee"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/68d33bf76b51ad4dda4ebe7c88389ecfe801290d3b788f5ffe2150b322ad2562.json",
+      "bytes": 1103,
+      "sha256": "db064a76513b07b38a27cea43427e5b04e81575603f63876d29650e09cfbcadb"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/69aceac9a894cc035c76d17a781ce3bb7cfc808de0398ae5caad33d2f628e4a5.json",
+      "bytes": 1713,
+      "sha256": "3605bb04d21809ccba77540fcb1d9c7780c52970facd18a59a280ab404ec3aa3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6b1d4150b8656b16d34cdd10b2bb051e669b431a55904300bd6f56dd868c2f52.json",
+      "bytes": 182239,
+      "sha256": "fa4fa73cfc79094278cc1c3c3184c6289c0da6dd9408248499485d1ac5fa9cf9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6b2250880dff9cdcbfa3ec7792ef7deb0095aaae21bf9ddeeba56618148cb397.json",
+      "bytes": 1394,
+      "sha256": "66cc6fed8b791b6a0df49170aa1283fc40d8b6851ea18487ec3d467777d655e1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6befe4cf486d5ac6c0150a19a4216c190e66275ca4c92acdcefea103b0cdb2a3.json",
+      "bytes": 1131,
+      "sha256": "4d68f317a754e41156b3ff3b1a03f504f8e0cbf4937121ad744615b67c059468"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6c3bcc43703fe8e569d7c73979e7b13a7af59216f56a8115cca58a95cb834ab4.json",
+      "bytes": 1165,
+      "sha256": "19b1845a20002a72b4f17733c12192f7026d17e4d01ce8b39ab9f261395a07be"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6c55ada1a3ca2f2da41ce408a41ae239553d42dda9d9efa807103a838a25fc06.json",
+      "bytes": 1249,
+      "sha256": "6ff255c50f2109ed8cb92ae300851af19f691948cd9941bd6dc819675123f671"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6cb78d72c5af898496f1d0a2cfd4dfb39af1cfdef2f37cbb0be10ff849356c43.json",
+      "bytes": 1316,
+      "sha256": "472b925d2f462cfa408e8ec0bdf2a6c496dcef468bef07ac35773fef7d52c836"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6e52494376dc99486318d8ad43b104dbf6d0b17bd9b667d98181a0a2d716d618.json",
+      "bytes": 1106,
+      "sha256": "681fd2aa7e16b58133beda9a789d2d32a4f49e11f782aa951e8a78c35b04e65a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6ef1622252ec6a1b10c7e35ec72f5d9c6e05233924dc8b5f489db1b3985d122a.json",
+      "bytes": 1437,
+      "sha256": "5132a3c47c0e9dee67fd8bfd1d82145eadd82cf2ed9aba2126de174e7c849e8c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6f25c1bc739bd4dfbd9eb193ff0f7082fdb913f2ce5eb5f549fd2a3612fa0078.json",
+      "bytes": 1059,
+      "sha256": "0f8f3abc5c11dd9cff840e2fd89303c56a64344d648af0e5aad77e235717ab54"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/6fbacc65460a5ad2d948dbb6dbd36bd581b8e8439767f163f46c67cf34508300.json",
+      "bytes": 1056,
+      "sha256": "9e98a66c570228182da3acee252409ae03632c90c8e2a258940c199f65569879"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/70c0840301b23645b9e6999f2b11d7646e69061b3dc258f6467af94f54dc4545.json",
+      "bytes": 1269,
+      "sha256": "0dd0dcebe13cbd32c5d02b9bb7078670f0ab764fd76e1244eb912e9cbc1c0107"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/70c21dadb8f86690bdad1954d68b685d1c3051bd86e737cbd5f26995048c0c36.json",
+      "bytes": 1000187,
+      "sha256": "27e1680f2e982ab5bd63030f5865d358a30ea3119e20fed9ec9bcbcb94946421"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/729ac00c293e2a2e84e878f09a543886f5e766c7d56ddffbc49e0ca5cedf9b93.json",
+      "bytes": 1391,
+      "sha256": "a08cf22264b3644465e704875b1535afca357ad827e22001d63c970148141bfd"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/72b228ec841675665c0c4de49d4b6101ebe0846f8dbd078bd00bef1c51300280.json",
+      "bytes": 1225,
+      "sha256": "9418c33423035914da9cfbf3e72769bca59a44a9f84b748df744e5819189e7b5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/732dfab048cb0ff77cbceb0bf54ee630d9bc94eff273bf49bc3c5da511815282.json",
+      "bytes": 1237,
+      "sha256": "4a365222d7d6c0119df08ac1cf20df74ae551188d4854fd5a1aba775beee858e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/73b75b939a7037ab19fe92e129a3636324f193268cffc00d7201c490766e947c.json",
+      "bytes": 1293,
+      "sha256": "d77fe5d5630d7573bb775642e81fb175835b078a248a3ca4f36e4aa6a1c548d4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/73f479dd6880807812a09e887261b9c130dc8870141dd4aed81579469fcc02e3.json",
+      "bytes": 1579,
+      "sha256": "e43cb60f31513e9d9cc193ffe4c1f25e8d6396b520dfc9c14e94bcb3e387dcc9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7403ce5e1580d25a3d3dc5deea10460222b7760fd6b1cf3a360b2707002213e2.json",
+      "bytes": 1149,
+      "sha256": "c3b0568e39c790dae84577999477044145b6fc017ccc30d5a37c6f862d44dd0e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/75920803eee0e57588fe3b0023b8eb5843d965a90d45dfba906675b3cf072508.json",
+      "bytes": 798550,
+      "sha256": "7648ec1e964573a06d5f20c7f28894b24c45dd06569d88ed98273b7d982093cc"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/774eb4628bad54ee948719dc95486fd40adcaec6faff16d46b1e567cb7948a8f.json",
+      "bytes": 1309,
+      "sha256": "7693d6108504587e1e382e81d651339a83539bc05ffc5d8d60fc1cb241b528d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7791cee691444ce3cb8bd4308bad396a129cc51df71ebe515142b11d396ae167.json",
+      "bytes": 1333,
+      "sha256": "deb52645b73336a93509f04f8375d01acd604860786080208a7454a381b2271b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7895d4e8343cfd3b783dd2ba651926dc7bf7bc8509ac670826c4250578154f61.json",
+      "bytes": 1737,
+      "sha256": "87c8b0acad1baadf564a4c9e175f5dac3ba7eae7c37e3f77e15e6ecf1ef63a33"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7902e775fcb275b43de9b4d7e0defb0fb3c78a10630a09f4addedee4ac32570c.json",
+      "bytes": 1841,
+      "sha256": "e3583e9bc3b93192dc784382c246a0f951ebcd6dcff646730ae1a6fb896102a4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7be4ab049e8f104ddae9a09b604d144be2de122c74fad4bdd462ec03b546bb8d.json",
+      "bytes": 1179,
+      "sha256": "575d73ca050b3e3c0f879fef695fe7cfbadf12510b929a95fef84e389ccd2db1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7cc14f2704486bb2c5859bb660e39f8a9019e656cbe04637639a857b61b35ba7.json",
+      "bytes": 1218,
+      "sha256": "c6124bbe6ac2273ef3577a66999c629f3f3abd27e58b8e8fe962b36da553f231"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7dd3abb18f601701e62b195e633ec6c95c0201fd3bcdd7801aa5ef383ff4b811.json",
+      "bytes": 1453,
+      "sha256": "b05399841536eac5de0563e21a04542b770a0852c564b0c6418daee768e4bd5c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7ea8296aad4a403befad02a755cd02f4a69b49fcf4db16711e98e374549bfa96.json",
+      "bytes": 1277,
+      "sha256": "8a31018d81e95babb1f6409610d5884453efad24d9d922aae34fb52602973b1f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7eac716803332a892d645797013a1fc26beb84a3dca7f7759b532f1c4911976e.json",
+      "bytes": 1201,
+      "sha256": "979f21df9b941057917ed3243ff05ca1ef26ec3b19804ea23f1e59fbdca73571"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7f30dbea1b5fee1c480d3146f51030b4d06ed051a7790149daa4992bd4f44568.json",
+      "bytes": 1161,
+      "sha256": "e0175067288ddc7d104755baa350fe2564a52e36a25e4c2e990ae6d8fb769d5b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7f4738c5c8e1e30bd2752e773ab3fdfe9b1326af6a0856074132f445b0940cdd.json",
+      "bytes": 1785,
+      "sha256": "9925ff2f257ff5bdaab392bae4e883ae13a22d51930da84b968e60e4d13041df"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/7f4e153309133f958da550f84975cd2d7d1a2096ed4174d01f8d2ca440d1851c.json",
+      "bytes": 1547,
+      "sha256": "b2df12796db7d51413bca76d3c8da5597d63cf2e3f25ae86174f46b9c3130af9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8105271ae9517a1821a2d46bd36bde226e973b3b65be4fda0c42e10397aa7fbe.json",
+      "bytes": 3192637,
+      "sha256": "37a1d662b4b1517242dcfb0f13b22276a13039d8dda8b926a70ba828cee99dd5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/815c5aea156f9b036bfab445e2ba749b46bc457ee536802560361b9aceca12a1.json",
+      "bytes": 1400,
+      "sha256": "e8614b17c2ea2a41fe6b93125ee19a2b8c8aca14f7e38703c5c977c6fe30ab2a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8253146ec9c0600a2740a5bf55018a074ae84d2f71985b0c69fc9d069279729e.json",
+      "bytes": 1149,
+      "sha256": "97bbd24ad75f26b0d35471dec4535c639b80d3e2ad5389bec170fa81cfa7c892"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8514a04c9c4f62caaa1662b2c44e7bffe3b7cfde2584fa6d2edd57ad3b13e08c.json",
+      "bytes": 1123,
+      "sha256": "3798cd798c9df8942dac084f089d3b9071a1530824cc7acbcf5207353d0f260a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8599a4372c955d689c62c145431e6bc3fd73b11497fbe5a21bbf1779ce95bef7.json",
+      "bytes": 1511,
+      "sha256": "bd5ae3507923470113f83394bf4047e05d4dd15eec7867e87551954553549af0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/86495694ef5981a4c4a7ad9ff64ca200999e638343b477840823d9e0963c7875.json",
+      "bytes": 1705,
+      "sha256": "bb303cd38cba1d67385462eb876818c14450c24ab977d108ce672a8425bfd6ca"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/86ccb7719460bb87edae73beffd16f7abaec4a44800945ed5f50f57327d2b8e4.json",
+      "bytes": 1229,
+      "sha256": "5011c26a04dccea87f4902c42a1b94ac876b050ada0c9c33f6b4505310c5679b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8722792a21bae7503adf932e9e5e4c8bcd0b29ac14fe650114865c6c9ada21ff.json",
+      "bytes": 1785,
+      "sha256": "1ccb9a045b199749e258735e73872a0bed5934cb1213b08a36a8882192f5f2ae"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/875dec92cf9be83f38b6cea321923aa43db9836e6d1f7a0f6af48276a5018f28.json",
+      "bytes": 2976,
+      "sha256": "10119354eff412f59ff371086a16d85f44b221f7c3629a628c00b5651bb538bd"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/87746ee972f33f041d9b8883b62a11374a20df948745a63c552affcd8cc97a60.json",
+      "bytes": 1933,
+      "sha256": "cac840dd145de37bebe85717f63a77d97e67504c5af483cdb6cb899c80357c38"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8830f2b1faf460e1e8bcb7585fbec952c9fdb2af28434786891eee5e5a463018.json",
+      "bytes": 1157,
+      "sha256": "929801a79eb4368affb6b6069c934d7c9151e45b612179d49bfa22363890f3cb"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/88d795bfe6abd836dd1943fcc247a4ff49c42239f5c304f773ea50edb4a05c38.json",
+      "bytes": 1273,
+      "sha256": "aa0954eff2df8bba377e09c5c9a222215d2d6ca5355f37005837adab30473954"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/89cd22a1c0b4f595ca56fa835274b1fd693bae86e503978f49742eaf341c4ecd.json",
+      "bytes": 1205,
+      "sha256": "1870570a9f180305db34c8abd4b6013ddf7b167743f45b0fd3759a64e6595a06"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8a6dc1ac749db102d7379f034a8b71d03d617f71185aa43ff5402c956350ac5e.json",
+      "bytes": 1295,
+      "sha256": "dafb870dd6ec48972a178b8f4d152e675bcb379be19df29d8285b9ca14e93283"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8a9c89accf32facfd4a5d95d4e2066481f581b59aa42271ca180fd5814564f0b.json",
+      "bytes": 1765,
+      "sha256": "f2266c150db3b557bc714c8a68fb79132adf416e4e3c0184979fe71344fa0f48"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8ab04b7c9efd9fdc058e8d9cacd14a516c05341e5a96bd725447b9937b0a5217.json",
+      "bytes": 1086,
+      "sha256": "8d2f689f44311cb02d89d1a8962d9c49fec8af3312aba5a8ba9048697c9feb7a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8caa6c6df99aefbf6721ae1cc121d229d31a01ec830ddc8d4500f9be4833b376.json",
+      "bytes": 1088,
+      "sha256": "45dcb1cf53a9aa569bf48b863752883988ac6d68d00f84b59023623be9c2bf79"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8d0c9e1bed8b9f0cabd731787eceddb0fbee4dd6a9dd6db890e163ef47e57833.json",
+      "bytes": 3180,
+      "sha256": "db896d8b584a76a3ffbfd369055c2b30ab02e7071f2db65088d65eed0f951025"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8d15ae9ea09c731f750a6b147c37ea3c12b7bc62b6aa722afaaa56797aff7289.json",
+      "bytes": 1153,
+      "sha256": "2c16110200935ba7fd852869dd128c403c74edb3f7ed0cefab7643df06590064"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8d43e6c11e14598e2be5fd165cb5d75d45aeccef5d1534217c1bb76a5886a687.json",
+      "bytes": 1331,
+      "sha256": "7adc470a10d83058f3f28b6afda047e19369112f2b5e7e04190765fef44fe69e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8dfeb2de20e2dadacc831f392e8058a7baf576098bab0dc0072fec91f2a282b4.json",
+      "bytes": 2838,
+      "sha256": "96cf786f15916ef31c538ba2f8a90bd54101679b6a2f0d395dfc614d9cb714c2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/8fbd328c795bcab6534cc3f34e28cdd092c3cf5c4253495cc6b2bade91071f62.json",
+      "bytes": 7998,
+      "sha256": "80711833bb6a18cd05c1ad2fb50bc8d5ce3278a0140d26f486009f3432bf2ab4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/91054b9e87a28fbd3ad1de61b2df5c1b58352ab3e4b047d8cd96f4c5793c526a.json",
+      "bytes": 1654,
+      "sha256": "403e5666383db1a5a8021240a9b4d6bf0337b9da782c3d840608ad319f81298f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/91791231040e8c74a146776216dd653e93f527be2cc3b4eec7ee3e6aa5a1af8a.json",
+      "bytes": 1334,
+      "sha256": "cdac7d52898ffd4b048926d1e56f95c2c91fb1f35a86295473e345ddbce1cc40"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/920f42910a38a6b273b74148c4b4f7f88fa24215bb7dd49a95b955187b5691cf.json",
+      "bytes": 1059,
+      "sha256": "4d00c95f6db65825dbe35be26b02d0b73f8f216b8102e27336993ea5eac87a8e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/92c3b4df11e001dd760bec221cdce6692e61b1f4a570e3bc178c23e5dd812411.json",
+      "bytes": 1573,
+      "sha256": "2e80e521594cf91f979a10eaca932626b9a0a26f7b08794e48acca7d5e918ff5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/93def9a1a249add2cd5f1bf15d2f87aaf5dabf0d28188d10608956b8903c0cfc.json",
+      "bytes": 1134,
+      "sha256": "e85bc8361d5311efc74fc0d009f9353227d520d3ae593150ea17ceebdefaf129"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/958ec26fa10112ebd062a7b8f19af2344d1fa9e4f90e7bb4809996b5e88dbd8e.json",
+      "bytes": 1057,
+      "sha256": "bae1f85b5b4f504706261a6cb528ebdc549923d127c6660b6783de94b4f030a7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/95d92ecaec99550a4ce316182100499dc24a048f70b9821da5f122cc169bce25.json",
+      "bytes": 1777,
+      "sha256": "54fb7cc770f5e07284d989c84c8b728ffb50e476eecc5769c8f4705b4c31f2da"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/969b28488bae3e50beb4414b27aa2591ca4b527052721bcfc0ee9724ba50edf0.json",
+      "bytes": 1413,
+      "sha256": "2ce1eb29370727bde1bdf8895576851c0bc6acba0858a1711677c5f42f689bf1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/96cefa77567677d270dd4739d1f2f28fd19fe4e0c56650979248f4ed4eeb88ca.json",
+      "bytes": 1601,
+      "sha256": "6d7f4aad30b2df1c4aa3217377f6fb0ef287506b5de8dee1d2b1df908a129cbb"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9772ede1564d962641b0abdabb00b6332fd6710b71882377bc2ae608fcd43683.json",
+      "bytes": 1135,
+      "sha256": "06bbafa447d49d767a93a28444a511ad71a856b922a673fcb64cc42a338a2ae9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9813f2d71d36a34d206c900fcaf65a21959a00215b7af7773ee8e10979f31812.json",
+      "bytes": 6676,
+      "sha256": "5a7bb5919fc8bcce39a0d2bcb3f911058d0777b94bbea361036c5df12dac8137"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9880ff0aaad684a25b536cc5ef9e59aaa32a60eb8d841938cace05dd93a92aa0.json",
+      "bytes": 1911,
+      "sha256": "3cefd9597dded9af9b5624fb8e935deac33f4ea257f4f8cc322b6bd687d12956"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/994be9aee73a361c05b9e79f429a5518985149786f6846761741aa4a78780c33.json",
+      "bytes": 1572529,
+      "sha256": "7eb797e2e67a4a5c322cfbfde71aa84a318b8c1592805c1b9843fe8662f3b7cc"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9a3aa1ab73436c600e424ac4ddd825da5bea31bff94fc3ef4eb6c0dd35793ff8.json",
+      "bytes": 1460,
+      "sha256": "678b0ab528ef6de69e74ff333aa5769cca25d1fd8c990edf09f96e0ca376da69"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9b0cc9930552db2ab4288ff4c2292387384010583d48995a1f2725f656982fa2.json",
+      "bytes": 409566,
+      "sha256": "b81f2adf7dc0ff49fd00979ac6cf0d72970214c3238b2c71ff4c0e54690b5de0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9bc88bc3ff04e4fa004428650319c5adcf8c521be6e80515c2aef153dd48e453.json",
+      "bytes": 1265,
+      "sha256": "5a8780655f3e85496bc880dc1ad024b6b933c7e11bdc9a5ee036dc5b1ad84d05"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9c252a1475bc9b75730f23ab3e48f72db17039a343a0ca34300256227df84870.json",
+      "bytes": 1342,
+      "sha256": "d4bf9d49982d8019d679508e073599be5c6412162e557a99b07fdc99e0d4cd3e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9c9ddff8cefa2d6048aa544de16b5f6ae786a06b192a906f0ae7c8058fdfd0fd.json",
+      "bytes": 1205,
+      "sha256": "331447e9313004d529ec5cfe67a9912c5c83db327bff8f922fa3416edc9a19fe"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9cabdf8dc7fdeadb2eebb608b07c4f401f04dc4d002f1552b6077aa46e62fcb8.json",
+      "bytes": 1245,
+      "sha256": "d664191aeba03c58a8211cea756cb25d7b6fb85c685fd73830d648e2e92d16a4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9d54c690875d3ba5ae2d8b0ef1c31fb0480afa5dcb3a5d923ed84a0557779f33.json",
+      "bytes": 1443,
+      "sha256": "f49a240e0638c9263f5c60174c3af2c528bc23fa86e726b809fd4cecb1b3ba14"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/9e21e26a23efe523d4c3f4d18531ceff112989399b618ac432f9668fb4d357b2.json",
+      "bytes": 1389,
+      "sha256": "f5b1744c758725c6fc70036fc3c10904e5870846a3f1023e465761c107c3ed61"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a16286f60be229a97eafa5a32ff7d383f9ffbc5f50adefd02a664c1f80f407c0.json",
+      "bytes": 1277,
+      "sha256": "e308861b258b35155447f9df05126257af7a56b46b1af826d8dd1e8374bd91c3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a1d491251007b4f3fbe1dc632c7dfb18a4df59541915a163ee9b9705051395dd.json",
+      "bytes": 1629,
+      "sha256": "b99dfcfe0776be8f431ee9d49adcf0c1336157bbedbe911735cf36b1bf4a2983"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a2149a39bff5010a13752185b03b5af2bb48f7db9b4d96d88bbcd8be909461a0.json",
+      "bytes": 1709,
+      "sha256": "ff181f49a3d8de346b0671513da20a04aadabaa2199d2f7803d1b886a1a19d63"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a2e461229e3b5d34ec956efd2ccfb7bc902fb0663e1d319af29acdc280cfed3c.json",
+      "bytes": 1725,
+      "sha256": "2ea662c363221e78e8552ae8cb22a539cf7fcd88600853baa4cfa26be4ba0959"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a38a0ead5e6bac1f54ec64faa66b3235b11b89389e3a5c8cd5478d769850d1c5.json",
+      "bytes": 1051,
+      "sha256": "72b3316e198ccc4567827770f622a4c1b5c7172971228cf9732aad78ac1df158"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a504441b8f65e1db176850c9631ff60b73bc331fe28b335480c5cd630515c3c4.json",
+      "bytes": 1277,
+      "sha256": "21f59d2011109a7e956f5605ca17d3fcef73b48e22bfe8119be224e7c6c74380"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a5d1c7d2dd9044c772216b80ce185bec429e5e519d70d5e7043bfd4d3659c60b.json",
+      "bytes": 1140,
+      "sha256": "70c80fec8dc57c7dc4c6d1d9d36856e6d9eb7ff5a20b78170e0a33c61e6c12a1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a63a8183e173b189db7c4c6b438e4d91457e692e9377b40502fdf8fcb5afa79c.json",
+      "bytes": 1279,
+      "sha256": "a035fce14ebca53582229924788cd852dbcc0de69803bb16422e403b823aed79"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a70c315b86a7fa619b57d46a3f4247f76afc1925503cb2034ac464002af06d10.json",
+      "bytes": 1773,
+      "sha256": "e7f0d30f586e184f8d93c0ea9af4e490904614f70e5e8aa7bf4d9dcbbd0e40f3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a84f5fef2c71117577d363752c0044c331836229d3748e78311c5fad75565330.json",
+      "bytes": 1448,
+      "sha256": "cb0b127715fe624bb733fc373bd562d86a8d815f8993583e9f5dd87195be91d7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/a85846b3401f3ea12a0d788b678ceb0b2fdf0cef646af794d1558dfabaa9a10b.json",
+      "bytes": 1184,
+      "sha256": "bf1c6ed23cf4f9768ced3e774cd11db3b71088fe0c8aca416062905690a59089"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/aa421704fc949bce9463dd850111ebdb9dc8389050efad3c43d4b915b41273f5.json",
+      "bytes": 1389,
+      "sha256": "c7a9c1591cb8dac550ddd6a8f9f9604aec1e3ea4647e89a6a3e96ac5246697b0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/aa9c8fc1dbca7c5014e119c8b161533da56fa89777343685b32576e4693dc630.json",
+      "bytes": 1090,
+      "sha256": "d646d9b87142c33f16452e35128c44fa4382ae0ee9a7c1a6d38bd11734ab0f46"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/aab6654333d4b2b84f22176fd271e59438f95608f8aeb66a7a9456b114ed4c83.json",
+      "bytes": 1261,
+      "sha256": "067056ae2404e610b0fe5f0ed68bcac7e98177339706b4ae18cce5391061bd65"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ac222498d7e76ddbcdf82bb1ce0200e56cbe57f0191f735178a87fa4ef14167c.json",
+      "bytes": 1229,
+      "sha256": "0a08a7dbddef58136b95e21209cd04f2074dddf9fbb2168edcc197075001f5b6"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/acc304a71c19f7e058d4d06584ca6a7b11d9dd3046a702448c7bf1bd5d3fca28.json",
+      "bytes": 2956,
+      "sha256": "a73108c331906e33abf06e197336279c8563e017702dc1cb69c645b6a1e14dbb"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ace955da633030ee555ab03a869787bccd56e1ea5a71180d2197ac0d6a60da30.json",
+      "bytes": 1181,
+      "sha256": "d60e0c17f1f2ae6710c1225a4cde253de17821cc4ea2a176575d848b5e7ac6c7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ad3f1348f9b2148c9ec7c6c98b3c70d196392ee42b4a6f6280a094fded48b4c5.json",
+      "bytes": 1265,
+      "sha256": "dfac6404201b8fdb24f6fcbcc5e09c7552e8513de6c1f2c76c2caabcf32ec2f7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/af9ed3953d746eaed82ece6b317aa4870de84f8ea538e804969ba381df192276.json",
+      "bytes": 1305,
+      "sha256": "ebf554053417b4a4ff00fcefbdee0d6bfa749a03c0e81eeb6996831943d14027"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/affdade2434b79166ef9b8d81cbac5331f322ff7f0e30d00c7a80bc1a8ba4ef7.json",
+      "bytes": 3974,
+      "sha256": "c3d3b6b0e1dfdf1f9c9ce7be2e5b4f4469429d184d12230c2cdaf1c7ae37da9e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b04b0b0af90704704baf36f672cd58c6a81ae3e6d5923c730b6a80d7a8b19385.json",
+      "bytes": 4678961,
+      "sha256": "a23655996753db0ddbbe9e2f6a42c04653dbdd7d977063413bebe1f1cd2456b1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b2c24a40928b7dcc88ab8aa4cc32280fcf580755d2e0b6500546d4c2528d67f9.json",
+      "bytes": 1300,
+      "sha256": "98e26a5e53a421aa3d2f3803b5b37bde6d17a4de4be05c1720574f45c725ea01"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b3ae39edc226cc60b3c9d78dca7aab66a9080f8d5eacf03d819b60d62a1aec5b.json",
+      "bytes": 1150,
+      "sha256": "e7f8b7906f84a403085ae552c152be6af4482dce0dba700b0de7a9f25f3fa2ca"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b4eb59596d9ac1c8f8b0a7755808293d997e0e44873f6138e8ea0cf460ba9e35.json",
+      "bytes": 1103,
+      "sha256": "6e2502b17c9496afe3adc204eb17247b7da266622a3cd8c2c028dfcce1372cc8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b534388e7fcf3f97fdef4818491ca89907c8cfb0f4765ca4c372d04fa957f0e6.json",
+      "bytes": 1185,
+      "sha256": "fd902af9e29ddd6d07737f6baa8408ac9f75ba19b750e48eeb7bbfe1e6c9fa18"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b6486436a16b406865ba31fbf54accf2dfa6527b1adab309771603a5e7c13d3e.json",
+      "bytes": 9474009,
+      "sha256": "4f337eb150fc75a69be217a69d09d428fb0025ba31bb8d843b6a69fc5cf19ef3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b660304f4ec378a38e9723fe9f955b3fd4e939c81085efd8f3b4e7d966cf913b.json",
+      "bytes": 1697,
+      "sha256": "fab36f35579c762be0616339407f2107a60906b1945a2b99860566a3d5179076"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b67375bc194d8278914cc06e240fa82f66115589aba44e95cca416a3195c93a3.json",
+      "bytes": 1059,
+      "sha256": "292a6dc226562f701751a5cfa40b834d5429ea234d78fe18fb7be7b2a32ec824"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b6b49b7d0d9cba0780d8d71c2d01e6cd6fe7143d9cd811e30df7dc4f84161ffb.json",
+      "bytes": 1205,
+      "sha256": "778b477bbf0c69ddf3079c936ff7de2e566377217acd3ce81587f5c94f1e46b6"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b6f0482020e04207fa7393cb9d6f2508422cd849879c673c65c388566cf4add9.json",
+      "bytes": 1299,
+      "sha256": "f5b9b9f3a990a9fdd6d26e2f09e447c7ff547b819547afcb4b161b0b00eec8a7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b727280db6e6f520ec8c54960999e30722fc62f7cb32347c12f2dd4d440aeaf4.json",
+      "bytes": 1085,
+      "sha256": "776b7923ea1625ee2b0611be25f5248b97d2340680f3b9c3b261ef505f67f01a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b7f1809cb27d837c6d6158460903661e876fc8ea10e532526f0a07b14a63aad8.json",
+      "bytes": 1257,
+      "sha256": "2cefbd3d7d7b3e5bc26d214531052f845138713893470a95fce92e8de52ccf07"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b7fac83440c072740bd2a0b3223dbba31d45c667c28ca719e28d13b870e5c11b.json",
+      "bytes": 1137,
+      "sha256": "dfc6f3a9de53e7aa31fecf70a91509e342da54b0387aa2cdbab587ba119e399e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b872c373ca3fdff735f172bfdd4e4e23a3b14a2932781f64252e4885fcab7c3f.json",
+      "bytes": 1281,
+      "sha256": "1aa20e3d54b79ded514cd93158a3ca66358f43b5cfc8e52b3f50d423165d9583"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b8beb577cc72c18b4164bd6bcee691bbb814edb41af5bb35d207152540548f79.json",
+      "bytes": 1441,
+      "sha256": "bd90dbabdf4f3777b94452d7e054cd40728fdc0301300ac1f81e776aa2ab742c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b932ca5271eef8b963c49603b946781d67a6b6575e8482132c84cc3e2696f032.json",
+      "bytes": 2185,
+      "sha256": "a5098a6fec630ac84682038da5e63cce3b451150457a7f82ee8f73b44f007032"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/b95270602c9220e78fe16c67e6523667e7efa5367fc396acae452df51d9ce4cc.json",
+      "bytes": 1309,
+      "sha256": "372feb0e3cfce00d1ce5e012c347328e3b45663822bcdbd6d63fd547b94cc0c8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/bb4165814b55021980a722a23a28b723a44b3bd4b93a11773a6ccbfe685698e8.json",
+      "bytes": 1264,
+      "sha256": "bc6b0440649e5fd4b920bbffdf6d431228b31c1cb05bda42a4c7c2684608735c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/bb6f9132edb8b727eec835de41e1fb68fd32bf8500d4e2643be4d079e776dadc.json",
+      "bytes": 1217,
+      "sha256": "43819fe31985de00b0a7f51a9aeb049ca3977285ad77ebd26c8f55a17efd4064"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/bd7adf97929e3b9aae10d13a65018331b0530508903fcc452dbc2e5f9f806c9b.json",
+      "bytes": 1249,
+      "sha256": "e2da8f869e1ef25d720fa64a2a8c86ded9d955f9160ed5541e3aca236dc12e35"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/befd238f2d6b841fb86c70fb7f7b91cf75b5fedef5f5b1c06eda82bc3fabf7cc.json",
+      "bytes": 1881,
+      "sha256": "181a9d72f016fa69b6cf554c7711470cfceca710eecc817bf30d6c3160c52ca2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/bf44cfcf2cf2acdfed1af082a3b646518b8a7dfc3a5c19fb33f5bd695dc54712.json",
+      "bytes": 1135,
+      "sha256": "7c3fdb118f536ce2caf8543dfc668deb1839ef9f9f3f0b433c3661554abbca90"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c0e0a04f9b0a638d4ec76a97bb86877649e12f11a72e635fc22737b894da5cd0.json",
+      "bytes": 1225,
+      "sha256": "701b90818b65724c2a42c67c0eb1d792c6a0a1f63e6e918c1d928dc9b1f6b776"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c12e3ece27dd3391288cd6398029c5d6685a90b2e7bf497b5ed21728b6eff5ef.json",
+      "bytes": 1269,
+      "sha256": "7f4c08d7f36937d9db13eecc5b479718d0458bcc1d1da2bf7497ededb7f4cd4b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c22ee97cbaff2fbbb47717ee722f306d13d1cd627dc109f43890f89191585d42.json",
+      "bytes": 1181,
+      "sha256": "752f7bd2a13f202ad60a58a48d300c4b7ea8a3107b6755c17d256f7adee21b01"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c39b6ff293f3da5146c1fe3af541aad0eff7d0a4b3a71fa8b7cdcfe77691ea4f.json",
+      "bytes": 1185,
+      "sha256": "d27fd6f09138b62cf8c6fc8932eb06378d64913844fa4aca4b29528845e02121"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c4bf72570704aa4b99f2b56bd1baadc736721d45a22b1ef83a17eec693526f56.json",
+      "bytes": 1185,
+      "sha256": "d4a7a4786795916c37edc234e9f5b6c2dca117100dac5e17d4f97da7e842716a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c51e0e5f735bbf764801fb2290a6fd65aba810a29952a69490bdfeb08c1b450b.json",
+      "bytes": 1355,
+      "sha256": "4ce6687ed048cfb1852b79459dc3d7a4629432089cf9716c10055162204967d5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c5ce24418234d46bc76a29680cb00f176c9b8e9d3d9e40c3daba02c179fb3aff.json",
+      "bytes": 1961,
+      "sha256": "8b4b61a66621257dfa08973f69d69e218af982a122f2cd917be0ad05f648897d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c5fdbdaeee9993b905062356d09db19a1fadb8f7aa65a6c9bad00487d9e47234.json",
+      "bytes": 1297,
+      "sha256": "cbf13e69f93e7fe5c41fe399824805a5c3a023af17e3e287a08d07d32bb281b1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c8e257a1b293aae4730accc200153c5110b4a0e77fcd1fab5ab8bb32fb03bd90.json",
+      "bytes": 1536,
+      "sha256": "069a01607ecfd3dc69f3cf4d0f95d4f6945501de71909ef73de117edec11027d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c937bc5fdacae6b11b5674c1bba8bd3ac52349ea2522a16ff5acab0dba3dc897.json",
+      "bytes": 907010,
+      "sha256": "2f571f5b0163454f1c53f698e42b5aabb8da25c49ff12b5c3ff8e94fff31e2bd"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c9d626df401b2db3bbdf926b551fc18e42157a1a395f0209587fe804635a3e8c.json",
+      "bytes": 1553,
+      "sha256": "ac9c96bd744bd572c782a47c268d3ce6beda10edc7588665034c5050ba857e5d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/c9eff1c7a40dbb412fc3c7e8fdefcc4531a088236dd2f2a3c40ab5dcc7570cc1.json",
+      "bytes": 1472,
+      "sha256": "c4ec73651b22985880faa69b2cd9fe98290657e6a649cb91de2df21addb1de51"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ca1b250ec0f3b7d399710d0f4b8cfb10b471ed35c92fd2966d9421b362c6701b.json",
+      "bytes": 1577,
+      "sha256": "2a07b3712422792ec674caa6af7f421eddffe8a46ffe86613ec954cb49f17b7c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/caa69c613ce9e5cfe1f29ba76f817ce5af99469f7417747998ae2ea0be9bc4eb.json",
+      "bytes": 1897,
+      "sha256": "5a8c8ed14c84eefd97b3efde94614b980f8fda6df261b70cd442bef3678a168e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/cb5e54e3b248af79c536d39d6e9bcf700c73871a4beda74dfd6dc9b5640021e9.json",
+      "bytes": 1161,
+      "sha256": "7076402c8a8187a3d5caf34e7d2b55fb8bbbbefa00eadca575bb0d5875f32c14"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ccd728cd4476bf2dc8ac57ab6bb8ad07a4f5e02b42ea7255437198112d932ce7.json",
+      "bytes": 1093,
+      "sha256": "e26b0a2a8348ca390d56577d3b93578ccbe6765a7637b6548f4785662c4bb5e5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ce6ce0bdd80868e77e4d0a2f0fcee19b7101e7d052a0f7b68937a1be2be150e1.json",
+      "bytes": 1044,
+      "sha256": "7a699bb2f1c15fe139cbd5f3161329c0a1e2fb2cc5876ab1e23cc7b0efcbc7d5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ce788f2fd63ca7669c56b3a897a47dec87eeefd357ab4f8818a875ec3ea939cd.json",
+      "bytes": 1129,
+      "sha256": "50075137cb303ab72d928a22af5a02610aaee2181eca98cec70ece77e184263a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/cedfb7a10fbe60518678a2af1d89fd103e67e6d1dc38a755f939c5b5b8555a85.json",
+      "bytes": 1829,
+      "sha256": "705fe8d0f6dbe699816faeeffd2096eb4d728cabf2168e054a423c368370be96"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d207bef07c06e562150b11a88207e32deb845962a78ef4dc740d815304d6d49a.json",
+      "bytes": 2502074,
+      "sha256": "c39c75c0cf6de021cde4c5db260f3e15ef8e63b4ebe6bfb8df3a9f2404350acc"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d33e3340776ca9e4207f98d9ae60abc78bd448a49a357c31c95985df2ba0ad16.json",
+      "bytes": 1151,
+      "sha256": "57ad6d6fbefbaf9a12bb6a37112a6422258b4d5a5a1239de32cff1e08beab422"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d37a2bc470fe66a2bac2e5c3a93536679ee931be72e98ba4a63277bd6368f934.json",
+      "bytes": 1277,
+      "sha256": "10fbc2a6f185af62cd020987a2de55a5a5a89bb594fd7d00bc4c2a6460282e08"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d3ad6b2cfcec36417a2a1cdc86bea8c46f0b81eace21a4df6b44911a2edc9aff.json",
+      "bytes": 1568,
+      "sha256": "a7f424384942eb67eec52e1274ab10bc14b950e945efa500ec6501ffe80e4352"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d6aa9dba149d7591034a49e02c56faead46c1d20510f2cf340027f016fb5efd3.json",
+      "bytes": 1367,
+      "sha256": "28465e709e268c1de80ac5503b4ffb3f7f2c3c0324203d3a54d826de5e668a6a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d6f3bc21c117d3b0c10af9e24ffe4154fd5725ae79a22a109f6ff6aae5ef693b.json",
+      "bytes": 1109,
+      "sha256": "516e377a8909b6e98ff76a0f3b5ff953bad046beb6ae266f945ad6d6c48d459b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d72af90046b617d54688ec6e869e60c643ae73f71c6018b1824f408150b03df6.json",
+      "bytes": 1146,
+      "sha256": "72a0d62fab0287d2609a1032da7d2b5a25e6799d1fcfa7cedda5e7766e73c52d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d7973bc02f42764ae592b671f68afdc9e85a01d50b57444266b94293bf00051d.json",
+      "bytes": 2874,
+      "sha256": "c383b6665ef373cc047cb93d79560c9abdd9d1a54ac8bc0a5c0471a2f4e23044"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d8293930b9330be6bd8484d298d86c20e59b99b37c6337c33bef3b3bf090010d.json",
+      "bytes": 1160,
+      "sha256": "9a605e14e83a4d8d12fee32d077d54e45e62f477f1d2f23be63901ae732413c1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/d90238684ffd5caa6adbf75ca0abffb39d61f8001ce1802d40a706455ec05dc9.json",
+      "bytes": 1221,
+      "sha256": "fd7280a20c5b9a8f41733b634256139ebd95a73b5b2258b8a63cfc70fa0e752d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/da70e91bc16a482683f456a648e72af66a94853ffbad52676930b2b3bc37e05e.json",
+      "bytes": 1809,
+      "sha256": "c8bcfddaefa85707cd62b5ded1cc7dae374d6834633b1ae3592901af512bd9b8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/da9f6c089e18e319fcfad55fcf924017e73575be98b07e8a43b1424c30503ec5.json",
+      "bytes": 1077,
+      "sha256": "3de1e45a1c1378f72227fd29d0fa3571393a63f095eba6a28ffd0a0a5f0b3e26"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/daf3b607ae4e9fc42b601a2970f85e7b739dd4892ebc77076d779f4a1c259b0b.json",
+      "bytes": 1245,
+      "sha256": "8cd0282a30cb88e2d82f35d40f3842695ead3b2beda74a921fc1426dd40a8336"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/db008876faf56ae958162cf12a09c082c81c0fd5e1cbc898286842f42c2f3c19.json",
+      "bytes": 1367,
+      "sha256": "cf5ba8122448ab169600a42323654cef27e861cdf5f750309086913c307b524d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/dc8d7bef5635a1a2ea599f42198c0cf5e0b9f4fb2d60d991a970b3475df7dd94.json",
+      "bytes": 1534,
+      "sha256": "70a61ef0965414f90ddc09d53bab006dec3c85d22d94591e96e209d0c0e71ea7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ddfc4258dbd92221c166c384202b655c2b1a5c67f27f5a140986015f41da4571.json",
+      "bytes": 1355,
+      "sha256": "264111d79dbb97e2f516e64ee0c7fc3308b12aaac26514a91c94bcc9b007dbdc"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e0e23d083c62ed06cb05b844f184182fdbdf3af763f8c5f9ad24e49cdf50d8ad.json",
+      "bytes": 1597,
+      "sha256": "249e09c0b808115572408f335e53dc7fa583662d75c054badad53adb1e672864"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e1eea377dd222a19a388d04af495e18671f7e0b499a68927020960c290c460ce.json",
+      "bytes": 1993,
+      "sha256": "0fe4c676aec2cef9b174506a82fa5580261dcc7a47a08c3a7bb9e3ef1f7464e7"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e223d095ada5ed3e4193a71ac710079d5daca059548c2133e79995ac19dc08c7.json",
+      "bytes": 1585,
+      "sha256": "733300f4a2d137cf2b473dcc40810d7b4304f18e4694b86e138919e5fde7cb64"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e40e30570d175be5f4161b6c5e89d541877a838c9902b4ca3c77a6cdfa6fbca7.json",
+      "bytes": 1040,
+      "sha256": "68ac7970524ab6bec2a7666bf5f440b7c0d08d052802ea412d366c7e636072b9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e4b3fe595cf64aa7451c296e1d550a5d2674b718d37af3ff983857a12d8e5100.json",
+      "bytes": 1877,
+      "sha256": "10f6ddd98bae63753cc7bf635f455d643da8ac8f32855b051b461611498d9230"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e4d856a11547464dbc3acb1e8d2835bfab60e342004c0d9cc275fa300b5ed660.json",
+      "bytes": 1543,
+      "sha256": "a519339eec16e75a39d4e3c8d89a96bb57039702d7ac5bf2362373e571a1a18b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e536b39d8f8b9a6e9677b8b8386778730ae946ea0251103eae5ba257ea93a249.json",
+      "bytes": 1377,
+      "sha256": "171344cbe9efab548f4315aaff52bdd7ae3c2f35a2106b01981c07070f72dd81"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e6059ccbbb2145b376f0a0d0cffce97e8edf3725fc1f44cd8196e55533862a06.json",
+      "bytes": 1389,
+      "sha256": "d7b3241054d5efeefba849d5fe86d6f797a89ab1f42700fc4ee0fb329c6f0790"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e615f0f98324666649c8e80a94c71b63a9874dcd80906ad4a4fd1ca97c32c71b.json",
+      "bytes": 1399,
+      "sha256": "b563e8cc9f3aaa96fada697be74731ecce83270a9a43134ebe5c945631969bc0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e6e29aed1a508d48ae04ccfa009e4fce24aa010e641c10d95ede66be1157833e.json",
+      "bytes": 2069,
+      "sha256": "271220ef16c70c3a48ceb962179d3618ecf1c96e230b18756c9b06c720a82eff"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e75908ed7fda18f2ea1de36efa1ccde9f132463d65a395e0ba41fc14bdbda7bc.json",
+      "bytes": 1440,
+      "sha256": "d31a735be18613392b765b0ec15099338880054e8ff21d9db673ab31fd624922"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e791f8c288f44712220721843af9c57ca241d761fbbc8850e7cb882b51f3b290.json",
+      "bytes": 1161,
+      "sha256": "2e961729dadb98e9667e574f54ca80bb4ac306ac2287226d558750bf325f3499"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e7a1713d323e2429de03ec17b032ea8241924e04187ef80384bbaa10aae128f2.json",
+      "bytes": 1088,
+      "sha256": "5476fa636dada125506e86e20e1743eb62b14805681de891f14ea1202938533a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/e85153009f731d9728cca77c74170d3b83e92e04f50bf858ac929237754b0ca8.json",
+      "bytes": 1539,
+      "sha256": "33fdada78d0c64cf52b254135e167776f6bde94a923da7d1c9909ee1bffeadef"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ea1b5f272fea405d01442be77c3184eee7f1278f7d4e6e2865bb3b0fb2084cd8.json",
+      "bytes": 1501,
+      "sha256": "340e6bd6c5d3f9f21a40dfad6a7c1c52d2c8a2f081873d67c36317944ee43f21"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ea644bb1f4f8cd04814f62520d5a50a6ebc659dbc0c32d37e1e2a822c30f137c.json",
+      "bytes": 1681,
+      "sha256": "b1d818b71d36bd9bebc877c80620fd3ad36c4704ca8db5d7c195a9a674922666"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ea68f4274cc1f2f52007b4f2942885d70435d9970d1cd8b8679f57d01961d168.json",
+      "bytes": 1561,
+      "sha256": "22e9fdc8e97d01340e2b6126e925740b51819d1919a7f9a910e09bc5f2599c25"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/eb2ed912872168e35392e8c0b39e38ab36caa9cdb3e99fc0ad79fbc2e01f978f.json",
+      "bytes": 1773,
+      "sha256": "f9307b49d33048ac113eb2ac000ea7901ccac84245e0547e3b30c7854d995bb2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ec0a4605c9a860700afb33bbde18254407d5c9021c6d2a44eda0197f4e3e2ded.json",
+      "bytes": 1088,
+      "sha256": "7121d103fc90d9b200132ae1dc3a01c20050fac39bd08f1c2e4836cbbb9e73b1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ecb425d0fd635e86803cb1afc16344c1bf4ce232d1cc014d42cf6a7a9ba2d228.json",
+      "bytes": 1189,
+      "sha256": "6ca44962af093442add4ca83f75b3cb8a930a61a66309d721080e27d91d0091d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/edc3553080912ef709c4b01fc8a047649f05ce7cec716ea09e34dc59177e5496.json",
+      "bytes": 1450,
+      "sha256": "744cc69334dc269e0de40515e42d6377e9db16fe9d565f6e77ec89e68d7eb15a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ef2b92cfd8cea893cdf06bb760163866ba3abfaa3dea172e137897879c9234bc.json",
+      "bytes": 1203,
+      "sha256": "de6a15733df1d83481ed1864bedfa1359ebe35209e35a045fd040b4a41d5ad64"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ef587e3ee336a15dd98a9c1d22a0836e6d554bd7a602af39967d31f1c238fcf3.json",
+      "bytes": 1367,
+      "sha256": "1614d97011a7d4619593cf5b5edd3610c560762894be16de5bed2853a2f18559"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/f3f590eb486e5b612fd4b858bb050cf3969e64cbf4881b1d526335c363d5a039.json",
+      "bytes": 1221,
+      "sha256": "cca979bd0ca1e8a7fb080542510a393af3837dd7b9af9514dab91db9d0d64a4f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/f585a6c9102b7b6cdc2360f1709f53d1e27d5197f43daddcb528a415b648dba2.json",
+      "bytes": 1075,
+      "sha256": "f4935f62a37f30984bfd2c05e5c5067b6f39f48f9617e4a61bef51d9aabfb89f"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/f7b04d7e39418eb0a66ac3d835e1222b9079757897329eb74bb31f5fc82a0688.json",
+      "bytes": 1112,
+      "sha256": "d1acf67a8d91a6a32776e295cc22e5d13c659488d1512c436b5d993bb16be36d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/f880158996cfee374b45436e20b41e60425129ffc3e1b6910c9c78277350c6ca.json",
+      "bytes": 1203,
+      "sha256": "c90c23453a5e51dcfbca0c96f5788e9bb08d2a56740b3088b6af5553ab37b702"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fa3e96ddc2074fc5db133bb7aaeb21bfd8251f15553966033fc5fc7029e604b4.json",
+      "bytes": 1077,
+      "sha256": "c2441e8e19d0c108d47965d65522f376bf78d102e895fbf3b6c301b77afb17e0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fab80b14d4cba4c135e2a5ce98f6b4297318661a02a537cdd86bb4312216d5fb.json",
+      "bytes": 1349,
+      "sha256": "edc81822ea11f8282e76d75860e7068890bbb108c0012a6a54b0c1a7660d8eda"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fb2d0707181c4a3db270ec9b93fec308bc43207450c14d61ffba2073c87bc9e3.json",
+      "bytes": 1138,
+      "sha256": "92006f7d9079711992b6d36ec7f72b8b886f80f494153ddfad21c7b9f0c1e157"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fb63eaa0c276c5f05ad4676b6096244d878f9a73dc2740752a2fbe58e71ec4ac.json",
+      "bytes": 1213,
+      "sha256": "b649456fde7beacf42bf292c2ceb94e83de5c416c9b0165c5bebd59319622173"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fbac2948559502d9567982553bdd75d29899f50e5426bb0809ceda136ee0199a.json",
+      "bytes": 1213,
+      "sha256": "3fbbd8b59e096483ea963a3ed1e58a1a932115a6158b64f77ae83f65cb34508d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fd8a00e6598be850abad236fcad1f0a6367673398b1786c810fe119d6feb2e1b.json",
+      "bytes": 1502,
+      "sha256": "32cbb0fc86570c5adb5e83965cf314e2c22e200ab473dfcaec62586a9cb199ba"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fdca0e96f90d07a92ccf477cbed3b53b4807d299280ca268076216e51af024dc.json",
+      "bytes": 1088,
+      "sha256": "4a9c790e382f00c38698d68262a3b7ef4762152795d53c5910e8a5d06295b68d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/fe537a9c8bd88ecd4bc768127b33d911398ca53c754ff809b3797939de5687fb.json",
+      "bytes": 1123,
+      "sha256": "cad95b76595820b8fc0b339a4bdee4c12fb9e8d767fdee91dd11947f1477ebf5"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-26.downloads/ffbb18d129e97c906cd3ed5280f2324b1c587d3f36a17f6687300adff2f8321a.json",
+      "bytes": 1644165,
+      "sha256": "24bfb287312c06efbf98591f3ed87d9b30d933378e6e0cf925e02f2b88525375"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-28.proposal.json",
+      "bytes": 42554841,
+      "sha256": "ad69835782f2ac0cac64496600c6fdf95d9b9b7fba02eabcd7c08958a206124b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-28.uploads.jsonl",
+      "bytes": 191572,
+      "sha256": "db06a680c33d80704c6859fb2b6f6f1b2a916472d80d0eff24008152bd7170e4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-29.proposal.json",
+      "bytes": 42554841,
+      "sha256": "ad69835782f2ac0cac64496600c6fdf95d9b9b7fba02eabcd7c08958a206124b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-29.uploads.jsonl",
+      "bytes": 147878,
+      "sha256": "06072e6f0468d67442241e93ed6081a9fdb518d5ae59d8af045296cc6a2e3331"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-30.proposal.json",
+      "bytes": 42554841,
+      "sha256": "ad69835782f2ac0cac64496600c6fdf95d9b9b7fba02eabcd7c08958a206124b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-30.uploads.jsonl",
+      "bytes": 191572,
+      "sha256": "3880b03802079d8a0f8d21b5302414335d8e77066b8a8cf543690df561533db3"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-31.proposal.json",
+      "bytes": 42554841,
+      "sha256": "ad69835782f2ac0cac64496600c6fdf95d9b9b7fba02eabcd7c08958a206124b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-31.uploads.jsonl",
+      "bytes": 333606,
+      "sha256": "4bcb4ce7e103e5b22d5989cc00be2e4c2370f05eb656d432ab253fa8ec05f43b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-32.proposal.json",
+      "bytes": 42554841,
+      "sha256": "ad69835782f2ac0cac64496600c6fdf95d9b9b7fba02eabcd7c08958a206124b"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-32.uploads.jsonl",
+      "bytes": 629903,
+      "sha256": "7097a412ccbd92a6d6f04e1fbdfafc9910cee0a2d797e18394fb598ddd8fa2cb"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-33.proposal.json",
+      "bytes": 42554841,
+      "sha256": "d0258e2b379de9632f96edccfee5d1136d478870f8b99d86748c70a68daa234a"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a63-20260927-33.uploads.jsonl",
+      "bytes": 750492,
+      "sha256": "90b2ff3508ad93d2214cff823c3f04854a564a01fc646d7fce433b57d8f3dfc0"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a6-20260926-01.proposal.json",
+      "bytes": 8081321,
+      "sha256": "5bb116128700ecd80a0e45cf78f4f2462139946851e9a8cd76b9203ffbc8446d"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a63-20260927-16.proposal.json",
+      "bytes": 10346175,
+      "sha256": "d77bc34593feafd963d20abe96821c77e89c242e81aaceae15ddff2bc5e1f55e"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a63-20260927-17.proposal.json",
+      "bytes": 10346175,
+      "sha256": "8d0406de58f9c4f900de18db30bb284adb6ad5837da7fd1de5c6d632ee8e5854"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a63-20260927-18.proposal.json",
+      "bytes": 10346175,
+      "sha256": "cffcd1a9a597ee679f4c46b5402b28ea453f0ee6a5bb7d855f941f5e071305fa"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a63-20260927-19.proposal.json",
+      "bytes": 10346175,
+      "sha256": "2c6fd8eedc949e8df1706b38009c28e76bc82963fe036d780fa97a4d24c60069"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a63-20260927-20.proposal.json",
+      "bytes": 10346175,
+      "sha256": "38855a333fcb6406b71d45dd22ad6fef68f3e96a604da39092a3b5395009fe7c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a63-20260927-21.proposal.json",
+      "bytes": 10346175,
+      "sha256": "1f4e6e78213b53163786db9d2a88d8e64b38f2543a82fad7275934e907685cf2"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.a63-20260927-22.proposal.json",
+      "bytes": 10346175,
+      "sha256": "7f3daf906a24637b31b52f877c604e6df0958108d687e261c09ce6cfbf372d05"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-02.proposal.json",
+      "bytes": 3692874,
+      "sha256": "e7dc81a8976fb621c0ac8187b48ddf48019c1794b6304898fd95ac87fe32ba50"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-03.proposal.json",
+      "bytes": 3692874,
+      "sha256": "e7dc81a8976fb621c0ac8187b48ddf48019c1794b6304898fd95ac87fe32ba50"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-04.proposal.json",
+      "bytes": 3692874,
+      "sha256": "e7dc81a8976fb621c0ac8187b48ddf48019c1794b6304898fd95ac87fe32ba50"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-05.proposal.json",
+      "bytes": 3685041,
+      "sha256": "25613870a16f58972421e71ec4dd0e0b630fd4e1eaf2284f7427693c6a4036b4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-06.proposal.json",
+      "bytes": 3685041,
+      "sha256": "25613870a16f58972421e71ec4dd0e0b630fd4e1eaf2284f7427693c6a4036b4"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-07.proposal.json",
+      "bytes": 3825811,
+      "sha256": "203436149e2a3a33b16645bd1aafcc9431235d7f6db5bf24b18579488e1636c1"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-08.proposal.json",
+      "bytes": 3805417,
+      "sha256": "66584490755356c84f998b541d2383279a862a1273e2f241acae925d08feafec"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-10.proposal.json",
+      "bytes": 3805422,
+      "sha256": "aa71803683a8efec1f29de831e0eb35e84d58bc930afd985aea6b5fcb30d1b07"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-11.proposal.json",
+      "bytes": 3805417,
+      "sha256": "986f43d02e65b522e1dbdb2f7824760a0acfc5a7dbba2d8d796e820ad39f605c"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-13.proposal.json",
+      "bytes": 3805417,
+      "sha256": "14ce3f64b54f279fa20de979ec0d71162b06067131cdc0151ee569dc649fe8bf"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.a63-20260927-15.proposal.json",
+      "bytes": 3729323,
+      "sha256": "d4151b8ca371d38f40227baec5d4cc32f597c8f3f3b8bdfb3fe8ff78668caa32"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-set-projection-incremental.20260924-preview-01.proposal.json",
+      "bytes": 26355740,
+      "sha256": "f178b594e12b012b179c66a31fa705134cf4d47ddd908479aa56a5ec7fbcab04"
+    }
+  ]
+}

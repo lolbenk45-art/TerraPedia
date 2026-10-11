@@ -32,6 +32,7 @@ import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
 import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
 import { buildArmorSetRelations } from './armor-set-processor.mjs';
 import { buildEquivalentArmorAttributeLookup } from './equivalent-armor-attribute-rules.mjs';
+import { isArmorItemEffectMaintRow, readArmorItemEffectMaintSources } from '../maint/armor-item-effect-source-reader.mjs';
 import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import {
@@ -1050,19 +1051,22 @@ function buildArmorSetEquipmentEffectAttributes(relationArmorSets = []) {
     if (!benefitZh) {
       continue;
     }
+    const effectSource = raw.effectTextSource && typeof raw.effectTextSource === 'object'
+      ? raw.effectTextSource : null;
     const parsedRows = parseEquipmentEffectLines({
       owner: {
         ownerKind: 'armor_set',
         ownerRecordKey: armorSet.recordKey ?? null,
         ownerId: armorSet.id ?? null,
         ownerKey: armorSet.textKey ?? null,
-        sourceProvider: armorSet.sourceProvider ?? null,
-        sourcePage: armorSet.sourcePage ?? null,
-        sourceRevisionTimestamp: armorSet.sourceRevisionTimestamp ?? null
+        sourceProvider: effectSource?.provider ?? armorSet.sourceProvider ?? null,
+        sourcePage: effectSource?.pageTitle ?? armorSet.sourcePage ?? null,
+        sourceRevisionTimestamp: effectSource?.revisionTimestamp ?? armorSet.sourceRevisionTimestamp ?? null
       },
       text: benefitZh,
-      sourceKind: 'benefit_zh'
-    });
+      sourceKind: 'benefit_zh',
+      sourceLocale: effectSource?.locale ?? 'zh'
+    }).filter((row) => !isItemScopedArmorMultiplier(row));
     for (const row of parsedRows) {
       rows.push({
         recordKey: createRecordKey([
@@ -1089,6 +1093,13 @@ function buildArmorSetEquipmentEffectAttributes(relationArmorSets = []) {
     }
   }
   return rows;
+}
+
+function isItemScopedArmorMultiplier(row) {
+  return row?.ownerKind === 'armor_set'
+    && row.statKey === 'damage_bonus'
+    && row.operation === 'multiply'
+    && /弓|连弩|箭|枪|子弹|玉米糖|特定远程武器|非消耗品远程武器/.test(row.conditionText ?? '');
 }
 
 function normalizeLookupText(value) {
@@ -1136,9 +1147,79 @@ function slotGroupToSlotType(slotGroup) {
   return null;
 }
 
-function percentNumber(value) {
-  const match = String(value ?? '').match(/-?\d+(?:\.\d+)?/);
-  return match ? Number(match[0]) : null;
+function armorCellNumber(value, unit, cellKey) {
+  const text = String(value ?? '').trim().replace(/\u2212/g, '-').replace(/\uff05/g, '%');
+  if (!text || text === '—' || text === '-') return null;
+  const pattern = unit === 'percent' ? /^[+-]?\d+(?:\.\d+)?%$/ : /^[+-]?\d+$/;
+  if (!pattern.test(text)) throw new Error(`Armor effect cell ${cellKey} requires an exact ${unit} numeric value`);
+  return Number(text.replace(/%$/, ''));
+}
+
+const ARMOR_ATTRIBUTE_EFFECT_SPECS = Object.freeze([
+  ['meleeDamage', 'damage_bonus', '近战伤害', 'melee'],
+  ['rangedDamage', 'damage_bonus', '远程伤害', 'ranged'],
+  ['magicDamage', 'damage_bonus', '魔法伤害', 'magic'],
+  ['summonDamage', 'damage_bonus', '召唤伤害', 'summon'],
+  ['meleeCritChance', 'crit_chance', '近战暴击率', 'melee'],
+  ['rangedCritChance', 'crit_chance', '远程暴击率', 'ranged'],
+  ['magicCritChance', 'crit_chance', '魔法暴击率', 'magic'],
+  ['classSpecific', 'melee_speed', '近战速度', 'melee'],
+  ['maxMana', 'mana_max', '最大魔力', 'magic', 'count'],
+  ['manaCost', 'mana_cost', '魔力花费', null],
+  ['minionSlots', 'minion_capacity', '仆从容量', null, 'count'],
+  ['sentrySlots', 'sentry_capacity', '哨兵容量', null, 'count'],
+  ['movementSpeed', 'move_speed', '移动速度', null]
+]);
+
+function hasSpecializedArmorDamage(rawCells, cellKey, value) {
+  // These source notes describe scoped multiplicative bonuses, not generic addends.
+  return cellKey === 'rangedDamage' && value != null && value !== 0
+    && /额外(?:弓|枪|其他远程)伤害/.test(String(rawCells.otherBonus ?? ''));
+}
+
+function hasLegacyShroomiteGenericDamage(armorRow, rawCells, cellKey, rawValue) {
+  if (cellKey !== 'rangedDamage') return false;
+  const identity = [armorRow.itemInternalName, armorRow.itemPageTitle, armorRow.itemNameZh]
+    .filter(Boolean).join(' ');
+  return /Shroomite(?:Headgear|Mask|Helmet)|Shroomite/i.test(identity)
+    && /^\s*15(?:\.0+)?%\s*$/.test(String(rawValue ?? ''))
+    && rawCells.otherBonus == null;
+}
+
+const ARMOR_ATTRIBUTE_DIAGNOSTIC_SPECS = [
+  ...ARMOR_ATTRIBUTE_EFFECT_SPECS.map(([cellKey, , , , unit = 'percent']) => [cellKey, unit, 'effect']),
+  ...['meleeDamageCritChance', 'rangedDamageCritChance', 'magicDamageCritChance']
+    .map(cellKey => [cellKey, 'percent', 'summary']),
+];
+
+export function collectArmorAttributeCellDiagnostics(relationArmorAttributeRows = []) {
+  const diagnostics = [];
+  for (const armorRow of relationArmorAttributeRows) {
+    const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
+    for (const [cellKey, unit, cellRole] of ARMOR_ATTRIBUTE_DIAGNOSTIC_SPECS) {
+      const rawValue = rawCells[cellKey];
+      if (rawValue == null || rawValue === '' || rawValue === '—' || rawValue === '-') continue;
+      const identity = {
+        recordKey: armorRow.recordKey ?? null,
+        itemId: armorRow.itemId == null ? null : Number(armorRow.itemId),
+        itemNameZh: armorRow.itemNameZh ?? armorRow.itemPageTitle ?? null,
+        cellKey,
+        rawValue: String(rawValue),
+        unit,
+        ...(cellRole === 'summary' ? { cellRole } : {}),
+      };
+      try {
+        const value = armorCellNumber(rawValue, unit, cellKey);
+        if (hasSpecializedArmorDamage(rawCells, cellKey, value)) {
+          diagnostics.push({ ...identity, reason: 'specialized-damage-semantics-unresolved',
+            sourceContext: String(rawCells.otherBonus) });
+        }
+      } catch {
+        diagnostics.push(identity);
+      }
+    }
+  }
+  return diagnostics;
 }
 
 function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
@@ -1188,27 +1269,31 @@ function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
   return [...rows, ...derivedRows];
 }
 
-function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
+export function buildArmorAttributeEffectRows(relationArmorAttributeRows = [], { unresolvedMode = 'error' } = {}) {
+  if (!['error', 'skip'].includes(unresolvedMode)) throw new Error('Armor attribute unresolved mode is invalid');
   const rows = [];
-  const effectSpecs = [
-    ['meleeDamage', 'damage_bonus', '近战伤害', 'melee'],
-    ['rangedDamage', 'damage_bonus', '远程伤害', 'ranged'],
-    ['magicDamage', 'damage_bonus', '魔法伤害', 'magic'],
-    ['summonDamage', 'damage_bonus', '召唤伤害', 'summon'],
-    ['meleeCritChance', 'crit_chance', '暴击率', 'all'],
-    ['rangedCritChance', 'crit_chance', '暴击率', 'all'],
-    ['magicCritChance', 'crit_chance', '暴击率', 'all'],
-    ['classSpecific', 'melee_speed', '近战速度', 'melee']
-  ];
   for (const armorRow of relationArmorAttributeRows) {
     if (!armorRow.itemId || armorRow.reviewStatus === 'unresolved') {
       continue;
     }
     const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
-    effectSpecs.forEach(([cellKey, statKey, statLabelZh, classScope], effectIndex) => {
-      const value = percentNumber(rawCells[cellKey]);
+    ARMOR_ATTRIBUTE_EFFECT_SPECS.forEach(([cellKey, statKey, statLabelZh, classScope, unit = 'percent'], effectIndex) => {
+      if (hasLegacyShroomiteGenericDamage(armorRow, rawCells, cellKey, rawCells[cellKey])) {
+        throw new Error('Armor legacy Shroomite generic 15% damage row is not current source authority');
+      }
+      let value;
+      try {
+        value = armorCellNumber(rawCells[cellKey], unit, cellKey);
+      } catch (error) {
+        if (unresolvedMode === 'skip') return;
+        throw error;
+      }
       if (value == null || value === 0) {
         return;
+      }
+      if (hasSpecializedArmorDamage(rawCells, cellKey, value)) {
+        if (unresolvedMode === 'skip') return;
+        throw new Error('Armor effect cell rangedDamage has unresolved specialized damage semantics');
       }
       rows.push({
         recordKey: createRecordKey([
@@ -1239,7 +1324,7 @@ function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
         operation: 'add',
         valueDecimal: value,
         valueMaxDecimal: null,
-        unit: 'percent',
+        unit,
         conditionText: null,
         rawText: String(rawCells[cellKey]),
         parseStatus: 'parsed',
@@ -1262,22 +1347,40 @@ function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
   return rows;
 }
 
-function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [] } = {}) {
+export function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [], relationArmorSetItems = [] } = {}) {
+  for (const row of maintArmorAttributeRows) {
+    if (isArmorItemEffectMaintRow(row)) {
+      throw new Error('Armor item-effect source requires its dedicated source contract');
+    }
+  }
   const itemIndex = buildArmorAttributeItemIndex(maintItems);
+  const exactPartRoles = new Map();
+  for (const part of relationArmorSetItems) {
+    const itemId = Number(part.item_source_id ?? part.itemSourceId);
+    const role = String(part.part_role ?? part.partRole ?? '').trim();
+    if (!Number.isSafeInteger(itemId) || itemId <= 0 || !['head', 'body', 'legs'].includes(role)) continue;
+    const roles = exactPartRoles.get(itemId) ?? new Set();
+    roles.add(role);
+    exactPartRoles.set(itemId, roles);
+  }
   const rows = maintArmorAttributeRows.map((row) => {
     const item = itemIndex.get(normalizeLookupText(row.item_name_zh))
       ?? itemIndex.get(normalizeLookupText(row.item_page_title))
       ?? null;
     const resolved = item != null;
+    const itemId = resolved ? Number(item.source_id) : null;
+    const roles = itemId == null ? null : exactPartRoles.get(itemId);
+    const reconciledSlotGroup = roles?.size === 1 ? [...roles][0] : null;
+    const slotGroup = reconciledSlotGroup ?? row.slot_group ?? null;
     return {
       recordKey: row.record_key,
-      itemId: resolved ? Number(item.source_id) : null,
+      itemId,
       itemInternalName: resolved ? (item.internal_name ?? null) : null,
       itemNameZh: row.item_name_zh ?? null,
       itemPageTitle: row.item_page_title ?? null,
       itemHref: row.item_href ?? null,
       sectionCode: row.section_code ?? null,
-      slotGroup: row.slot_group ?? null,
+      slotGroup,
       defenseValue: resolved && item.defense_value != null ? Number(item.defense_value) : (row.defense_value == null ? null : Number(row.defense_value)),
       rawCellsJson: row.raw_cells_json ?? null,
       sourceMaintTable: 'maint_armor_attribute_rows',
@@ -1290,12 +1393,43 @@ function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems
       sourcePage: row.source_page ?? null,
       sourceRevisionTimestamp: row.source_revision_timestamp ?? null,
       confidence: resolved ? 1 : 0,
-      reason: resolved ? 'matched_maint_item_by_wiki_identity' : 'unresolved_maint_item_by_wiki_identity',
+      reason: !resolved
+        ? 'unresolved_maint_item_by_wiki_identity'
+        : reconciledSlotGroup && reconciledSlotGroup !== row.slot_group
+          ? 'reconciled_slot_group_from_relation_armor_set_item'
+          : 'matched_maint_item_by_wiki_identity',
       reviewStatus: resolved ? 'accepted' : 'unresolved',
       rawJson: row.raw_json ?? JSON.stringify(row)
     };
   });
   return deriveEquivalentArmorAttributeRows(rows, maintItems);
+}
+
+/** Typed sources are item effects, never substitutes for complete table-derived attributes. */
+export function buildArmorAttributeDispatch({
+  maintArmorAttributeRows = [], maintItems = [], relationArmorSetItems = [], maintLandings = [],
+} = {}) {
+  const typed = maintArmorAttributeRows.filter(isArmorItemEffectMaintRow);
+  const groups = readArmorItemEffectMaintSources({ maintArmorAttributeRows: typed, maintItems, maintLandings });
+  const relationArmorAttributeRows = buildArmorAttributeRelations({
+    maintArmorAttributeRows: maintArmorAttributeRows.filter(row => !isArmorItemEffectMaintRow(row)),
+    maintItems, relationArmorSetItems,
+  });
+  const typedEffects = groups.flatMap(group => group.sourceCandidate.effects.map((effect, i) => {
+    const maint = group.maintRows[i];
+    return { ...effect, ownerRecordKey: maint.record_key, sourceMaintTable: 'maint_armor_attribute_rows',
+      sourceMaintRecordKey: maint.record_key, sourceMaintId: maint.id,
+      landingSourceId: group.landing.id, landingSourceKey: group.landing.source_key,
+      landingContentHash: group.landing.content_hash, reviewStatus: 'accepted', reason: 'derived_from_versioned_item_source' };
+  }));
+  return { relationArmorAttributeRows,
+    relationEquipmentEffectAttributes: [...buildArmorAttributeEffectRows(relationArmorAttributeRows), ...typedEffects],
+    typedSourceCount: typed.length,
+    acceptance: { status: typed.length ? 'blocked' : 'not-applicable', blockers: typed.length ? [
+      { code: 'registered-typed-effect-downstream-publication-required' },
+      { code: 'complete-item-and-set-coverage-unverified' },
+    ] : [] },
+  };
 }
 
 export async function runSync(options, dependencies = {}) {
@@ -1410,6 +1544,15 @@ export async function runSync(options, dependencies = {}) {
   validateReviewedNonNpcSourceExclusions(reviewedNonNpcSourceExclusions);
   validateReviewedSourceOnlyItemExclusions(reviewedSourceOnlyItemExclusions);
 
+  const typedArmorRows = maintArmorAttributeRows.filter(isArmorItemEffectMaintRow);
+  if (typedArmorRows.length && options.apply) throw new Error('Armor typed effects require governed downstream publication');
+  const typedLandingIds = [...new Set(typedArmorRows.map(row => row.landing_source_id))];
+  if (typedLandingIds.some(id => !Number.isSafeInteger(id) || id <= 0)) throw new Error('Armor typed landing ID is invalid');
+  const maintItemEffectLandings = typedLandingIds.length ? await queryMaint(
+    "SELECT * FROM source_dataset_landings WHERE provider = 'terraria.wiki.gg' AND dataset_type = 'armor_item_effects_raw' "
+      + `AND id IN (${typedLandingIds.join(',')}) ORDER BY id`,
+  ) : [];
+
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const armorSetDefinitionMap = readArmorSetDefinitionMap();
   const npcCrawlerInputs = buildNpcCrawlerFactRelationInputs({
@@ -1491,7 +1634,13 @@ export async function runSync(options, dependencies = {}) {
   });
 
   const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet);
-  results.relationArmorAttributeRows = buildArmorAttributeRelations({ maintArmorAttributeRows, maintItems });
+  const armorAttributes = buildArmorAttributeDispatch({
+    maintArmorAttributeRows,
+    maintItems,
+    maintLandings: maintItemEffectLandings,
+    relationArmorSetItems: results.relationArmorSetItems
+  });
+  results.relationArmorAttributeRows = armorAttributes.relationArmorAttributeRows;
   results.relationItems = baseEntities.relationItems;
   results.relationNpcs = baseEntities.relationNpcs;
   results.relationProjectiles = baseEntities.relationProjectiles;
@@ -1505,7 +1654,7 @@ export async function runSync(options, dependencies = {}) {
   results.itemRecipeGroupExpansions = recipeExpansions.groupExpansions;
   results.relationEquipmentEffectAttributes = [
     ...buildArmorSetEquipmentEffectAttributes(results.relationArmorSets),
-    ...buildArmorAttributeEffectRows(results.relationArmorAttributeRows)
+    ...armorAttributes.relationEquipmentEffectAttributes
   ];
   const projection = buildProjectionPayload({
     relationItems: results.relationItems,
@@ -1569,6 +1718,7 @@ export async function runSync(options, dependencies = {}) {
   const summary = {
     generatedAt: new Date().toISOString(),
     apply: options.apply,
+    armorItemEffectSourceAcceptance: armorAttributes.acceptance,
     maintArmorSetImages: maintArmorSetImages.length,
     relationArmorSetImages: results.relationArmorSetImages.length,
     projectionArmorSets: results.projectionArmorSets.length,

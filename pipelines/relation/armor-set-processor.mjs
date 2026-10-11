@@ -768,6 +768,7 @@ function buildWikiArmorSetRecord(record, setItems, variants, uniqueItemIds) {
     section: normalizeText(record.section),
     effectText: normalizeText(record.effectText),
     sourceText: normalizeText(record.sourceText),
+    ...(record.effectTextSource ? { effectTextSource: record.effectTextSource } : {}),
     interchangeableSetTitles: Array.isArray(record.interchangeableSetTitles) ? record.interchangeableSetTitles : [],
     images: Array.isArray(record.images) ? record.images : []
   };

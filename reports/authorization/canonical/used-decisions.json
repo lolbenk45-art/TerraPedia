@@ -442,5 +442,340 @@
   {
     "decisionIdentity": "automation-shimmer-l2-policy-ceiling-registration-20260828-owner-01",
     "dispatchPermitHash": "sha256:8cf828b6ee2f6a007d550ddf87778f19975e12c8e3bb440b46d01f233c3b73f4"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:ddd3060ada923b6f3777a977aaa1dc51a80e96004b5d09a0d8fc6b1f2d6b17d4"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-promotion-20260830-admin-02",
+    "dispatchPermitHash": "sha256:8719355e8152c1bf05bf5f56cfd5124985eeb2120c62bb062a1e2205dede3433"
+  },
+  {
+    "decisionIdentity": "automation-npcs-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:278d189b0a56c692ffa6a098d8e59f2f48189a2c68fd3e2e93ff428000eb11bd"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:e4794fd1e1544f9913ecef0ddd2ad554e7b2d8834379cbf135c5c395f8676417"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-promotion-20260830-admin-02",
+    "dispatchPermitHash": "sha256:f39c94aeefd21fc676d6e05b9171abbb60434202c08eaaeb351b2b8ecc93bc82"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-promotion-20260830-admin-03",
+    "dispatchPermitHash": "sha256:9253e4418d145c6f6f84af6f083c4c94e30891df51a45989fdc6cf2a76284a9a"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:a30f8178c474ec48567e1bb2deda2cfacc22f4c8e0d680010592124271856d5e"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-promotion-20260830-admin-02",
+    "dispatchPermitHash": "sha256:f9db7c00b5cb9a97edcbe70237d1809a4620bfb59fb25c938996f88abbfe6fc7"
+  },
+  {
+    "decisionIdentity": "automation-buffs-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:f1033e45508509aee672f4d08b7b4d6c7fab3672260bbbf8806474d33af172fd"
+  },
+  {
+    "decisionIdentity": "automation-audio-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:323560e00d15d3cb41c89bc9af317182f6722a74d8895519cd74c27923fccf41"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:c6ab40ee6c31328199c9196386de7756a89e5a79f4d071325e995696fd8209cb"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l2-promotion-20260830-admin-01",
+    "dispatchPermitHash": "sha256:b7718946938da86f0cf1b4a8a0406fc9fda9e2a626c4c8e3727ecfe75393a934"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260907-retry-04",
+    "dispatchPermitHash": "sha256:3c057f7add1775cc5d8475ad08a88b346cc5153c7756a752f8a7dfaa2b59dd02"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:31b00ea2330c8b7d017b6d7c39a3fbe150a335a381e27a770bc0c99667c36340"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-02",
+    "dispatchPermitHash": "sha256:ce492cdc5eed0770b1685d7c1d45f76a3a5a38c7ca60e68705528088da646a93"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-03",
+    "dispatchPermitHash": "sha256:e3b65e0badf64053f9596b4f65316c3dd12d031d6c837edc358db9beed5e2b54"
+  },
+  {
+    "decisionIdentity": "automation-npcs-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:973d0c60dfe1f99cbfb92e85c336ca8a7a57a856a1f2e707466e53bd35e78a59"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:dbc1cbd953e7fb82acf2813b3ad6ab331615695abd5d89d081660f45a339f799"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:b06c4f0f54796bf136ff5ccd8a80c9ced36b6daad4b35ea62d231bdddb39f3bc"
+  },
+  {
+    "decisionIdentity": "automation-buffs-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:c0ff749d2bad2c89e38fa1130823eb08b575d8ce17eecd44f9aed4dc9ea153c7"
+  },
+  {
+    "decisionIdentity": "automation-audio-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:2bcd29929ad34fb312b50f06ade1952bc32a83ab87ee2f6e8e9fbc9460d8a469"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:ce925e6e86c0a4195729ee90c3319ae0296c77dcebec3c71c67883a8fb79667d"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l2-reauthorization-20260918-owner-01",
+    "dispatchPermitHash": "sha256:47033a773d26cb40825826dd2bb6e935534f6409f82800369303cfb2acb79477"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-02",
+    "dispatchPermitHash": "sha256:7795093a10d9f0251a8e05becddce937dbefa1defed06cecb721dc32c510ba81"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-04",
+    "dispatchPermitHash": "sha256:4c203f65b1366aae5679222ec3522c384ee1013e41164cf68af1e14cf03ac7d8"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-05",
+    "dispatchPermitHash": "sha256:5c10796faf2dceb91bb2607d509e98fb67e194d816d8f2a17c2ac0b1248aebfd"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-06",
+    "dispatchPermitHash": "sha256:5b14e32a99dd466a32975675598a4f30a418807db1efc19c3f5bfa77aa15a084"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-04",
+    "dispatchPermitHash": "sha256:70042a1d211bf7ed43e357b8409c85084175e91795c28286bf27751569b9779b"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-05",
+    "dispatchPermitHash": "sha256:c03945f4171636d2b643c5ea779751a8b343d3e0c6db065fe85301fbdb52044c"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-06",
+    "dispatchPermitHash": "sha256:0d81db78af2a5fce6af5b5858cc782e3df3eda2054a4a94925b4110fe9a838ed"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-07",
+    "dispatchPermitHash": "sha256:6a5695eb5cf0fd398a86593e1622e4aa48cd2dbb9c0de12a8cc815b6ddbea822"
+  },
+  {
+    "decisionIdentity": "automation-npcs-l2-reauthorization-20260918-owner-03",
+    "dispatchPermitHash": "sha256:b90ef0572eb6c9e470100e4e67cc984cc0f089186472fadb855609fb64223d12"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-reauthorization-20260918-owner-03",
+    "dispatchPermitHash": "sha256:ee416fb40396c15d5c144fd96b9989ed9ff3cb25fc3b03cd3b616e58f77461ac"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-reauthorization-20260918-owner-04",
+    "dispatchPermitHash": "sha256:d184c4d17b49038465d6a19086cc37d98adec1d6668c8b0d49824f5d6b3e2b93"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-reauthorization-20260918-owner-03",
+    "dispatchPermitHash": "sha256:d0373f4c95fdb0d24897eacc92d369523f4503eaf142a986e74e190c4a48c6d6"
+  },
+  {
+    "decisionIdentity": "automation-buffs-l2-reauthorization-20260918-owner-03",
+    "dispatchPermitHash": "sha256:d5b5af2f84a53611a1ba99bca14549114afb318ec6798f179e0a0a0903c021cd"
+  },
+  {
+    "decisionIdentity": "automation-audio-l2-reauthorization-20260918-owner-03",
+    "dispatchPermitHash": "sha256:7dfafa7141bf0aa5d273a536d02ac3927472a12cca12ac74f974c29790dae492"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l2-reauthorization-20260918-owner-03",
+    "dispatchPermitHash": "sha256:d33639e34b5174ac22d25de2b27ad9fb5dd625d7fade829edc6b604755702fd5"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l2-reauthorization-20260918-owner-04",
+    "dispatchPermitHash": "sha256:6ea9c7d779f7e84d034f7cb0089cbf5efd6442825d68c9d4b3681e44c3aee51c"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-07",
+    "dispatchPermitHash": "sha256:bfe2d21c2d5cc013e7e74cd53f3c642e342bec66a568037d12e839cb647346e6"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-08",
+    "dispatchPermitHash": "sha256:ab2be9a746a4d4b282b55b8542c75626cc09fb7017b5656917b52b7f0fb57a68"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-09",
+    "dispatchPermitHash": "sha256:65f15073855c845878477daa445dc26c126ef3564b9bda24f4ae9bf7faee8c24"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-08",
+    "dispatchPermitHash": "sha256:060fe4788a9427a70b7bd58d287e7850dbf30869b1a1db5a8c06c8fb872bab3a"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-reauthorization-20260919-standing-01",
+    "dispatchPermitHash": "sha256:f0ca759fb090a68ee178cb147faa92d3e6290bd0a3ba52d52b3ab384ef57a404"
+  },
+  {
+    "decisionIdentity": "automation-audio-l2-reauthorization-20260919-standing-01",
+    "dispatchPermitHash": "sha256:58dc4170427cb4e948778e0e717c803dda2275fe5d3874e5c2dcdd02f92a59d4"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l2-reauthorization-20260919-standing-01",
+    "dispatchPermitHash": "sha256:35efda772c9e66d3eee723534733c0f9282e48af331d7996df2fc68f84603c47"
+  },
+  {
+    "decisionIdentity": "automation-buffs-l2-reauthorization-20260919-standing-01",
+    "dispatchPermitHash": "sha256:6f3872806f63f82b54d61919a7a641f7ab8e8e62761b67e0b63403b3d6dd4fd6"
+  },
+  {
+    "decisionIdentity": "automation-npcs-l2-reauthorization-20260919-standing-01",
+    "dispatchPermitHash": "sha256:d5ab2c2b965dfaa40698db3b7a2dd5dc8b044a04fbb9d5c510725901fe42a228"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260919-standing-items-02",
+    "dispatchPermitHash": "sha256:88f0d6ec5ab03795c874ac0c2f640dd97993a8a8c5bc0a295ea844bc93c5df48"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260919-standing-items-03",
+    "dispatchPermitHash": "sha256:7aa0b3adc038639facedfb45df400e7990ee4fbcbfb81f7529972598115ddafa"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260919-standing-items-04",
+    "dispatchPermitHash": "sha256:63edcf6b4ea895b50aeb2ade8e6bba9f991ddea151f451573e0e8404b5877bdb"
+  },
+  "automation-l1-historical-source-hash-disposition-items-20260922-aef4a79d-abac-4fef-bdfe-d5ce9e6a8f13",
+  "automation-l1-historical-source-hash-disposition-projectiles-20260922-6645179a-d206-4261-b537-993a768d8218",
+  "automation-l1-historical-source-hash-disposition-shimmer-20260922-c7b5a6e8-4adf-410f-ba99-7b79562e6d71",
+  {
+    "decisionIdentity": "automation-items-l2-reauthorization-20260922-d96b7193-e06d-46da-b8df-f5cc188e7c87",
+    "dispatchPermitHash": "sha256:1e508a05346b10b37a0db7c8696415c1a215ca210d88249b4d1efc2819d11d3b"
+  },
+  {
+    "decisionIdentity": "automation-npcs-l2-reauthorization-20260922-6f56741f-4005-4c56-926b-f185720e84ab",
+    "dispatchPermitHash": "sha256:54494b90f621d75297d90ee6bcf5faf52fe04f52574faf50286cc8ea67048a1f"
+  },
+  {
+    "decisionIdentity": "automation-projectiles-l2-reauthorization-20260922-b7ec957c-064f-4360-bc65-c4ba8bd92741",
+    "dispatchPermitHash": "sha256:4ce90abd4468d7629388314999f265356a8083a5f7ca8f1ac2028d3164d70056"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-reauthorization-20260922-321556db-7565-4331-910f-fd83033516b1",
+    "dispatchPermitHash": "sha256:b41bfd98611fa264d7ce14d5dba4378843be32740b4a6f46e8f77548f9b4de87"
+  },
+  {
+    "decisionIdentity": "automation-buffs-l2-reauthorization-20260922-dd6a8f4c-1e09-4374-97cd-3cc2850f907a",
+    "dispatchPermitHash": "sha256:9bca397665b9f8abfc74cdee51740bc0f5aa6838442ba857ee9feb73a524da6c"
+  },
+  {
+    "decisionIdentity": "automation-audio-l2-reauthorization-20260922-edd9d16b-ba8d-41ff-9373-2c484672c1d5",
+    "dispatchPermitHash": "sha256:4dfa6905d18e3a80fa4a5ffee649a596fdb2ba04cb4b6cc52e23c61b3bd51873"
+  },
+  {
+    "decisionIdentity": "automation-bosses-l2-reauthorization-20260922-9f997bdf-b277-4b97-8e0f-9403b5d68271",
+    "dispatchPermitHash": "sha256:ec54d403743a5a7b022d0c39fc4253757e3a43c56ea092ef4c774fea4937dcae"
+  },
+  {
+    "decisionIdentity": "automation-shimmer-l2-reauthorization-20260922-72705c36-c910-4351-93f6-454212aab478",
+    "dispatchPermitHash": "sha256:96200a284c9c5fd7642b89dd7800b3f4ea85baf0700b4c40223aa0d6066a32d7"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260922-projectiles-324f065b-4f8d-4884-97dd-f97da46cd0b9",
+    "dispatchPermitHash": "sha256:94884c8ea03877cd760becb0bf84f5d43a21beda762cadfcbcf72b550323e8df"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260922-projectiles-76ce1215-850a-460d-a757-5c4cc977788e",
+    "dispatchPermitHash": "sha256:f0ee2f869ae4c68dbb75bc96bee57854c49f5ce3d17378eafb3deffdf187dc81"
+  },
+  {
+    "decisionIdentity": "armor-secondary-a6-20260926-01",
+    "dispatchPermitHash": "sha256:c679890a678017cafb5817da94c52e588a7309c2b5fc12f961e205aae6194347"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-03",
+    "dispatchPermitHash": "sha256:7ac00cc71deb8f5c4d33a6ba37de1478103c5cd7bed419fae60960e38c291e44"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-04",
+    "dispatchPermitHash": "sha256:5bc063f5af00b673835bf56b6318947bce8354a2802a4fa4b318311c26d09d34"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-05",
+    "dispatchPermitHash": "sha256:8143059cfffe99d7a1998ab572776212c11acad38a13ff59241833bd2ce570e8"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-06",
+    "dispatchPermitHash": "sha256:e032f9e400dc936d72ae3a35ab7a3bb7611def2a3c7031eed1a6310a2d1e1036"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-07",
+    "dispatchPermitHash": "sha256:683782e3d739900f52d81134902328b4ac2e51f0120a6619e0facfa45d057950"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-08",
+    "dispatchPermitHash": "sha256:cf2781bc458e64e4fa95411977eb489f466974d7683635d3526ed2f62fd4d2b8"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-10",
+    "dispatchPermitHash": "sha256:ce6f7f466b698061f730f1a70d9f3dc08c5d9593564200c9f066d4669faa3cf3"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-11",
+    "dispatchPermitHash": "sha256:5d2b74131929679b4aa99d1d715c13e2ce14f50fece6f0f8bbd6d5998b05ba6e"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-13",
+    "dispatchPermitHash": "sha256:dce1f9b6de0e8f0ed2a0ffd882d2b433b37840ebfbd88c502f45ad2f666398b6"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-a63-20260927-15",
+    "dispatchPermitHash": "sha256:8bf436f6a2083e7bcf935a77b41779b2c329a26a7d5f9918ec3469313af38632"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-a63-20260927-16",
+    "dispatchPermitHash": "sha256:57d5483bf4083d37f14e462b4ec7bfd5c37c842632d11dba871162514f0a615b"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-a63-20260927-18",
+    "dispatchPermitHash": "sha256:4074c067f46576672703d02720fc480773abdda3c08c40ad0449b9ac23f73ee4"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-a63-20260927-19",
+    "dispatchPermitHash": "sha256:fe21c40e5ca248a17450917d05d4034cd3ae0a097cc65cc22dcac099370b0546"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-a63-20260927-21",
+    "dispatchPermitHash": "sha256:9a5a416205e323aff620d76c9c89aa10ffc28de2d5dca4befce0585eb13a9977"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-a63-20260927-22",
+    "dispatchPermitHash": "sha256:a57afe0db1706ee439ea76bbfa0aa39f26f1a640d4583ae2464e18193122ed9f"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-a63-20260927-28",
+    "dispatchPermitHash": "sha256:424e96b97d8a85de871e86150f94dcddd3e718e30b13d32b98e31e20a049bc75"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-a63-20260927-29",
+    "dispatchPermitHash": "sha256:adbce235631e6788af489d498ca70232e43c99c015a9894c463548d4f8d88f65"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-a63-20260927-30",
+    "dispatchPermitHash": "sha256:de5379f18de8411fa2a367585e7d956b7d64baf2208126c7e8420bd7b8f90972"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-a63-20260927-31",
+    "dispatchPermitHash": "sha256:6a21779b422969dbb3b79dc9b788f7f27318e0074080871b2def6ec5f3a8f0f5"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-a63-20260927-32",
+    "dispatchPermitHash": "sha256:02e417277bdeabccaddcfbbb7095c0eea86a6fc30b90366746715eb8819a8ac7"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-a63-20260927-33",
+    "dispatchPermitHash": "sha256:1bad37a3b0996f60f241fd3e0432c07ea667d2f1eb6853db36aebbfbdc2f0a05"
   }
 ]

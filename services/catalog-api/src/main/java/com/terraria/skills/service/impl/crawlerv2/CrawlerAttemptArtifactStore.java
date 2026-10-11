@@ -101,6 +101,19 @@ public class CrawlerAttemptArtifactStore {
         Instant requestedAt,
         CrawlerQueueV2Artifacts artifacts
     ) {
+        return prepare(epoch, queueId, attemptId, domain, actionId, requestedAt, artifacts, null);
+    }
+
+    public synchronized PreparedArtifacts prepare(
+        String epoch,
+        String queueId,
+        String attemptId,
+        String domain,
+        String actionId,
+        Instant requestedAt,
+        CrawlerQueueV2Artifacts artifacts,
+        SourceDispatchIdentity sourceDispatchIdentity
+    ) {
         requireText(epoch, "epoch");
         requireText(queueId, "queueId");
         requireText(domain, "domain");
@@ -162,10 +175,36 @@ public class CrawlerAttemptArtifactStore {
             null,
             null,
             null,
-            List.of()
+            List.of(),
+            sourceDispatchIdentity
         );
         writeManifestAt(directory, manifest);
         return new PreparedArtifacts(directory, manifestPath, artifacts.progressPath(), artifacts.logPath());
+    }
+
+    /** Bind the exact source identity once; later writes cannot mutate it. */
+    public synchronized void bindSourceDispatchIdentity(
+        String attemptId,
+        SourceDispatchIdentity sourceDispatchIdentity
+    ) {
+        if (sourceDispatchIdentity == null) {
+            return;
+        }
+        CrawlerAttemptManifest existing = requireManifest(attemptId);
+        if (existing.sourceDispatchIdentity() != null) {
+            if (!existing.sourceDispatchIdentity().equals(sourceDispatchIdentity)) {
+                throw new IllegalArgumentException("attempt manifest source identity 不允许变化：" + attemptId);
+            }
+            return;
+        }
+        writeManifestAt(requireAttemptDirectory(attemptId), new CrawlerAttemptManifest(
+            existing.contractVersion(), existing.stateStoreEpoch(), existing.queueId(), existing.attemptId(),
+            existing.fenceToken(), existing.domain(), existing.actionId(), existing.status(), existing.startedAt(),
+            existing.completedAt(), existing.reasonCode(), existing.exitCode(), existing.pid(),
+            existing.processStartedAt(), existing.progressPath(), existing.logPath(), existing.reportPath(),
+            existing.outputPath(), existing.retentionExpiresAt(), existing.artifactsExpiredAt(), existing.cleanedAt(),
+            existing.cleanedBy(), existing.cleanedPaths(), sourceDispatchIdentity
+        ));
     }
 
     public Optional<CrawlerAttemptManifest> readManifest(String attemptId) {
@@ -316,6 +355,9 @@ public class CrawlerAttemptArtifactStore {
         if (!Objects.equals(manifest.actionId(), plan.actionId())) {
             throw new IllegalArgumentException("operation plan actionId 与 attempt manifest 不匹配");
         }
+        if (!Objects.equals(manifest.sourceDispatchIdentity(), plan.sourceDispatchIdentity())) {
+            throw new IllegalArgumentException("operation plan source identity 与 attempt manifest 不匹配");
+        }
         Path directory = requireAttemptDirectory(attemptId);
         Path planPath = directory.resolve(OPERATION_PLAN_FILE).toAbsolutePath().normalize();
         if (!planPath.startsWith(directory.toAbsolutePath().normalize())) {
@@ -341,10 +383,16 @@ public class CrawlerAttemptArtifactStore {
             StandardOpenOption.READ,
             LinkOption.NOFOLLOW_LINKS
         )) {
-            return Optional.of(objectMapper.readValue(
+            CrawlerOperationPlanSnapshot plan = objectMapper.readValue(
                 Channels.newInputStream(channel),
                 CrawlerOperationPlanSnapshot.class
-            ));
+            );
+            CrawlerAttemptManifest manifest = requireManifest(attemptId);
+            if (!Objects.equals(manifest.actionId(), plan.actionId())
+                || !Objects.equals(manifest.sourceDispatchIdentity(), plan.sourceDispatchIdentity())) {
+                throw new SecurityException("operation plan identity 与 attempt manifest 不一致");
+            }
+            return Optional.of(plan);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("operation plan JSON 无效：" + planPath, exception);
         } catch (IOException exception) {
@@ -512,7 +560,7 @@ public class CrawlerAttemptArtifactStore {
             manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), manifest.pid(),
             manifest.processStartedAt(), manifest.progressPath(),
             manifest.logPath(), manifest.reportPath(), manifest.outputPath(), manifest.retentionExpiresAt(),
-            manifest.artifactsExpiredAt(), cleanedAt, operator, staged.storedPaths()
+            manifest.artifactsExpiredAt(), cleanedAt, operator, staged.storedPaths(), manifest.sourceDispatchIdentity()
         );
         commitStagedDeletion(directory, cleanedManifest, staged);
         return new CleanupResult(staged.storedPaths());
@@ -535,7 +583,8 @@ public class CrawlerAttemptArtifactStore {
             manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), manifest.pid(),
             manifest.processStartedAt(), manifest.progressPath(),
             manifest.logPath(), manifest.reportPath(), manifest.outputPath(), manifest.retentionExpiresAt(),
-            expiredAt, manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths()
+            expiredAt, manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths(),
+            manifest.sourceDispatchIdentity()
         );
         commitStagedDeletion(directory, expiredManifest, staged);
     }
@@ -610,7 +659,8 @@ public class CrawlerAttemptArtifactStore {
             attempt.completedAt(), attempt.reasonCode(), manifest.exitCode(), attempt.pid(),
             attempt.processStartedAt(), manifest.progressPath(),
             manifest.logPath(), manifest.reportPath(), manifest.outputPath(), retentionExpiresAt,
-            manifest.artifactsExpiredAt(), manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths()
+            manifest.artifactsExpiredAt(), manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths(),
+            manifest.sourceDispatchIdentity()
         );
     }
 
@@ -843,6 +893,9 @@ public class CrawlerAttemptArtifactStore {
             || !Objects.equals(existing.domain(), updated.domain())
             || !Objects.equals(existing.actionId(), updated.actionId())) {
             throw new IllegalArgumentException("attempt manifest 不可变身份发生漂移：" + existing.attemptId());
+        }
+        if (!Objects.equals(existing.sourceDispatchIdentity(), updated.sourceDispatchIdentity())) {
+            throw new IllegalArgumentException("attempt manifest source identity 不允许变化：" + existing.attemptId());
         }
         Long existingFence = existing.fenceToken();
         Long updatedFence = updated.fenceToken();

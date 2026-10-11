@@ -1,5 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+import { extractMaintEntitiesFromLandingRow } from '../maint/sync-landing-to-maint.mjs';
+import { listSourceDatasetLandingInputs } from '../landing/source-dataset-locator.mjs';
 
 import {
   buildArmorSetImageProgressPayload,
@@ -61,6 +69,7 @@ test('buildArmorSetImageRows builds maint-compatible armor_set_images_raw record
         fileTitle: 'File:Wood armor.png',
         url: 'https://terraria.wiki.gg/images/Wood_armor.png',
         mime: 'image/png',
+        revisionTimestamp: '2026-06-01T12:34:56Z',
         width: 64,
         height: 64
       }],
@@ -89,6 +98,9 @@ test('buildArmorSetImageRows builds maint-compatible armor_set_images_raw record
   assert.equal(actual[0].originalUrl, 'https://terraria.wiki.gg/images/Wood_armor.png');
   assert.equal(actual[0].isPrimary, true);
   assert.equal(actual[1].isPrimary, false);
+  assert.equal(actual[0].sourceRevisionTimestamp, '2026-06-01T12:34:56Z');
+  assert.equal(actual[1].sourceRevisionTimestamp, null);
+  assert.equal(actual[0].cachedUrl, null);
 });
 
 test('buildArmorSetImageRows keeps images from all mapped pages under the source armor text key', () => {
@@ -160,4 +172,103 @@ test('buildArmorSetImageProgressPayload uses monitor-visible crawler fields', ()
   assert.equal(payload.outputPath, '/shared/raw/wiki/armor_set_images.parsed.latest.json');
   assert.equal(payload.reportPath, '/shared/reports/fetch/fetch-armor-set-images.json');
   assert.equal(payload.lastHeartbeatAt, '2026-06-03T00:01:00.000Z');
+});
+
+async function runOfflineArmorFetch(t, { progressPath, envProgressPath, invalidInput = false } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armor-image-fetch-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'input.json'), invalidInput ? '{invalid' : JSON.stringify({
+    armorSets: [{ textKey: 'ArmorSetBonus.Wood' }]
+  }));
+  const entry = fileURLToPath(new URL('./fetch-wiki-armor-set-images.mjs', import.meta.url));
+  const args = ['--input=input.json', '--raw-dir=raw/wiki', '--report-dir=reports', '--keep-snapshot=false'];
+  if (progressPath) args.push(`--progress-path=${progressPath}`);
+  const source = `
+    import fs from 'node:fs';
+    const observations = [];
+    globalThis.fetch = async (url) => {
+      const progress = fs.existsSync('data/generated/wiki-sync-progress.latest.json')
+        ? JSON.parse(fs.readFileSync('data/generated/wiki-sync-progress.latest.json', 'utf8')) : null;
+      observations.push(progress?.status === 'running' && !!progress?.lastHeartbeatAt);
+      if (new URL(url).searchParams.get('action') === 'parse') {
+        return new Response(JSON.stringify({ parse: { images: ['Wood armor.png'] } }));
+      }
+      return new Response(JSON.stringify({ query: { pages: [{ title: 'File:Wood armor.png', imageinfo: [{
+        url: 'https://terraria.wiki.gg/images/Wood_armor.png', timestamp: '2026-06-01T12:34:56Z',
+        width: 64, height: 64, mime: 'image/png'
+      }] }] } }));
+    };
+    process.argv = [process.execPath, ${JSON.stringify(entry)}, ...${JSON.stringify(args)}];
+    await import(${JSON.stringify(new URL('./fetch-wiki-armor-set-images.mjs', import.meta.url).href)});
+    console.log('MONITOR_OBSERVATIONS:' + JSON.stringify(observations));
+  `;
+  const result = await new Promise((resolve) => {
+    const env = { ...process.env, WORKTREE_ROOT: root, TERRAPEDIA_SHARED_DATA_ROOT: path.join(root, 'shared') };
+    delete env.TERRAPEDIA_CRAWLER_ACTION_ID;
+    delete env.TERRAPEDIA_CRAWLER_PROGRESS_PATH;
+    if (envProgressPath) env.TERRAPEDIA_CRAWLER_PROGRESS_PATH = envProgressPath;
+    const child = spawn(process.execPath, ['--input-type=module', '--eval', source], {
+      cwd: root, env, stdio: ['ignore', 'pipe', 'pipe']
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', chunk => stdout += chunk);
+    child.stderr.on('data', chunk => stderr += chunk);
+    child.on('close', code => resolve({ code, stdout, stderr }));
+  });
+  return { ...result, root };
+}
+
+test('offline Armor CLI preserves each file revision through raw payload and maint extraction', async (t) => {
+  const result = await runOfflineArmorFetch(t);
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /MONITOR_OBSERVATIONS:\[true,true\]/);
+  const [landing] = await listSourceDatasetLandingInputs({
+    repoRoot: result.root, sharedDataRoot: result.root, datasets: ['armor_set_images_raw']
+  });
+  assert.equal(landing.parseStatus, 'ok');
+  assert.equal(landing.sourceRevisionTimestamp, null);
+  const payload = await landing.loadPayload();
+  assert.deepEqual(payload.warnings, []);
+  assert.equal(payload.sourceRevisionTimestamp, null, 'a multi-file collection has no single source revision');
+  assert.equal(payload.armorSetImages[0].sourceRevisionTimestamp, '2026-06-01T12:34:56Z');
+  assert.equal(payload.armorSetImages[0].cachedUrl, null, 'fetch does not fabricate managed cache evidence');
+  const { rows } = await extractMaintEntitiesFromLandingRow({
+    id: 1, dataset_type: 'armor_set_images_raw', provider: 'terraria.wiki.gg',
+    source_key: 'wiki.armor_set_images', source_page: payload.sourcePageTitle,
+    content_hash: landing.contentHash, fetched_at: landing.fetchedAt,
+    parsed_at: landing.parsedAt, source_revision_timestamp: landing.sourceRevisionTimestamp,
+    payload_json: JSON.stringify(payload)
+  });
+  assert.equal(rows[0].sourceRevisionTimestamp, '2026-06-01T12:34:56Z');
+  const progress = JSON.parse(fs.readFileSync(path.join(result.root, 'data/generated/wiki-sync-progress.latest.json'), 'utf8'));
+  assert.equal(progress.actionId, 'armor-set-images');
+  assert.equal(progress.status, 'completed');
+});
+
+for (const options of [{ progressPath: 'custom/progress.json' }, { envProgressPath: 'env/progress.json' }]) {
+  test(`offline Armor CLI mirrors ${Object.keys(options)[0]} before network and at completion`, async (t) => {
+    const result = await runOfflineArmorFetch(t, options);
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /MONITOR_OBSERVATIONS:\[true,true\]/);
+    const selected = options.progressPath ?? options.envProgressPath;
+    const progress = JSON.parse(fs.readFileSync(path.join(result.root, selected), 'utf8'));
+    const canonical = JSON.parse(fs.readFileSync(path.join(result.root, 'data/generated/wiki-sync-progress.latest.json'), 'utf8'));
+    assert.deepEqual(canonical, progress);
+    assert.equal(progress.childStatusPath, selected);
+    assert.equal(progress.status, 'completed');
+    const payload = JSON.parse(fs.readFileSync(path.join(result.root, 'raw/wiki/armor_set_images.parsed.latest.json'), 'utf8'));
+    assert.deepEqual(payload.warnings, [], 'first request must observe monitor-visible running progress');
+  });
+}
+
+test('offline Armor CLI writes failed terminal progress on invalid input without publishing raw output', async (t) => {
+  const result = await runOfflineArmorFetch(t, { invalidInput: true, progressPath: 'custom/progress.json' });
+  assert.notEqual(result.code, 0);
+  const progress = JSON.parse(fs.readFileSync(path.join(result.root, 'custom/progress.json'), 'utf8'));
+  const canonical = JSON.parse(fs.readFileSync(path.join(result.root, 'data/generated/wiki-sync-progress.latest.json'), 'utf8'));
+  assert.deepEqual(canonical, progress);
+  assert.equal(progress.status, 'failed');
+  assert.ok(progress.lastHeartbeatAt);
+  assert.equal(fs.existsSync(path.join(result.root, 'raw/wiki/armor_set_images.parsed.latest.json')), false);
 });

@@ -15,6 +15,10 @@ public interface CrawlerAutomationPolicyService {
 
     AutomationEligibility schedulerEligibility(String domainId);
 
+    default AutomationEligibility schedulerEligibility(String domainId, String actionId) {
+        return schedulerEligibility(domainId);
+    }
+
     void executeApprovedL1(ApplyAuthorization authorization);
 
     void executeAutoApplyL2(ApplyAuthorization authorization);
@@ -159,8 +163,30 @@ public interface CrawlerAutomationPolicyService {
         String packetHash,
         LocalDateTime authorizedAt,
         LocalDateTime expiresAt,
-        boolean fresh
-    ) { }
+        boolean fresh,
+        String authorizedActionId
+    ) {
+        public ActivationDecisionRecord(
+            String decisionKind,
+            String domainId,
+            long policyVersion,
+            String policyHash,
+            String policySetHash,
+            int minimumSuccessfulL1Runs,
+            String actor,
+            String reason,
+            String authorizationReference,
+            String decisionIdentity,
+            String packetHash,
+            LocalDateTime authorizedAt,
+            LocalDateTime expiresAt,
+            boolean fresh
+        ) {
+            this(decisionKind, domainId, policyVersion, policyHash, policySetHash,
+                minimumSuccessfulL1Runs, actor, reason, authorizationReference,
+                decisionIdentity, packetHash, authorizedAt, expiresAt, fresh, null);
+        }
+    }
 
     record AutomationEligibility(boolean eligible, List<String> reasonCodes) { }
 

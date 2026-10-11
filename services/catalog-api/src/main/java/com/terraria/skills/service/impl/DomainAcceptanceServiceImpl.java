@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.terraria.skills.dto.DomainAcceptanceOverviewDTO;
 import com.terraria.skills.service.DomainAcceptanceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -58,16 +59,27 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
+    private final Path configuredRepoRoot;
     private final Clock clock;
 
     @Autowired
-    public DomainAcceptanceServiceImpl(ObjectMapper objectMapper) {
-        this(objectMapper, null, Clock.systemUTC());
+    public DomainAcceptanceServiceImpl(
+        ObjectMapper objectMapper,
+        @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
+    ) {
+        this(objectMapper, null, configuredRepoRoot, Clock.systemUTC());
     }
 
     DomainAcceptanceServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock) {
+        this(objectMapper, repoRootOverride, null, clock);
+    }
+
+    DomainAcceptanceServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, String configuredRepoRoot, Clock clock) {
         this.objectMapper = objectMapper;
         this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
+        this.configuredRepoRoot = configuredRepoRoot == null || configuredRepoRoot.isBlank()
+            ? null
+            : Path.of(configuredRepoRoot.trim()).toAbsolutePath().normalize();
         this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
@@ -715,6 +727,9 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
     private Path resolveRepoRoot() {
         if (repoRootOverride != null) {
             return repoRootOverride;
+        }
+        if (configuredRepoRoot != null) {
+            return configuredRepoRoot;
         }
         Path current = Path.of("").toAbsolutePath().normalize();
         while (current != null) {

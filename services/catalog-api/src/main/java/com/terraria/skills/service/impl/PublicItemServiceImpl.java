@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PublicItemServiceImpl implements PublicItemService {
 
+    private static final String ARMOR_EFFECT_SOURCE_KINDS = "('armor_attribute_cell','armor_item_page')";
+
     static final String ITEM_BUFF_EFFECTS_SQL = """
         SELECT
             ibr.id AS id,
@@ -95,34 +97,52 @@ public class PublicItemServiceImpl implements PublicItemService {
             source_page AS sourcePage,
             source_revision_timestamp AS sourceRevisionTimestamp
         FROM `terria_v1_relation`.`projection_item_armor_attributes`
-        WHERE item_id = ?
+        WHERE status = 1
+            AND deleted = 0
+            AND item_id = ?
         ORDER BY slot_group ASC, id ASC
         """;
 
     static final String ITEM_EQUIPMENT_EFFECTS_SQL = """
         SELECT
-            id AS id,
-            owner_id AS itemId,
-            item_internal_name AS itemInternalName,
-            owner_kind AS ownerKind,
-            owner_key AS ownerKey,
-            source_kind AS sourceKind,
-            source_line AS sourceLine,
-            effect_index AS effectIndex,
-            apply_scope AS applyScope,
-            slot_type AS slotType,
-            stat_key AS statKey,
-            stat_label_zh AS statLabelZh,
-            class_scope AS classScope,
-            operation AS operation,
-            value_decimal AS valueDecimal,
-            unit AS unit,
-            raw_text AS rawText,
-            parse_status AS parseStatus
-        FROM `terria_v1_relation`.`projection_equipment_effect_attributes`
-        WHERE owner_kind = 'item'
-            AND owner_id = ?
-        ORDER BY effect_index ASC, id ASC
+            projection.id AS id,
+            projection.owner_id AS itemId,
+            projection.item_internal_name AS itemInternalName,
+            projection.owner_kind AS ownerKind,
+            projection.owner_key AS ownerKey,
+            projection.source_kind AS sourceKind,
+            projection.source_line AS sourceLine,
+            projection.effect_index AS effectIndex,
+            projection.apply_scope AS applyScope,
+            projection.slot_type AS slotType,
+            projection.stat_key AS statKey,
+            projection.stat_label_zh AS statLabelZh,
+            projection.class_scope AS classScope,
+            projection.operation AS operation,
+            projection.value_decimal AS valueDecimal,
+            projection.value_max_decimal AS valueMaxDecimal,
+            projection.unit AS unit,
+            projection.variant_label AS variantLabel,
+            projection.condition_text AS conditionText,
+            projection.raw_text AS rawText,
+            projection.parse_status AS parseStatus,
+            relation.source_maint_record_key AS sourceMaintRecordKey,
+            relation.source_maint_id AS sourceMaintId,
+            relation.landing_source_id AS landingSourceId,
+            relation.landing_source_key AS landingSourceKey,
+            relation.landing_content_hash AS landingContentHash,
+            relation.source_provider AS sourceProvider,
+            relation.source_page AS sourcePage,
+            relation.source_revision_timestamp AS sourceRevisionTimestamp
+        FROM `terria_v1_relation`.`projection_equipment_effect_attributes` projection
+        LEFT JOIN `terria_v1_relation`.`relation_equipment_effect_attributes` relation
+            ON relation.record_key = projection.relation_record_key
+        WHERE projection.status = 1
+            AND projection.deleted = 0
+            AND projection.owner_kind = 'item'
+            AND projection.source_kind IN""" + " " + ARMOR_EFFECT_SOURCE_KINDS + """
+            AND projection.owner_id = ?
+        ORDER BY projection.effect_index ASC, projection.id ASC
         """;
 
     static final String ITEM_TREASURE_BAG_LOOT_SQL = """
@@ -366,9 +386,20 @@ public class PublicItemServiceImpl implements PublicItemService {
         dto.setClassScope(AdminTextUtils.trimToNull(resultSet.getString("classScope")));
         dto.setOperation(AdminTextUtils.trimToNull(resultSet.getString("operation")));
         dto.setValueDecimal(nullableBigDecimal(resultSet, "valueDecimal"));
+        dto.setValueMaxDecimal(nullableBigDecimal(resultSet, "valueMaxDecimal"));
         dto.setUnit(AdminTextUtils.trimToNull(resultSet.getString("unit")));
+        dto.setVariantLabel(AdminTextUtils.trimToNull(resultSet.getString("variantLabel")));
+        dto.setConditionText(AdminTextUtils.trimToNull(resultSet.getString("conditionText")));
         dto.setRawText(AdminTextUtils.trimToNull(resultSet.getString("rawText")));
         dto.setParseStatus(AdminTextUtils.trimToNull(resultSet.getString("parseStatus")));
+        dto.setSourceMaintRecordKey(AdminTextUtils.trimToNull(resultSet.getString("sourceMaintRecordKey")));
+        dto.setSourceMaintId(nullableLong(resultSet, "sourceMaintId"));
+        dto.setLandingSourceId(nullableLong(resultSet, "landingSourceId"));
+        dto.setLandingSourceKey(AdminTextUtils.trimToNull(resultSet.getString("landingSourceKey")));
+        dto.setLandingContentHash(AdminTextUtils.trimToNull(resultSet.getString("landingContentHash")));
+        dto.setSourceProvider(AdminTextUtils.trimToNull(resultSet.getString("sourceProvider")));
+        dto.setSourcePage(AdminTextUtils.trimToNull(resultSet.getString("sourcePage")));
+        dto.setSourceRevisionTimestamp(AdminTextUtils.trimToNull(resultSet.getString("sourceRevisionTimestamp")));
         return dto;
     }
 

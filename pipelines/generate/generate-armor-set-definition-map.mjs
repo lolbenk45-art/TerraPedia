@@ -36,6 +36,7 @@ const defs = Array.isArray(defsRaw.records) ? defsRaw.records : [];
 const definitionByTextKey = new Map(defs.map((record) => [String(record.textKey), record]));
 export const manualDefinitionOverrides = new Map([
   ['挖矿盔甲', 'ArmorSetBonus.Mining'],
+  ['蘑菇矿盔甲', 'ArmorSetBonus.Shroomite'],
   ['灰烬木盔甲', 'ArmorSetBonus.Wood'],
   ['丛林盔甲', 'ArmorSetBonus.Jungle'],
   ['防雪盔甲', 'ArmorSetBonus.Snow'],

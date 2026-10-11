@@ -6,11 +6,154 @@ import path from 'node:path';
 
 import {
   buildCanonicalItemGroupRelationProjection,
+  collectArmorAttributeCellDiagnostics,
+  buildArmorAttributeEffectRows,
+  buildArmorAttributeRelations,
   parseArgs,
   readWikiArmorSets,
   rewriteArmorSetRelatedItemImages,
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
+
+test('collectArmorAttributeCellDiagnostics preserves every qualified source cell for review', () => {
+  const diagnostics = collectArmorAttributeCellDiagnostics([
+    {
+      recordKey: 'shroomite-head-1', itemId: 3456, itemNameZh: '蘑菇矿头盔',
+      rawCellsJson: JSON.stringify({ rangedDamage: '>15%', rangedCritChance: '5%' })
+    },
+    {
+      recordKey: 'shroomite-head-2', itemId: 3457, itemNameZh: '蘑菇矿面具',
+      rawCellsJson: JSON.stringify({ rangedDamage: '>20%' })
+    }
+  ]);
+  assert.deepEqual(diagnostics, [
+    { recordKey: 'shroomite-head-1', itemId: 3456, itemNameZh: '蘑菇矿头盔', cellKey: 'rangedDamage', rawValue: '>15%', unit: 'percent' },
+    { recordKey: 'shroomite-head-2', itemId: 3457, itemNameZh: '蘑菇矿面具', cellKey: 'rangedDamage', rawValue: '>20%', unit: 'percent' }
+  ]);
+});
+
+test('buildArmorAttributeEffectRows keeps class-specific critical cells typed by class', () => {
+  const rows = buildArmorAttributeEffectRows([{
+    recordKey: 'a'.repeat(64),
+    itemId: 728,
+    itemInternalName: 'WoodBreastplate',
+    itemNameZh: '木胸甲',
+    slotGroup: 'body',
+    rawCellsJson: JSON.stringify({
+      meleeCritChance: '+5%',
+      rangedCritChance: '+6%',
+      magicCritChance: '+7%'
+    })
+  }]);
+
+  assert.deepEqual(rows.map((row) => [row.statKey, row.classScope]), [
+    ['crit_chance', 'melee'],
+    ['crit_chance', 'ranged'],
+    ['crit_chance', 'magic']
+  ]);
+});
+
+for (const otherBonus of ['额外弓伤害', '额外枪伤害', '额外其他远程伤害']) {
+  for (const rangedDamage of ['12%', '15%']) {
+    test(`rejects exact ${rangedDamage} with unresolved specialized note ${otherBonus}`, () => {
+      assert.throws(() => buildArmorAttributeEffectRows([{
+        recordKey: 'specialized', itemId: 1546,
+        rawCellsJson: JSON.stringify({ rangedDamage, otherBonus }),
+      }]), /specialized damage semantics/);
+    });
+  }
+}
+
+test('diagnostics distinguish qualified summary cells from effect cells', () => {
+  const diagnostics = collectArmorAttributeCellDiagnostics([
+    ['额外弓伤害', 1546], ['额外枪伤害', 1547], ['额外其他远程伤害', 1548],
+  ].map(([otherBonus, itemId]) => ({ itemId, recordKey: String(itemId),
+    rawCellsJson: JSON.stringify({ rangedDamage: '>15%', rangedDamageCritChance: '>20%', otherBonus }),
+  })));
+  assert.equal(diagnostics.length, 6);
+  assert.deepEqual(diagnostics.map(row => [row.itemId, row.cellKey, row.rawValue, row.cellRole ?? 'effect']), [
+    [1546, 'rangedDamage', '>15%', 'effect'], [1546, 'rangedDamageCritChance', '>20%', 'summary'],
+    [1547, 'rangedDamage', '>15%', 'effect'], [1547, 'rangedDamageCritChance', '>20%', 'summary'],
+    [1548, 'rangedDamage', '>15%', 'effect'], [1548, 'rangedDamageCritChance', '>20%', 'summary'],
+  ]);
+});
+
+test('diagnostics preserve the scope note when an exact value still has unresolved semantics', () => {
+  const diagnostics = collectArmorAttributeCellDiagnostics([{
+    recordKey: 'specialized', itemId: 1546, itemNameZh: '蘑菇矿头饰',
+    rawCellsJson: JSON.stringify({ rangedDamage: '12%', otherBonus: '额外弓伤害' }),
+  }]);
+  assert.deepEqual(diagnostics, [{
+    recordKey: 'specialized', itemId: 1546, itemNameZh: '蘑菇矿头饰',
+    cellKey: 'rangedDamage', rawValue: '12%', unit: 'percent',
+    reason: 'specialized-damage-semantics-unresolved', sourceContext: '额外弓伤害',
+  }]);
+});
+
+test('ordinary damage with an unrelated note is accepted and summaries never create effects', () => {
+  const rows = buildArmorAttributeEffectRows([{
+    recordKey: 'ordinary', itemId: 1549,
+    rawCellsJson: JSON.stringify({ rangedDamage: '13%', rangedDamageCritChance: '>20%', otherBonus: '移动时有残影' }),
+  }]);
+  assert.deepEqual(rows.map(row => [row.statKey, row.valueDecimal, row.operation]), [['damage_bonus', 13, 'add']]);
+});
+
+test('legacy attribute conversion retains support for null raw JSON', () => {
+  const rows = buildArmorAttributeRelations({ maintArmorAttributeRows: [{ record_key: 'old', raw_json: 'null' }] });
+  assert.equal(rows.length, 1);
+});
+
+test('armor cells retain resource units and signed modifiers without double counting summary totals', () => {
+  const rows = buildArmorAttributeEffectRows([{
+    recordKey: 'resources', itemId: 1, slotGroup: 'head',
+    rawCellsJson: JSON.stringify({ maxMana: '+40', manaCost: '−10%', minionSlots: '+1',
+      sentrySlots: '+2', movementSpeed: '12%', meleeDamage: '5%', meleeCritChance: '3%',
+      meleeDamageCritChance: '8%' }),
+  }]);
+  assert.deepEqual(rows.map(row => [row.statKey, row.classScope, row.valueDecimal, row.unit]), [
+    ['damage_bonus', 'melee', 5, 'percent'], ['crit_chance', 'melee', 3, 'percent'],
+    ['mana_max', 'magic', 40, 'count'], ['mana_cost', null, -10, 'percent'],
+    ['minion_capacity', null, 1, 'count'], ['sentry_capacity', null, 2, 'count'],
+    ['move_speed', null, 12, 'percent'],
+  ]);
+  assert.deepEqual(rows.map(row => row.effectIndex), [0, 4, 8, 9, 10, 11, 12]);
+  assert.equal(new Set(rows.map(row => row.recordKey)).size, rows.length);
+});
+
+for (const [cell, value] of [['rangedDamage', '>15%'], ['maxMana', '+40%'],
+  ['movementSpeed', '10% when moving'], ['minionSlots', '+1.5']]) {
+  test(`rejects ambiguous or incorrectly dimensioned armor cell ${cell}=${value}`, () => {
+    assert.throws(() => buildArmorAttributeEffectRows([{
+      recordKey: 'ambiguous', itemId: 1, rawCellsJson: JSON.stringify({ [cell]: value }),
+    }]), /armor.*cell|numeric|unit/i);
+  });
+}
+
+test('buildArmorAttributeRelations reconciles a stale source slot to one exact armor-set part role', () => {
+  const rows = buildArmorAttributeRelations({
+    maintArmorAttributeRows: [{
+      record_key: 'b'.repeat(64),
+      item_name_zh: '木胸甲',
+      item_page_title: '木胸甲',
+      slot_group: 'head',
+      raw_cells_json: '{}'
+    }],
+    maintItems: [{
+      source_id: 728,
+      internal_name: 'WoodBreastplate',
+      name_zh: '木胸甲',
+      raw_json: '{}'
+    }],
+    relationArmorSetItems: [{
+      item_source_id: 728,
+      item_internal_name: 'WoodBreastplate',
+      part_role: 'body'
+    }]
+  });
+
+  assert.equal(rows[0].slotGroup, 'body');
+  assert.equal(rows[0].reason, 'reconciled_slot_group_from_relation_armor_set_item');
+});
 
 test('buildNpcCrawlerFactRelationInputs reconstructs non-empty shop, loot, and buff inputs', async () => {
   const { buildNpcCrawlerFactRelationInputs } = await import('./sync-maint-to-relation.mjs');
@@ -285,7 +428,7 @@ test('runSync creates item-owned armor attribute effects from wiki armor attribu
       itemInternalName: 'HallowedMask',
       slotType: 'headSlot',
       statKey: 'crit_chance',
-      classScope: 'all',
+      classScope: 'melee',
       valueDecimal: 10,
       unit: 'percent'
     },
@@ -466,7 +609,7 @@ test('runSync derives ancient hallowed armor attribute effects from hallowed wik
       ownerKey: 'HallowedMask',
       itemInternalName: 'HallowedMask',
       statKey: 'crit_chance',
-      classScope: 'all',
+      classScope: 'melee',
       valueDecimal: 10
     },
     {
@@ -490,7 +633,7 @@ test('runSync derives ancient hallowed armor attribute effects from hallowed wik
       ownerKey: 'AncientHallowedMask',
       itemInternalName: 'AncientHallowedMask',
       statKey: 'crit_chance',
-      classScope: 'all',
+      classScope: 'melee',
       valueDecimal: 10
     },
     {
@@ -962,7 +1105,17 @@ test('runSync dry-run parses armor set benefit text into equipment effect attrib
             raw_json: JSON.stringify({
               pageTitle: 'Ninja armor',
               nameZh: '忍者盔甲',
-              effectText: '+9% 暴击率\n套装奖励：+20% 移动速度'
+              effectText: '+9% 暴击率\n套装奖励：+20% 移动速度',
+              effectTextSource: {
+                provider: 'terraria.wiki.gg',
+                locale: 'zh',
+                kind: 'set_page',
+                pageTitle: '忍者盔甲',
+                revisionId: 12345,
+                revisionTimestamp: '2026-05-23T00:00:00Z',
+                contentHash: `sha256:${'a'.repeat(64)}`,
+                effectTextHash: `sha256:${'b'.repeat(64)}`
+              }
             }),
             source_provider: 'terraria.wiki.gg',
             source_page: 'Armor',
@@ -997,6 +1150,9 @@ test('runSync dry-run parses armor set benefit text into equipment effect attrib
     ['crit_chance', 'move_speed']
   );
   assert.equal(result.results.relationEquipmentEffectAttributes[1].applyScope, 'set_bonus');
+  assert.equal(result.results.relationEquipmentEffectAttributes[0].sourcePage, '忍者盔甲');
+  assert.equal(result.results.relationEquipmentEffectAttributes[0].sourceRevisionTimestamp, '2026-05-23T00:00:00Z');
+  assert.equal(result.results.relationEquipmentEffectAttributes[0].sourceLocale, 'zh');
   assert.equal(result.results.projectionEquipmentEffectAttributes.length, 2);
   assert.equal(
     result.results.projectionEquipmentEffectAttributes[0].ownerId,
@@ -1993,3 +2149,12 @@ test('runSync dry-run tolerates empty managed image prefixes without relation wr
   assert.equal(result.apply, false);
   assert.equal(result.results.projectionItems[0].image, null);
 });
+
+for (const row of [
+  { landing_source_key: 'wiki.armor.item-effects.shroomite.' + 'a'.repeat(64), raw_json: '{}' },
+  { raw_json: JSON.stringify({ schemaVersion: 'armor-item-effect-maint/v1' }) },
+]) {
+  test('legacy attribute conversion rejects partial typed item-effect sources', () => {
+    assert.throws(() => buildArmorAttributeRelations({ maintArmorAttributeRows: [row] }), /item.effect.*source.*contract/i);
+  });
+}

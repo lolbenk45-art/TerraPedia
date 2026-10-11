@@ -5,7 +5,12 @@ import com.terraria.skills.service.impl.CrawlerMonitorActionDefinition;
 import com.terraria.skills.service.impl.CrawlerMonitorActionRegistry;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -28,6 +33,7 @@ public class CrawlerAttemptSupervisor {
     private final CrawlerQueueV2Properties properties;
     private final Path worktreeRoot;
     private final Path artifactRoot;
+    private final Path commandRoot;
     private final Clock clock;
     private final CrawlerQueueEngineRouter router;
     private final Map<String, CrawlerAttemptProcessLauncher.ManagedProcess> processes =
@@ -54,6 +60,7 @@ public class CrawlerAttemptSupervisor {
             properties,
             repoRoot,
             repoRoot,
+            repoRoot,
             clock,
             router
         );
@@ -71,6 +78,34 @@ public class CrawlerAttemptSupervisor {
         Clock clock,
         CrawlerQueueEngineRouter router
     ) {
+        this(
+            repository,
+            artifactStore,
+            actionRegistry,
+            launcher,
+            stateMachine,
+            properties,
+            worktreeRoot,
+            artifactRoot,
+            worktreeRoot,
+            clock,
+            router
+        );
+    }
+
+    public CrawlerAttemptSupervisor(
+        CrawlerQueueV2Repository repository,
+        CrawlerAttemptArtifactStore artifactStore,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerAttemptStateMachine stateMachine,
+        CrawlerQueueV2Properties properties,
+        Path worktreeRoot,
+        Path artifactRoot,
+        Path commandRoot,
+        Clock clock,
+        CrawlerQueueEngineRouter router
+    ) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.artifactStore = Objects.requireNonNull(artifactStore, "artifactStore");
         this.actionRegistry = Objects.requireNonNull(actionRegistry, "actionRegistry");
@@ -79,6 +114,7 @@ public class CrawlerAttemptSupervisor {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.worktreeRoot = Objects.requireNonNull(worktreeRoot, "worktreeRoot").toAbsolutePath().normalize();
         this.artifactRoot = Objects.requireNonNull(artifactRoot, "artifactRoot").toAbsolutePath().normalize();
+        this.commandRoot = Objects.requireNonNull(commandRoot, "commandRoot").toAbsolutePath().normalize();
         this.clock = Objects.requireNonNull(clock, "clock");
         this.router = Objects.requireNonNull(router, "router");
     }
@@ -92,6 +128,17 @@ public class CrawlerAttemptSupervisor {
         requireAttempt(attempt);
         return withAttemptLock(attempt.attemptId(), () -> {
             CrawlerQueueV2Attempt current = requireCurrentSnapshot(attempt, attempt.status());
+            if (isSchedulerOwned(current)) {
+                try {
+                    requireExactManifest(current);
+                } catch (RuntimeException exception) {
+                    appendWatcherFailureEvent(new LaunchIdentity(
+                        current.stateStoreEpoch(), current.queueId(), current.attemptId(), current.fenceToken(),
+                        current.pid(), current.processStartedAt()
+                    ));
+                    return false;
+                }
+            }
             CrawlerAttemptProcessLauncher.ProcessLookup lookup = resolveExactProcess(current);
             if (lookup.code() != CrawlerAttemptProcessLauncher.LookupCode.FOUND) {
                 return false;
@@ -120,10 +167,19 @@ public class CrawlerAttemptSupervisor {
     }
 
     private StartResult startSerialized(CrawlerQueueV2Attempt attempt) {
-            CrawlerQueueV2Attempt current = requireCurrentSnapshot(
-                attempt,
-                CrawlerQueueV2Status.STARTING
-            );
+            CrawlerQueueV2Attempt current;
+            try {
+                current = requireCurrentSnapshot(attempt, CrawlerQueueV2Status.STARTING);
+            } catch (RuntimeException exception) {
+                CrawlerQueueV2Attempt latest = loadCurrentAttempt(attempt.attemptId());
+                if (latest.status() != CrawlerQueueV2Status.STARTING
+                    || latest.stateVersion() != attempt.stateVersion()
+                    || !Objects.equals(latest.pid(), attempt.pid())
+                    || !Objects.equals(latest.processStartedAt(), attempt.processStartedAt())) {
+                    throw exception;
+                }
+                return terminalizeStartFailure(latest, "launch validation failed", exception);
+            }
             if (current.pid() != null || current.processStartedAt() != null) {
                 throw new IllegalStateException("STARTING attempt 已记录进程身份：" + current.attemptId());
             }
@@ -133,16 +189,20 @@ public class CrawlerAttemptSupervisor {
             Map<String, String> environment;
             try {
                 definition = resolveLaunchAction(current);
-                requireExactManifest(current);
+                CrawlerAttemptManifest manifest = requireExactManifest(current);
                 resolveAttemptPath(current, current.artifacts().progressPath());
                 logPath = resolveAttemptPath(current, current.artifacts().logPath());
                 CrawlerQueueV2Queue queue = repository.findQueue(current.queueId())
                     .orElseThrow(() -> new IllegalStateException("V2 queue 不存在：" + current.queueId()));
+                if (!queue.hasExactAttemptBinding(current)) {
+                    throw new SecurityException("V2 queue 与 STARTING attempt 的 immutable binding 不一致");
+                }
                 command = new ArrayList<>(definition.renderCommand(
                     launchArtifactPath(current.artifacts().reportPath()),
                     launchArtifactPath(current.artifacts().progressPath()),
                     effectiveResumeMode(current, queue, definition)
                 ));
+                command = resolveCommandFromRoot(command);
                 environment = launchEnvironment(current);
             } catch (RuntimeException exception) {
                 return terminalizeStartFailure(current, "launch validation failed", exception);
@@ -290,6 +350,9 @@ public class CrawlerAttemptSupervisor {
     public ProgressResult ingestProgress(CrawlerQueueV2Attempt attempt) {
         requireAttempt(attempt);
         CrawlerQueueV2Attempt current = loadCurrentAttempt(attempt.attemptId());
+        if (isSchedulerOwned(current)) {
+            requireExactManifest(current);
+        }
         Optional<CrawlerAttemptProgressPayload> progress;
         try {
             progress = artifactStore.readProgress(current.attemptId());
@@ -385,6 +448,30 @@ public class CrawlerAttemptSupervisor {
             }
         }
         return definition.defaultResumeMode();
+    }
+
+    private List<String> resolveCommandFromRoot(List<String> command) {
+        if (commandRoot.equals(worktreeRoot)) {
+            return command;
+        }
+        if (command.size() < 2 || !"node".equals(command.get(0))) {
+            throw new SecurityException("configured V2 command root requires a registered node entrypoint");
+        }
+        Path entrypoint = Path.of(command.get(1));
+        if (entrypoint.isAbsolute()) {
+            throw new SecurityException("registered V2 node entrypoint must be relative to the command root");
+        }
+        Path resolved = commandRoot.resolve(entrypoint).normalize();
+        if (!resolved.startsWith(commandRoot)
+            || Files.isSymbolicLink(commandRoot)
+            || !Files.isDirectory(commandRoot, LinkOption.NOFOLLOW_LINKS)
+            || Files.isSymbolicLink(resolved)
+            || !Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)) {
+            throw new SecurityException("configured V2 command root does not contain a regular registered entrypoint");
+        }
+        List<String> resolvedCommand = new ArrayList<>(command);
+        resolvedCommand.set(1, resolved.toString());
+        return List.copyOf(resolvedCommand);
     }
 
     private CrawlerQueueV2Attempt mutateProgress(
@@ -564,6 +651,31 @@ public class CrawlerAttemptSupervisor {
         return withAttemptLock(attempt.attemptId(), () -> cancelSerialized(attempt));
     }
 
+    /**
+     * Validates the immutable queue/artifact identity before a cancellation
+     * path is allowed to inspect or signal a child process. Identity-free
+     * manual attempts still use the queue binding only; scheduler-owned
+     * attempts must also have matching manifest and operation-plan evidence.
+     */
+    boolean hasExactIdentityBinding(CrawlerQueueV2Attempt attempt) {
+        if (attempt == null) {
+            return false;
+        }
+        try {
+            CrawlerQueueV2Queue queue = repository.findQueue(attempt.queueId()).orElse(null);
+            if (queue == null || !queue.hasExactAttemptBinding(attempt)) {
+                return false;
+            }
+            if (attempt.sourceDispatchIdentity() == null) {
+                return true;
+            }
+            requireExactManifest(attempt);
+            return true;
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
     public CrawlerQueueV2Attempt handleLeaseRenewalFailure(CrawlerQueueV2Attempt attempt) {
         requireAttempt(attempt);
         return withAttemptLock(attempt.attemptId(), () -> handleLeaseRenewalFailureSerialized(attempt));
@@ -657,6 +769,9 @@ public class CrawlerAttemptSupervisor {
             attempt,
             CrawlerQueueV2Status.CANCEL_REQUESTED
         );
+        if (!hasExactIdentityBinding(current)) {
+            return transitionIdentityFailure(current);
+        }
         CrawlerAttemptProcessLauncher.ProcessLookup lookup = resolveExactProcess(current);
         if (lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND
             || lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.START_TIME_MISMATCH) {
@@ -682,6 +797,36 @@ public class CrawlerAttemptSupervisor {
             return transitionCancelled(terminationAuthority);
         }
         return transitionTerminationUnconfirmed(terminationAuthority);
+    }
+
+    private CrawlerQueueV2Attempt transitionIdentityFailure(CrawlerQueueV2Attempt attempt) {
+        if (!stateMachine.canTransition(attempt.status(), CrawlerQueueV2Status.STALLED)) {
+            throw new IllegalStateException(
+                "identity gate failed but V2 attempt cannot enter STALLED: " + attempt.attemptId()
+            );
+        }
+        return mutate(
+            attempt,
+            CrawlerQueueV2Status.STALLED,
+            CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED,
+            stateMachine.deadlineFor(
+                CrawlerQueueV2Status.STALLED,
+                clock.instant(),
+                attempt.lastHeartbeatAt(),
+                attempt.eligibleAt()
+            ),
+            attempt.lastHeartbeatAt(),
+            null,
+            null,
+            null,
+            null,
+            "attempt identity binding failed",
+            null,
+            null,
+            false,
+            null,
+            "attempt.transitioned"
+        );
     }
 
     int serializerEntryCount() {
@@ -1044,6 +1189,7 @@ public class CrawlerAttemptSupervisor {
     private Map<String, String> launchEnvironment(CrawlerQueueV2Attempt attempt) {
         Map<String, String> environment = new LinkedHashMap<>();
         environment.put("WORKTREE_ROOT", worktreeRoot.toString());
+        environment.put("TERRAPEDIA_CRAWLER_COMMAND_ROOT", commandRoot.toString());
         environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", attempt.actionId());
         environment.put("TERRAPEDIA_CRAWLER_QUEUE_ID", attempt.queueId());
         environment.put("TERRAPEDIA_CRAWLER_ATTEMPT_ID", attempt.attemptId());
@@ -1056,6 +1202,30 @@ public class CrawlerAttemptSupervisor {
             .map(CrawlerQueueV2Queue::requestedBy)
             .filter(requestedBy -> requestedBy != null && !requestedBy.isBlank())
             .ifPresent(requestedBy -> environment.put("TERRAPEDIA_CRAWLER_REQUESTED_BY", requestedBy));
+        if (isSchedulerOwned(attempt)) {
+            SourceDispatchIdentity identity = attempt.sourceDispatchIdentity();
+            if (identity == null) {
+                throw new SecurityException("scheduler-owned attempt 缺少 sourceDispatchIdentity");
+            }
+            environment.put("TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT", identity.sourceFingerprint());
+            environment.put("TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY", identity.sourceRunIdentity());
+            environment.put("TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY", identity.sourceContentIdentity());
+            environment.put(
+                "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH",
+                worktreeRoot.resolve("data/generated/source-update-monitor.latest.json").toString()
+            );
+            if ("domain-source-armor-sets".equals(attempt.actionId())) {
+                CrawlerOperationPlanSnapshot plan = artifactStore.readOperationPlan(attempt.attemptId())
+                    .orElseThrow(() -> new SecurityException("Armor scheduler attempt 缺少 immutable operation plan"));
+                if (!"canonical-armor-ingestion".equals(plan.operationId())
+                    || plan.automaticBindingPath() == null
+                    || plan.automaticBindingSha256() == null) {
+                    throw new SecurityException("Armor scheduler attempt 缺少 automatic binding");
+                }
+                environment.put("TERRAPEDIA_ARMOR_AUTOMATIC_BINDING_PATH", plan.automaticBindingPath());
+                environment.put("TERRAPEDIA_ARMOR_AUTOMATIC_BINDING_SHA256", plan.automaticBindingSha256());
+            }
+        }
         return environment;
     }
 
@@ -1103,7 +1273,8 @@ public class CrawlerAttemptSupervisor {
             && Objects.equals(request.lane(), current.lane())
             && Objects.equals(request.domain(), current.domain())
             && Objects.equals(request.coveredDomains(), current.coveredDomains())
-            && Objects.equals(request.actionId(), current.actionId());
+            && Objects.equals(request.actionId(), current.actionId())
+            && Objects.equals(request.sourceDispatchIdentity(), current.sourceDispatchIdentity());
     }
 
     private boolean progressIdentityMatches(
@@ -1437,6 +1608,28 @@ public class CrawlerAttemptSupervisor {
             || !Objects.equals(manifest.actionId(), attempt.actionId())) {
             throw new SecurityException("attempt manifest 身份与 STARTING attempt 不一致");
         }
+        if (!Objects.equals(manifest.sourceDispatchIdentity(), attempt.sourceDispatchIdentity())) {
+            throw new SecurityException("attempt manifest source identity 与 STARTING attempt 不一致");
+        }
+        if (isSchedulerOwned(attempt)) {
+            SourceDispatchIdentity identity = attempt.sourceDispatchIdentity();
+            if (identity == null) {
+                throw new SecurityException("scheduler-owned attempt 缺少 sourceDispatchIdentity");
+            }
+            CrawlerOperationPlanSnapshot plan = artifactStore.readOperationPlan(attempt.attemptId())
+                .orElseThrow(() -> new SecurityException(
+                    "scheduler-owned attempt 缺少 immutable operation plan：" + attempt.attemptId()
+                ));
+            if (!Objects.equals(plan.actionId(), attempt.actionId())
+                || !Objects.equals(plan.sourceDispatchIdentity(), identity)
+                || ("domain-source-armor-sets".equals(attempt.actionId())
+                    && (!"canonical-armor-ingestion".equals(plan.operationId())
+                        || plan.automaticBindingPath() == null
+                        || plan.automaticBindingSha256() == null
+                        || !isSafeArmorBinding(plan.automaticBindingPath(), plan.automaticBindingSha256())))) {
+                throw new SecurityException("scheduler-owned operation plan source identity 不一致");
+            }
+        }
         CrawlerQueueV2Artifacts artifacts = attempt.artifacts();
         if (!Objects.equals(manifest.progressPath(), artifacts.progressPath())
             || !Objects.equals(manifest.logPath(), artifacts.logPath())
@@ -1456,9 +1649,46 @@ public class CrawlerAttemptSupervisor {
                 attempt.pid(), attempt.processStartedAt(), attempt.artifacts().progressPath(),
                 attempt.artifacts().logPath(), attempt.artifacts().reportPath(), attempt.artifacts().outputPath(),
                 existing.retentionExpiresAt(), existing.artifactsExpiredAt(), existing.cleanedAt(),
-                existing.cleanedBy(), existing.cleanedPaths()
+                existing.cleanedBy(), existing.cleanedPaths(),
+                existing.sourceDispatchIdentity() == null
+                    ? attempt.sourceDispatchIdentity()
+                    : existing.sourceDispatchIdentity()
             ))
         );
+    }
+
+    private boolean isSchedulerOwned(CrawlerQueueV2Attempt attempt) {
+        return repository.findQueue(attempt.queueId())
+            .map(CrawlerQueueV2Queue::isSchedulerOwned)
+            .filter(Boolean::booleanValue)
+            .isPresent();
+    }
+
+    private boolean isSafeArmorBinding(String storedPath, String expectedHash) {
+        try {
+            Path root = worktreeRoot.toAbsolutePath().normalize()
+                .resolve("reports/authorization/canonical/automatic-armor").normalize();
+            Path path = Path.of(storedPath);
+            Path resolved = path.isAbsolute() ? path.toAbsolutePath().normalize() : worktreeRoot.resolve(path).toAbsolutePath().normalize();
+            if (!resolved.startsWith(root) || Files.isSymbolicLink(resolved)
+                || !Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)
+                || !expectedHash.matches("sha256:[0-9a-f]{64}")) {
+                return false;
+            }
+            Path realRoot = root.toRealPath(LinkOption.NOFOLLOW_LINKS);
+            Path realParent = resolved.getParent().toRealPath();
+            if (!realParent.startsWith(realRoot)) return false;
+            if (Files.getPosixFilePermissions(resolved, LinkOption.NOFOLLOW_LINKS).stream()
+                .anyMatch(permission -> permission.name().startsWith("GROUP_")
+                    || permission.name().startsWith("OTHERS_"))) {
+                return false;
+            }
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(resolved));
+            String actual = "sha256:" + java.util.HexFormat.of().formatHex(digest);
+            return Objects.equals(actual, expectedHash);
+        } catch (IOException | NoSuchAlgorithmException | RuntimeException exception) {
+            return false;
+        }
     }
 
     private void requireAttempt(CrawlerQueueV2Attempt attempt) {

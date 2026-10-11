@@ -126,7 +126,10 @@ if (isDirectExecution()) {
 export async function runBossImport(args = {}, dependencies = {}) {
   const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'));
   const dateTag = new Date().toISOString().slice(0, 10);
-  const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`));
+  const writeReport = booleanOption(args['write-report'], true) && args['report-json'] !== 'false';
+  const reportPath = writeReport
+    ? path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`))
+    : null;
   const dryRun = booleanOption(args['dry-run'], false);
   const offline = booleanOption(args.offline, false);
   const strictMode = booleanOption(args.strict, false);
@@ -217,7 +220,7 @@ export async function runBossImport(args = {}, dependencies = {}) {
   try {
     await conn.query('SET NAMES utf8mb4');
     if (!callerOwnsTransaction) await ensureSchema(conn);
-    const npcLookup = await loadNpcLookup(conn);
+    const npcLookup = await loadNpcLookup(conn, dependencies.npcRows);
 
     if (!callerOwnsTransaction) await conn.beginTransaction();
 
@@ -315,9 +318,162 @@ export async function runBossImport(args = {}, dependencies = {}) {
     if (!callerOwnsTransaction) await conn.end();
   }
 
-  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-  fs.writeFileSync(reportPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  if (writeReport) {
+    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    fs.writeFileSync(reportPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  }
   return summary;
+}
+
+/**
+ * Pure projection of the Boss importer target rows. The automatic L2 producer
+ * uses this helper with a frozen NPC and boss-group snapshot so member IDs,
+ * stale-member clears, Chinese preservation, and managed-image fallbacks are
+ * decided before a transaction begins.
+ */
+export function buildBossImportProjection({
+  records = [],
+  currentBossGroups = [],
+  currentNpcs = [],
+  npcRows = [],
+  managedUrlPrefixes = [DEFAULT_MANAGED_URL_PREFIX],
+} = {}) {
+  if (!Array.isArray(records)) throw new TypeError('Boss projection records must be an array');
+  if (!Array.isArray(currentBossGroups)) throw new TypeError('Boss projection current groups must be an array');
+  if (!Array.isArray(currentNpcs)) throw new TypeError('Boss projection current NPC rows must be an array');
+  if (!Array.isArray(npcRows)) throw new TypeError('Boss projection NPC dependency must be an array');
+
+  if (records.some((record) => record?.status !== 'ok')) {
+    throw new Error('Boss projection requires every source record to have status=ok');
+  }
+  const sourceRecords = records;
+  if (sourceRecords.length === 0) throw new Error('Boss projection requires at least one ok source record');
+
+  const currentGroupsByCode = new Map();
+  const currentGroupIds = new Set();
+  for (const [index, row] of currentBossGroups.entries()) {
+    const code = toText(row?.code);
+    const id = toPositiveInteger(row?.id);
+    if (!code || id == null || currentGroupsByCode.has(code) || currentGroupIds.has(id)) {
+      throw new Error(`current Boss group identity is duplicated or invalid at row ${index}`);
+    }
+    currentGroupsByCode.set(code, row);
+    currentGroupIds.add(id);
+  }
+
+  const currentNpcsById = new Map();
+  for (const [index, row] of currentNpcs.entries()) {
+    const id = toPositiveInteger(row?.id);
+    if (id == null || currentNpcsById.has(id)) {
+      throw new Error(`current Boss NPC identity is duplicated or invalid at row ${index}`);
+    }
+    currentNpcsById.set(id, row);
+  }
+
+  const npcLookup = buildNpcLookup(npcRows);
+  const groups = [];
+  const projectedMembersById = new Map();
+  const mappingByCode = {};
+  const projectedCodes = new Set();
+
+  for (const [index, record] of sourceRecords.entries()) {
+    const code = buildBossCode(record?.titleEn);
+    if (!code) throw new Error(`Boss projection source row ${index} is missing titleEn`);
+    if (projectedCodes.has(code)) throw new Error(`Boss projection source identity is duplicated: ${code}`);
+    projectedCodes.add(code);
+    const existing = currentGroupsByCode.get(code);
+    if (!existing) {
+      throw new Error(`Boss projection requires an existing parent ID for ${code}`);
+    }
+    const groupId = toPositiveInteger(existing.id);
+    const memberMapping = mapBossMembers(record, npcLookup);
+    if (memberMapping.sourceMode !== 'reference' && memberMapping.unresolved.length > 0) {
+      throw new Error(`Boss projection has unresolved member mapping for ${code}`);
+    }
+
+    const directImageUrl = toText(record?.imageUrl);
+    const resolvedImageUrl = resolveBossImageUrl(
+      { ...record, imageUrl: directImageUrl },
+      memberMapping.members,
+      managedUrlPrefixes,
+    );
+    const existingImageUrl = toText(existing.image_url);
+    const imageUrl = resolvedImageUrl ?? existingImageUrl;
+    if (directImageUrl && !imageUrl && !isManagedUrlForEntity(directImageUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
+      throw new Error(`Boss projection requires a frozen managed image URL for ${code}`);
+    }
+
+    groups.push({
+      code,
+      name_en: toText(record.titleEn),
+      name_zh: reconcileBossNameZh(record, existing.name_zh),
+      boss_type: toText(record.groupType),
+      image_url: imageUrl ?? null,
+      progression_order: Number(record.progressionOrder ?? 0),
+      notes: reconcileBossNotes(record, existing.notes),
+      source_page: toText(record.sourceUrl),
+      source_revision_timestamp: normalizeSqlDateTime(record.revisionTimestamp),
+      status: 1,
+      deleted: 0,
+    });
+
+    const memberIds = new Set();
+    for (const member of memberMapping.members) {
+      const id = toPositiveInteger(member.id);
+      if (id == null || memberIds.has(id)) throw new Error(`Boss projection has a duplicate member for ${code}`);
+      if (!currentNpcsById.has(id)) throw new Error(`Boss projection member ${id} is missing from the current NPC snapshot`);
+      memberIds.add(id);
+      const previous = projectedMembersById.get(id);
+      if (previous && (previous.boss_group_id !== groupId || previous.boss_role !== toText(member.role))) {
+        throw new Error(`Boss projection member ${id} is assigned to multiple groups`);
+      }
+      projectedMembersById.set(id, {
+        id,
+        is_boss: 1,
+        boss_group_id: groupId,
+        boss_role: toText(member.role),
+        status: currentNpcsById.get(id)?.status == null ? 1 : currentNpcsById.get(id).status,
+        deleted: currentNpcsById.get(id)?.deleted == null ? 0 : currentNpcsById.get(id).deleted,
+      });
+    }
+
+    mappingByCode[code] = {
+      sourceMode: memberMapping.sourceMode,
+      referenceBossCodes: [...(memberMapping.referenceBossCodes ?? [])],
+      unresolved: [...memberMapping.unresolved],
+      members: memberMapping.members.map((member) => ({
+        id: member.id,
+        gameId: member.gameId,
+        internalName: member.internalName,
+        role: member.role,
+      })),
+    };
+  }
+
+  // The importer clears every stale member belonging to a processed group,
+  // including reference-only composite bosses such as Mechdusa.
+  for (const row of currentNpcs) {
+    const groupId = toPositiveInteger(row?.boss_group_id);
+    if (groupId == null || projectedMembersById.has(toPositiveInteger(row?.id))) continue;
+    const processedGroup = groups.some((group) => toPositiveInteger(currentGroupsByCode.get(group.code)?.id) === groupId);
+    if (!processedGroup) continue;
+    const id = toPositiveInteger(row?.id);
+    if (id == null) continue;
+    projectedMembersById.set(id, {
+      id,
+      is_boss: row?.is_boss == null ? 1 : row.is_boss,
+      boss_group_id: null,
+      boss_role: null,
+      status: row?.status == null ? 1 : row.status,
+      deleted: row?.deleted == null ? 0 : row.deleted,
+    });
+  }
+
+  return Object.freeze({
+    groups: Object.freeze(groups),
+    members: Object.freeze([...projectedMembersById.values()]),
+    mappingByCode: Object.freeze(mappingByCode),
+  });
 }
 
 async function main() {
@@ -343,22 +499,40 @@ async function ensureSchema(conn) {
   }
 }
 
-async function loadNpcLookup(conn) {
-  const [rows] = await conn.query(
+async function loadNpcLookup(conn, rowsOverride = null) {
+  const rows = rowsOverride ?? (await conn.query(
     `SELECT id, game_id, internal_name, name, name_zh, is_boss, raw_json
        FROM npcs
       WHERE COALESCE(deleted, 0) = 0`
-  );
-  const all = rows.map((row) => ({
-    id: Number(row.id),
-    gameId: row.game_id == null ? null : Number(row.game_id),
-    internalName: toText(row.internal_name) ?? '',
-    name: toText(row.name) ?? '',
-    nameZh: toText(row.name_zh) ?? '',
-    isBoss: toBoolean(row.is_boss),
-    rawJson: parseJsonObject(row.raw_json),
-  }));
-  const byInternal = new Map(all.map((row) => [normalizeKey(row.internalName), row]));
+  ))[0];
+  return buildNpcLookup(rows);
+}
+
+function buildNpcLookup(rows = []) {
+  const all = [];
+  const byInternal = new Map();
+  for (const [index, row] of (Array.isArray(rows) ? rows : []).entries()) {
+    const id = toPositiveInteger(row?.id);
+    const internalName = toText(row?.internal_name ?? row?.internalName);
+    if (id == null || !internalName) {
+      throw new Error(`Boss NPC dependency identity is invalid at row ${index}`);
+    }
+    const normalized = {
+      id,
+      gameId: row.game_id == null && row.gameId == null ? null : Number(row.game_id ?? row.gameId),
+      internalName,
+      name: toText(row.name) ?? '',
+      nameZh: toText(row.name_zh ?? row.nameZh) ?? '',
+      isBoss: toBoolean(row.is_boss ?? row.isBoss),
+      rawJson: parseJsonObject(row.raw_json ?? row.rawJson),
+    };
+    const key = normalizeKey(internalName);
+    if (!key || byInternal.has(key)) {
+      throw new Error(`Boss NPC dependency internal identity is duplicated at row ${index}`);
+    }
+    all.push(normalized);
+    byInternal.set(key, normalized);
+  }
   const byNormalizedName = new Map();
   for (const row of all) {
     for (const key of [normalizeKey(row.name), normalizeKey(row.nameZh)]) {
@@ -749,6 +923,11 @@ function buildBossCode(titleEn) {
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+}
+
+function toPositiveInteger(value) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
 function extractNpcImageUrl(rawJson) {

@@ -134,6 +134,41 @@ public class CrawlerQueueEngineRouter {
         });
     }
 
+    /**
+     * Repairs a maintenance marker whose epoch was written before a completed
+     * Redis cutover record was read. This is only valid before any irreversible
+     * V2 mutation evidence exists and for the same cutover identity.
+     */
+    public CutoverState repairMaintenanceMarker(String cutoverId, String stateStoreEpoch) {
+        if (v1Only) {
+            throw new IllegalStateException("V1-only router cannot persist a cutover marker");
+        }
+        if (isBlank(cutoverId) || isBlank(stateStoreEpoch)) {
+            throw new IllegalArgumentException("maintenance marker repair requires cutoverId and epoch");
+        }
+        return locked(current -> {
+            if (current == null
+                || (current.mode() != CrawlerQueueEngineMode.MAINTENANCE && current.mode() != CrawlerQueueEngineMode.V2)
+                || !Objects.equals(cutoverId, current.cutoverId())
+                || current.mutationReservationAt() != null
+                || current.firstLiveMutationAt() != null) {
+                throw new IllegalStateException("maintenance marker repair is not permitted");
+            }
+            CutoverState repaired = new CutoverState(
+                current.contractVersion(),
+                CrawlerQueueEngineMode.MAINTENANCE,
+                current.cutoverId(),
+                stateStoreEpoch,
+                clock.instant(),
+                null,
+                null
+            );
+            writeStateAtomically(repaired);
+            remember(CrawlerQueueEngineMode.MAINTENANCE, CrawlerQueueV2ReasonCode.STATE_STORE_RESET);
+            return repaired;
+        });
+    }
+
     public CutoverState readDurableState() {
         if (v1Only) {
             return null;

@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-audio-l2-promotion-20260830-admin-01",
+  "packetHash": "sha256:1f9712a1f8ae6a0ec45987cf2289545d96d90786044ca333e39d5575b0a859f0",
+  "policySetHash": "sha256:604d0c6705eb7c8f28f32a6d23f2cb2be7017968f1b94e7060f3590d4ca8dd97",
+  "expiresAt": "2026-08-31T15:40:00.000Z",
+  "domainId": "audio"
+}

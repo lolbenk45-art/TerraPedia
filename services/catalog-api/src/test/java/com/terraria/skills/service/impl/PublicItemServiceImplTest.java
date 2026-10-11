@@ -294,6 +294,17 @@ class PublicItemServiceImplTest {
     }
 
     @Test
+    void publicArmorProjectionQueriesExcludeRetiredRows() {
+        assertTrue(PublicItemServiceImpl.ITEM_ARMOR_ATTRIBUTES_SQL.contains("status = 1"));
+        assertTrue(PublicItemServiceImpl.ITEM_ARMOR_ATTRIBUTES_SQL.contains("deleted = 0"));
+        assertTrue(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL.contains("status = 1"));
+        assertTrue(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL.contains("deleted = 0"));
+        assertTrue(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL.contains(
+            "source_kind IN ('armor_attribute_cell','armor_item_page')"
+        ));
+    }
+
+    @Test
     void shouldQueryPublicItemEquipmentEffectsByLocalItemId() throws Exception {
         ResultSet resultSet = mock(ResultSet.class);
         when(resultSet.getLong("id")).thenReturn(1L);
@@ -311,9 +322,20 @@ class PublicItemServiceImplTest {
         when(resultSet.getString("classScope")).thenReturn("melee");
         when(resultSet.getString("operation")).thenReturn("add");
         when(resultSet.getBigDecimal("valueDecimal")).thenReturn(java.math.BigDecimal.TEN);
+        when(resultSet.getBigDecimal("valueMaxDecimal")).thenReturn(java.math.BigDecimal.valueOf(12));
         when(resultSet.getString("unit")).thenReturn("percent");
+        when(resultSet.getString("variantLabel")).thenReturn("headgear");
+        when(resultSet.getString("conditionText")).thenReturn("while using ranged weapons");
         when(resultSet.getString("rawText")).thenReturn("10%");
         when(resultSet.getString("parseStatus")).thenReturn("parsed");
+        when(resultSet.getString("sourceMaintRecordKey")).thenReturn("a".repeat(64));
+        when(resultSet.getLong("sourceMaintId")).thenReturn(123L);
+        when(resultSet.getLong("landingSourceId")).thenReturn(456L);
+        when(resultSet.getString("landingSourceKey")).thenReturn("wiki.page.shroomite");
+        when(resultSet.getString("landingContentHash")).thenReturn("b".repeat(64));
+        when(resultSet.getString("sourceProvider")).thenReturn("terraria.wiki.gg");
+        when(resultSet.getString("sourcePage")).thenReturn("Shroomite armor");
+        when(resultSet.getString("sourceRevisionTimestamp")).thenReturn("2026-01-31 20:21:00");
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             RowMapper<PublicItemEquipmentEffectDTO> rowMapper = invocation.getArgument(1);
@@ -333,7 +355,30 @@ class PublicItemServiceImplTest {
         assertEquals("damage_bonus", result.get(0).getStatKey());
         assertEquals("melee", result.get(0).getClassScope());
         assertEquals(java.math.BigDecimal.TEN, result.get(0).getValueDecimal());
+        assertEquals(java.math.BigDecimal.valueOf(12), result.get(0).getValueMaxDecimal());
+        assertEquals("headgear", result.get(0).getVariantLabel());
+        assertEquals("while using ranged weapons", result.get(0).getConditionText());
+        assertEquals("a".repeat(64), result.get(0).getSourceMaintRecordKey());
+        assertEquals(123L, result.get(0).getSourceMaintId());
+        assertEquals(456L, result.get(0).getLandingSourceId());
+        assertEquals("wiki.page.shroomite", result.get(0).getLandingSourceKey());
+        assertEquals("terraria.wiki.gg", result.get(0).getSourceProvider());
+        assertEquals("Shroomite armor", result.get(0).getSourcePage());
+        assertEquals("2026-01-31 20:21:00", result.get(0).getSourceRevisionTimestamp());
         verify(jdbcTemplate).query(eq(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL), ArgumentMatchers.<RowMapper<PublicItemEquipmentEffectDTO>>any(), eq(559L));
+    }
+
+    @Test
+    void publicEquipmentEffectsSqlPreservesTypedConditionsAndLineage() {
+        String sql = PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL;
+        assertTrue(sql.contains("condition_text AS conditionText"));
+        assertTrue(sql.contains("value_max_decimal AS valueMaxDecimal"));
+        assertTrue(sql.contains("variant_label AS variantLabel"));
+        assertTrue(sql.contains("source_maint_record_key AS sourceMaintRecordKey"));
+        assertTrue(sql.contains("landing_content_hash AS landingContentHash"));
+        assertTrue(sql.contains("source_revision_timestamp AS sourceRevisionTimestamp"));
+        assertTrue(sql.contains("relation_equipment_effect_attributes` relation"));
+        assertTrue(sql.contains("relation.record_key = projection.relation_record_key"));
     }
 
     @Test

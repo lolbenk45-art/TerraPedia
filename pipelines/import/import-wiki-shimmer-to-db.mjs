@@ -24,6 +24,10 @@ import {
   assertRepositoryOrdinaryFile,
   assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
+import {
+  buildShimmerPartitionBundle,
+  SHIMMER_PARTITION_SCOPES,
+} from '../automation/shimmer-partition-contract.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { verifyShimmerGeneration } from '../transform/shimmer-generation-contract.mjs';
 
@@ -38,6 +42,11 @@ const SHIMMER_TABLE_NAMES = Object.freeze([
   'shimmer_decraft_rules',
   'shimmer_entity_transforms',
   'shimmer_npc_transforms'
+]);
+const SHIMMER_SIX_SCOPE_OWNERSHIP_KEYS = Object.freeze([
+  'local.world_contexts.shimmer_context',
+  'local.entity_source_snapshots.shimmer_source_lineage',
+  ...SHIMMER_TABLE_NAMES.map((table) => `local.${table}.shimmer_source_page`),
 ]);
 const AUTHORIZED_SHIMMER_IMPORT_BINDING_FIELDS = Object.freeze([
   'operationId',
@@ -469,6 +478,11 @@ export async function applyVerifiedShimmerImport({
     bundle: normalizedBundle,
     preview
   });
+  assertAuthorizedShimmerPartitionBundle({
+    authorizedContext,
+    bundle: normalizedBundle,
+    preview,
+  });
   if (typeof readLockedBefore !== 'function') {
     throw new TypeError('shimmer import locked scope reader is required');
   }
@@ -490,6 +504,26 @@ export async function applyVerifiedShimmerImport({
     if (!callerOwnsTransaction && begun) await connection.rollback();
     throw error;
   }
+}
+
+export function assertAuthorizedShimmerPartitionBundle({ authorizedContext, bundle, preview } = {}) {
+  const ownershipKeys = authorizedContext?.executionManifest?.ownershipKeys;
+  const requiresSixScopes = Array.isArray(ownershipKeys)
+    && SHIMMER_SIX_SCOPE_OWNERSHIP_KEYS.every((key) => ownershipKeys.includes(key));
+  if (!requiresSixScopes) return null;
+  const raw = authorizedContext?.executionManifest?.shimmerPartition;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error('Shimmer six-scope partition bundle is required');
+  }
+  const partition = buildShimmerPartitionBundle(raw);
+  if (partition.generationId !== bundle?.generationId
+      || partition.previewSha256 !== preview?.previewSha256) {
+    throw new Error('Shimmer six-scope partition is not bound to the verified generation and preview');
+  }
+  if (JSON.stringify(partition.scopes) !== JSON.stringify(SHIMMER_PARTITION_SCOPES)) {
+    throw new Error('Shimmer six-scope partition scope drifted');
+  }
+  return partition;
 }
 
 function readJson(filePath) {

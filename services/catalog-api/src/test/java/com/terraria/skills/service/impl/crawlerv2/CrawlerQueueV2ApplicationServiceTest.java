@@ -115,11 +115,18 @@ class CrawlerQueueV2ApplicationServiceTest {
 
     @Test
     void buildsOverviewWithoutAnyRepositoryMutation() {
+        CrawlerQueueV2Attempt running = runningAttempt();
         when(repository.readEngineState()).thenReturn(engineV2());
-        when(repository.findLiveAttempts()).thenReturn(List.of(runningAttempt()));
+        when(repository.findLiveAttempts()).thenReturn(List.of(running));
         when(repository.findTerminalAttempts(100, NOW.minus(Duration.ofDays(7))))
             .thenReturn(List.of(completedAttempt("attempt-old")));
         when(repository.readReconcilerHealth()).thenReturn(Optional.of(healthyReconciler()));
+        when(repository.findQueue(running.queueId())).thenReturn(Optional.of(new CrawlerQueueV2Queue(
+            running.contractVersion(), running.stateStoreEpoch(), running.queueId(), running.lane(),
+            running.domain(), running.coveredDomains(), running.actionId(),
+            running.lane() + ":" + running.actionId() + ":fresh", running.requestedAt(), "admin",
+            running.attemptId(), List.of(running.attemptId()), null, "manual"
+        )));
 
         CrawlerQueueV2ApplicationService.OverviewSnapshot first = service.overview();
         CrawlerQueueV2ApplicationService.OverviewSnapshot second = service.overview();
@@ -134,6 +141,9 @@ class CrawlerQueueV2ApplicationServiceTest {
             state.currentAttemptId() == null && "idle".equals(state.status())
         ).count());
         assertEquals(first.liveQueue().get(0).stateVersion(), second.liveQueue().get(0).stateVersion());
+        assertEquals("manual", first.liveQueue().get(0).queueOrigin());
+        assertEquals("admin", first.liveQueue().get(0).queueRequestedBy());
+        assertTrue(first.liveQueue().get(0).queueMetadataAvailable());
         verify(repository, never()).createQueue(any());
         verify(repository, never()).claim(any());
         verify(repository, never()).mutate(any());
@@ -562,6 +572,193 @@ class CrawlerQueueV2ApplicationServiceTest {
     }
 
     @Test
+    void schedulerOwnedEnqueueCarriesIdentityIntoAttemptDedupeAndPlan() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-13T01:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            assertEquals(identity, command.attempt().sourceDispatchIdentity());
+            assertTrue(command.queue().dedupeKey().contains(":" + identity.sourceFingerprint() + ":"));
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(), command.attempt().attemptId(), 1L, null, NOW.minusSeconds(1)
+            );
+        });
+        when(artifactStore.prepare(any(), any(), any(), any(), any(), any(), any())).thenReturn(
+            new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-source"),
+                "reports/crawler-monitor/v2/2026-07-13/attempt-source/attempt-manifest.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-source/progress.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-source/run.log"
+            )
+        );
+
+        service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
+            "items", "wiki-items-refresh", "standard", "fresh", "v2-automation", null, identity
+        ));
+
+        verify(artifactStore).writeOperationPlan(
+            any(),
+            argThat(plan -> identity.equals(plan.sourceDispatchIdentity()))
+        );
+    }
+
+    @Test
+    void schedulerOwnedArmorEnqueueCarriesImmutableBindingPathAndHashIntoPlan() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "e".repeat(64),
+            "2026-07-13T01:00:00Z",
+            "sha256:" + "f".repeat(64)
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(), command.attempt().attemptId(), 1L, null, NOW.minusSeconds(1)
+            );
+        });
+        when(artifactStore.prepare(any(), any(), any(), any(), any(), any(), any())).thenReturn(
+            new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-armor"), "manifest.json", "progress.json", "run.log"
+            )
+        );
+
+        service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
+            "armor_sets", "domain-source-armor-sets", "standard", "fresh", "v2-automation", null,
+            identity, "reports/authorization/canonical/automatic-armor/" + "e".repeat(64) + ".binding.json",
+            "sha256:" + "1".repeat(64), "attempt-armor-plan"
+        ));
+
+        verify(artifactStore).writeOperationPlan(any(), argThat(plan ->
+            identity.equals(plan.sourceDispatchIdentity())
+                && plan.automaticBindingPath().endsWith("e".repeat(64) + ".binding.json")
+                && ("sha256:" + "1".repeat(64)).equals(plan.automaticBindingSha256())
+        ));
+    }
+
+    @Test
+    void schedulerOwnedArmorEnqueueUsesTheBindingAttemptIdentity() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "e".repeat(64),
+            "2026-07-13T01:00:00Z",
+            "sha256:" + "f".repeat(64)
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            assertEquals("attempt-bound-armor", command.attempt().attemptId());
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(), command.attempt().attemptId(), 1L, null, NOW.minusSeconds(1)
+            );
+        });
+        when(artifactStore.prepare(any(), any(), any(), any(), any(), any(), any())).thenReturn(
+            new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-bound-armor"), "manifest.json", "progress.json", "run.log"
+            )
+        );
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "armor_sets", "domain-source-armor-sets", "standard", "fresh", "v2-automation", null,
+                identity, "reports/authorization/canonical/automatic-armor/" + "e".repeat(64) + ".binding.json",
+                "sha256:" + "1".repeat(64), "attempt-bound-armor"
+            )
+        );
+
+        assertEquals("attempt-bound-armor", result.attemptId());
+    }
+
+    @Test
+    void schedulerOwnedEnqueueRejectsMissingIdentityBeforeRedisMutation() {
+        assertThrows(IllegalArgumentException.class, () -> service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "items", "wiki-items-refresh", "standard", "fresh", "v2-automation", null
+            )
+        ));
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void manualEnqueueRejectsSchedulerSourceIdentityBeforeRouterMutation() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "c".repeat(64),
+            "2026-07-13T01:00:00Z",
+            "sha256:" + "d".repeat(64)
+        );
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "items", "wiki-items-refresh", "standard", "fresh", "admin", null, identity
+            )
+        ));
+
+        assertTrue(exception.getMessage().contains("scheduler-owned"));
+        verifyNoInteractions(router, repository);
+    }
+
+    @Test
+    void manualEnqueueRejectsAutomaticBindingBeforeRouterMutation() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "armor_sets", "domain-source-armor-sets", "standard", "fresh", "admin", null,
+                null, "reports/authorization/canonical/automatic-armor/binding.json",
+                "sha256:" + "1".repeat(64)
+            )
+        ));
+
+        assertTrue(exception.getMessage().contains("manual"));
+        verifyNoInteractions(router, repository);
+    }
+
+    @Test
+    void schedulerEnqueueUsesDistinctDedupeKeysForDifferentSourceFingerprints() {
+        SourceDispatchIdentity first = new SourceDispatchIdentity(
+            "sha256:" + "e".repeat(64),
+            "2026-07-13T00:00:00Z",
+            "sha256:" + "f".repeat(64)
+        );
+        SourceDispatchIdentity second = new SourceDispatchIdentity(
+            "sha256:" + "1".repeat(64),
+            "2026-07-13T00:05:00Z",
+            "sha256:" + "2".repeat(64)
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        List<CrawlerQueueV2Repository.CreateQueueCommand> created = new java.util.ArrayList<>();
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            created.add(command);
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(),
+                command.attempt().attemptId(),
+                1L,
+                null,
+                NOW.minusSeconds(1)
+            );
+        });
+
+        service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
+            "items", "wiki-items-refresh", "standard", "fresh", "v2-automation", null, first
+        ));
+        service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
+            "items", "wiki-items-refresh", "standard", "fresh", "v2-automation", null, second
+        ));
+
+        assertEquals(2, created.size());
+        assertNotEquals(created.get(0).queue().dedupeKey(), created.get(1).queue().dedupeKey());
+        assertTrue(created.get(0).queue().dedupeKey().contains(":" + first.sourceFingerprint() + ":"));
+        assertTrue(created.get(1).queue().dedupeKey().contains(":" + second.sourceFingerprint() + ":"));
+        assertEquals(first, created.get(0).attempt().sourceDispatchIdentity());
+        assertEquals(second, created.get(1).attempt().sourceDispatchIdentity());
+    }
+
+    @Test
     void backendAndDirectEnqueueUseActionScopedArtifactContracts() {
         when(repository.readEngineState()).thenReturn(engineV2());
         List<CrawlerQueueV2Attempt> createdAttempts = new java.util.ArrayList<>();
@@ -892,6 +1089,60 @@ class CrawlerQueueV2ApplicationServiceTest {
     }
 
     @Test
+    void directCancelStallsAnIdentityBearingAttemptWhenQueueOwnershipPairIsInvalid() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-13T00:00:00Z",
+            "sha256:" + "b".repeat(64)
+        );
+        CrawlerQueueV2Attempt running = withSourceIdentity(runningAttempt(), identity);
+        CrawlerQueueV2Attempt stalled = withStatusPreservingIdentity(
+            running, CrawlerQueueV2Status.STALLED
+        );
+        CrawlerQueueV2Queue invalidOwnershipQueue = new CrawlerQueueV2Queue(
+            2,
+            running.stateStoreEpoch(),
+            running.queueId(),
+            running.lane(),
+            running.domain(),
+            running.coveredDomains(),
+            running.actionId(),
+            running.lane() + ":" + running.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            running.requestedAt(),
+            "admin",
+            running.attemptId(),
+            List.of(running.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.findAttempt(running.attemptId())).thenReturn(Optional.of(running));
+        when(repository.findQueue(running.queueId())).thenReturn(Optional.of(invalidOwnershipQueue));
+        when(repository.mutate(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.MutationCommand command = invocation.getArgument(0);
+            return new CrawlerQueueV2Repository.MutationResult(
+                command.targetStatus() == CrawlerQueueV2Status.STALLED ? stalled : withStatusPreservingIdentity(
+                    running, command.targetStatus()
+                ),
+                "1-0"
+            );
+        });
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                running.queueId(), running.attemptId(), running.stateVersion(), "cancel", "admin"
+            )
+        );
+
+        assertEquals(CrawlerQueueV2Status.STALLED, result.status());
+        verify(supervisor, never()).cancel(any());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.STALLED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+                && !command.releaseOwnership()
+        ));
+    }
+
+    @Test
     void retryCreatesANewAttemptManifestAndTriggersReconciliation() {
         CrawlerQueueV2Attempt failed = failedAttempt("attempt-failed-retry");
         when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
@@ -928,6 +1179,58 @@ class CrawlerQueueV2ApplicationServiceTest {
                 && artifacts.outputPath() == null)
         );
         verify(reconciler).reconcileNow();
+    }
+
+    @Test
+    void schedulerRetryRetainsTheImmutableOriginRequestedByAndSourceIdentity() {
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "c".repeat(64),
+            "2026-07-13T00:00:00Z",
+            "sha256:" + "d".repeat(64)
+        );
+        CrawlerQueueV2Attempt failed = withSourceIdentity(
+            failedAttempt("attempt-scheduler-failed-retry"),
+            identity
+        );
+        CrawlerQueueV2Queue schedulerQueue = new CrawlerQueueV2Queue(
+            2,
+            failed.stateStoreEpoch(),
+            failed.queueId(),
+            failed.lane(),
+            failed.domain(),
+            failed.coveredDomains(),
+            failed.actionId(),
+            failed.lane() + ":" + failed.actionId() + ":" + identity.sourceFingerprint() + ":fresh",
+            failed.requestedAt(),
+            "v2-automation",
+            failed.attemptId(),
+            List.of(failed.attemptId()),
+            null,
+            "scheduler"
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findAttempt(failed.attemptId())).thenReturn(Optional.of(failed));
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(failed));
+        when(repository.findQueue(failed.queueId())).thenReturn(Optional.of(schedulerQueue));
+        when(repository.createRetry(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateRetryCommand command = invocation.getArgument(0);
+            return new CrawlerQueueV2Repository.MutationResult(command.attempt(), "2-0");
+        });
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                failed.queueId(), failed.attemptId(), failed.stateVersion(), "retry", "manual-retry-operator"
+            )
+        );
+
+        assertTrue(result.accepted());
+        verify(repository).createRetry(argThat(command ->
+            command.updatedQueue().isSchedulerOwned()
+                && "scheduler".equals(command.updatedQueue().origin())
+                && "v2-automation".equals(command.updatedQueue().requestedBy())
+                && identity.equals(command.attempt().sourceDispatchIdentity())
+                && command.updatedQueue().dedupeKey().contains(":" + identity.sourceFingerprint() + ":")
+        ));
     }
 
     @Test
@@ -1302,6 +1605,21 @@ class CrawlerQueueV2ApplicationServiceTest {
         );
     }
 
+    private static CrawlerQueueV2Attempt withStatusPreservingIdentity(
+        CrawlerQueueV2Attempt source,
+        CrawlerQueueV2Status status
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion() + 1L, status, source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(),
+            source.workerMessage(), source.reasonCode(), source.artifacts(), source.sourceDispatchIdentity()
+        );
+    }
+
     private static CrawlerQueueV2Attempt withEpoch(CrawlerQueueV2Attempt source, String epoch) {
         return new CrawlerQueueV2Attempt(
             source.contractVersion(), epoch, source.queueId(), source.attemptId(), source.fenceToken(),
@@ -1341,6 +1659,21 @@ class CrawlerQueueV2ApplicationServiceTest {
             source.deadlineAt(), source.pid(), source.processStartedAt(), source.progressSequence(),
             source.phase(), source.current(), source.total(), source.workerMessage(), source.reasonCode(),
             source.artifacts()
+        );
+    }
+
+    private static CrawlerQueueV2Attempt withSourceIdentity(
+        CrawlerQueueV2Attempt source,
+        SourceDispatchIdentity identity
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), source.artifacts(), identity
         );
     }
 

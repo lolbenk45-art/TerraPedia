@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-shimmer-l2-reauthorization",
+  "domainId": "shimmer",
+  "policyVersion": 2,
+  "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-shimmer-l2-reauthorization-20260919-standing-05",
+  "actor": "admin",
+  "reason": "Standing AUTH-04 prerequisite: append-only stable L2 reauthorization for expired shimmer policy identity before retry-26 scheduler canary.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/shimmer/retry-21",
+  "packetHash": "sha256:24b927f2880632662cecc7b6942864408bfc58e9defbfa1d4dcbb1ef0cda212c",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-09-19T11:58:13.793Z"
+}

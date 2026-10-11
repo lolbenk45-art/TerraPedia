@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "executionClass": "historical_source_hash_disposition",
+  "command": [
+    "node",
+    "pipelines/automation/historical-source-hash-disposition.mjs"
+  ],
+  "inputPaths": [
+    "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/9f137a92a7e336592e3f0dbb8c4839bd2fb5affa4703fd2d8171a1d67ef39d8a/candidate.json"
+  ],
+  "outputPaths": [],
+  "reportPaths": [],
+  "progressPaths": [],
+  "databaseWrites": false,
+  "networkAccess": false,
+  "historicalSourceHashDisposition": {
+    "candidatePath": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/9f137a92a7e336592e3f0dbb8c4839bd2fb5affa4703fd2d8171a1d67ef39d8a/candidate.json",
+    "candidateFileSha256": "sha256:d554ed81a88c117057803c042836d87eda9e14b5758044fa421d4ef643eb3b59",
+    "candidateArtifactHash": "sha256:9f137a92a7e336592e3f0dbb8c4839bd2fb5affa4703fd2d8171a1d67ef39d8a"
+  },
+  "scope": {
+    "domainId": "projectiles",
+    "runId": "projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e",
+    "candidateArtifactHash": "sha256:9f137a92a7e336592e3f0dbb8c4839bd2fb5affa4703fd2d8171a1d67ef39d8a"
+  }
+}

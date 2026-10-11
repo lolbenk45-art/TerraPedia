@@ -1,0 +1,73 @@
+{
+  "id": 8,
+  "textKey": "ArmorSetBonus.Ninja",
+  "sourceKey": "ArmorSetBonus.Ninja",
+  "name": "ArmorSetBonus.Ninja",
+  "nameZh": "ArmorSetBonus.Ninja",
+  "nameEn": "ArmorSetBonus.Ninja",
+  "benefitZh": "ArmorSetBonuses.Benefits.Ninja",
+  "benefitEn": "ArmorSetBonuses.Benefits.Ninja",
+  "setCount": 1,
+  "uniqueItemCount": 3,
+  "maleImages": [],
+  "femaleImages": [],
+  "specialImages": [],
+  "fallbackImages": [
+    "/terrapedia-images/items/2026/06/04/5b74855462324055bb25a5fbf7c436ac.png",
+    "/terrapedia-images/items/2026/06/04/151142b15ba84a25b88a48ac7d8b0e73.png",
+    "/terrapedia-images/items/2026/06/04/ff2be35a844b463cad077a7f3695f3fa.png"
+  ],
+  "relatedItems": [
+    {
+      "id": 256,
+      "itemId": 256,
+      "sourceId": 256,
+      "internalName": "NinjaHood",
+      "name": "Ninja Hood",
+      "nameZh": "忍者兜帽",
+      "image": "/terrapedia-images/items/2026/06/04/5b74855462324055bb25a5fbf7c436ac.png",
+      "partRole": "head",
+      "slotType": "headSlot",
+      "equipmentSlotId": 22,
+      "setVariantIndex": 0,
+      "partIndex": 0,
+      "defenseValue": 2
+    },
+    {
+      "id": 257,
+      "itemId": 257,
+      "sourceId": 257,
+      "internalName": "NinjaShirt",
+      "name": "Ninja Shirt",
+      "nameZh": "忍者衣",
+      "image": "/terrapedia-images/items/2026/06/04/151142b15ba84a25b88a48ac7d8b0e73.png",
+      "partRole": "body",
+      "slotType": "bodySlot",
+      "equipmentSlotId": 14,
+      "setVariantIndex": 0,
+      "partIndex": 1,
+      "defenseValue": 4
+    },
+    {
+      "id": 258,
+      "itemId": 258,
+      "sourceId": 258,
+      "internalName": "NinjaPants",
+      "name": "Ninja Pants",
+      "nameZh": "忍者裤",
+      "image": "/terrapedia-images/items/2026/06/04/ff2be35a844b463cad077a7f3695f3fa.png",
+      "partRole": "legs",
+      "slotType": "legSlot",
+      "equipmentSlotId": 14,
+      "setVariantIndex": 0,
+      "partIndex": 2,
+      "defenseValue": 3
+    }
+  ],
+  "effects": [],
+  "pieceEffects": {
+    "256": [],
+    "257": [],
+    "258": []
+  }
+}

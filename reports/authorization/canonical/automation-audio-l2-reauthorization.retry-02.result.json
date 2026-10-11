@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-audio-l2-reauthorization",
+  "domainId": "audio",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-audio-l2-reauthorization-20260918-owner-01",
+  "actor": "admin",
+  "reason": "User-authorized fresh audio L2 stable reauthorization after expired predecessor; bind current H8 and prior decision without policy update.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-stable-reauthorization/audio",
+  "packetHash": "sha256:645e680ea0dc8442dd043747f1cfcc2a8428541bb680bac7f0b16446154b91f3",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "completedAt": "2026-09-18T03:03:16.400Z"
+}

@@ -53,9 +53,10 @@ function validProposalPayload(overrides = {}) {
       { domainId: 'items', actionId: 'wiki-items-refresh', readinessStatus: 'eligible' },
       { domainId: 'npcs', actionId: 'wiki-npcs-refresh', readinessStatus: 'eligible' },
     ],
+    canary: { actionId: 'wiki-items-refresh', domainId: 'items' },
     policyRows: POLICY_ROWS,
     policySetHash: computePolicySetHash(POLICY_ROWS),
-    requested: { sweepIntervalMinutes: 60, actor: null, reason: null, expiresAt: null },
+    requested: { sweepIntervalMinutes: 60, canaryActionId: 'wiki-items-refresh', actor: null, reason: null, expiresAt: null },
     rollback: { endpoint: '/admin/crawler-monitor/v2/automation', body: { enabled: false, mode: 'changed-only' } },
     forbidden: ['direct-json-write', 'direct-redis-write', 'manual-sweep', 'external-daemon', 'formal-permit-consumption'],
     ...overrides,
@@ -102,12 +103,35 @@ test('builds a valid AWAITING_OWNER request from a proposal-only input', () => {
   assert.deepEqual(req.mutation, proposal.mutation);
   assert.equal(req.current.enabled, false);
   assert.deepEqual(req.eligibleDomains, proposal.eligibleDomains);
+  assert.deepEqual(req.canary, proposal.canary);
+  assert.equal(req.requested.canaryActionId, 'wiki-items-refresh');
   assert.deepEqual(req.policyRows, POLICY_ROWS);
   assert.equal(req.policySetHash, computePolicySetHash(POLICY_ROWS));
   // requestHash 自洽
   assert.match(req.requestHash, HASH_PATTERN);
   const { requestHash, ...payloadCheck } = req;
   assert.equal(sha256Json(payloadCheck), requestHash);
+});
+
+test('request rejects a proposal with missing or mismatched canary scope', () => {
+  for (const canary of [
+    undefined,
+    { actionId: 'wiki-items-refresh', domainId: 'npcs' },
+    { actionId: 'unknown-action', domainId: 'items' },
+  ]) {
+    const base = validProposalPayload({ canary });
+    const proposal = { ...base, proposalHash: sha256Json(base) };
+    assert.throws(
+      () => buildSchedulerActivationRequest({
+        proposal,
+        proposalPath: PROPOSAL_PATH,
+        proposalFileSha256: FAKE_FILE_SHA256,
+        proposalHash: proposal.proposalHash,
+        generatedAt: '2026-08-11T11:00:00.000Z',
+      }),
+      /canary/i,
+    );
+  }
 });
 
 test('request binds the exact proposal identity (fileSha256 + proposalHash)', () => {

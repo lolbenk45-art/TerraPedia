@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { randomBytes } from 'node:crypto';
 
 import { createWikiRequestGate } from './wiki-request-gate.mjs';
 import { getProjectRoot, resolveSharedDataRoot } from './project-root.mjs';
@@ -43,8 +44,139 @@ export function ensureDir(dirPath) {
 }
 
 export function writeJson(filePath, value) {
-  ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+  return writeJsonAtomic(filePath, value, { noOverwrite: false });
+}
+
+export function writeJsonNoOverwrite(filePath, value) {
+  return writeJsonAtomic(filePath, value, { noOverwrite: true });
+}
+
+function writeJsonAtomic(filePath, value, { noOverwrite }) {
+  const targetPath = path.resolve(String(filePath));
+  const parentPath = path.dirname(targetPath);
+  const targetName = path.basename(targetPath);
+  if (!targetName || targetName === '.' || targetName === path.sep) {
+    throw new Error('JSON output path must name a file');
+  }
+
+  ensureDirectoryChainNoFollow(parentPath);
+  const directoryFd = openDirectoryNoFollow(parentPath);
+  const directoryPath = descriptorDirectoryPath(directoryFd);
+  const temporaryPath = path.join(
+    directoryPath,
+    `.${targetName}.${process.pid}.${randomBytes(8).toString('hex')}.tmp`,
+  );
+  let temporaryFd = null;
+  let temporaryCreated = false;
+  try {
+    const noFollow = typeof fs.constants.O_NOFOLLOW === 'number' ? fs.constants.O_NOFOLLOW : 0;
+    temporaryFd = fs.openSync(
+      temporaryPath,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | noFollow,
+      0o600,
+    );
+    temporaryCreated = true;
+    fs.writeFileSync(temporaryFd, `${JSON.stringify(value, null, 2)}\n`);
+    fs.fchmodSync(temporaryFd, 0o600);
+    fs.fsyncSync(temporaryFd);
+    fs.closeSync(temporaryFd);
+    temporaryFd = null;
+
+    const destinationPath = path.join(directoryPath, targetName);
+    if (noOverwrite) {
+      fs.linkSync(temporaryPath, destinationPath);
+      assertPrivateJsonFile(destinationPath);
+      fs.unlinkSync(temporaryPath);
+      temporaryCreated = false;
+    } else {
+      fs.renameSync(temporaryPath, destinationPath);
+      temporaryCreated = false;
+    }
+    fs.fsyncSync(directoryFd);
+  } catch (error) {
+    if (noOverwrite && error?.code === 'EEXIST') {
+      throw new Error(`JSON output already exists and cannot be overwritten: ${targetPath}`, { cause: error });
+    }
+    throw error;
+  } finally {
+    if (temporaryFd != null) fs.closeSync(temporaryFd);
+    if (temporaryCreated) {
+      try { fs.unlinkSync(temporaryPath); } catch {}
+    }
+    fs.closeSync(directoryFd);
+  }
+}
+
+function ensureDirectoryChainNoFollow(directoryPath) {
+  const absolutePath = path.resolve(directoryPath);
+  const filesystemRoot = path.parse(absolutePath).root;
+  let currentPath = filesystemRoot;
+  for (const segment of path.relative(filesystemRoot, absolutePath).split(path.sep).filter(Boolean)) {
+    const nextPath = path.join(currentPath, segment);
+    let stats;
+    try {
+      stats = fs.lstatSync(nextPath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+      fs.mkdirSync(nextPath, { mode: 0o700 });
+      stats = fs.lstatSync(nextPath);
+    }
+    assertSafeJsonDirectory(stats, nextPath);
+    currentPath = nextPath;
+  }
+}
+
+function openDirectoryNoFollow(directoryPath) {
+  if (process.platform !== 'linux'
+      || typeof fs.constants.O_DIRECTORY !== 'number'
+      || typeof fs.constants.O_NOFOLLOW !== 'number'
+      || !fs.existsSync('/proc/self/fd')) {
+    throw new Error('secure JSON publication is unavailable on this platform');
+  }
+  const absolutePath = path.resolve(directoryPath);
+  const filesystemRoot = path.parse(absolutePath).root;
+  const flags = fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW;
+  let directoryFd = fs.openSync(filesystemRoot, flags);
+  try {
+    assertSafeJsonDirectory(fs.fstatSync(directoryFd), filesystemRoot);
+    for (const segment of path.relative(filesystemRoot, absolutePath).split(path.sep).filter(Boolean)) {
+      const nextPath = path.join(descriptorDirectoryPath(directoryFd), segment);
+      const nextFd = fs.openSync(nextPath, flags);
+      assertSafeJsonDirectory(fs.fstatSync(nextFd), path.join(absolutePath, segment));
+      fs.closeSync(directoryFd);
+      directoryFd = nextFd;
+    }
+    return directoryFd;
+  } catch (error) {
+    fs.closeSync(directoryFd);
+    throw error;
+  }
+}
+
+function descriptorDirectoryPath(directoryFd) {
+  return `/proc/self/fd/${directoryFd}`;
+}
+
+function assertSafeJsonDirectory(stats, directoryPath) {
+  if (!stats?.isDirectory?.() || stats.isSymbolicLink?.()) {
+    throw new Error(`JSON output parent is not a canonical directory: ${directoryPath}`);
+  }
+  if ((stats.mode & 0o022) !== 0 && (stats.mode & 0o1000) === 0) {
+    throw new Error(`JSON output parent is group/other writable: ${directoryPath}`);
+  }
+}
+
+function assertPrivateJsonFile(filePath) {
+  const noFollow = fs.constants.O_NOFOLLOW;
+  const fileFd = fs.openSync(filePath, fs.constants.O_RDONLY | noFollow);
+  try {
+    const stats = fs.fstatSync(fileFd);
+    if (!stats.isFile() || (stats.mode & 0o077) !== 0) {
+      throw new Error(`JSON output must be an owner-only regular file: ${filePath}`);
+    }
+  } finally {
+    fs.closeSync(fileFd);
+  }
 }
 
 export function sharedDataPath(...segments) {
@@ -123,6 +255,7 @@ export async function fetchWikiModuleContent({
 export async function fetchWikiPagePayload({
   pageTitle,
   apiUrl = DEFAULT_WIKI_API_URL,
+  requireRevisionBinding = false,
   fetchWikiApiJsonImpl = fetchWikiApiJson
 } = {}) {
   if (typeof pageTitle !== 'string' || pageTitle.trim() === '') {
@@ -130,6 +263,28 @@ export async function fetchWikiPagePayload({
   }
 
   const parseUrl = buildWikiPageParseUrl({ pageTitle, apiUrl });
+  let selectedRevision = null;
+  let selectedPage = null;
+  if (requireRevisionBinding) {
+    const metadataUrl = new URL(apiUrl);
+    for (const [key, value] of Object.entries({ action: 'query', titles: pageTitle, prop: 'revisions',
+      rvprop: 'ids|timestamp', rvslots: 'main', redirects: '1', format: 'json', formatversion: '2' })) {
+      metadataUrl.searchParams.set(key, value);
+    }
+    const metadata = await fetchWikiApiJsonImpl({ url: metadataUrl, profile: 'revision', sourceKey: pageTitle });
+    selectedPage = metadata?.query?.pages?.[0];
+    selectedRevision = selectedPage?.revisions?.[0];
+    if (!Number.isSafeInteger(selectedPage?.pageid) || selectedPage.pageid <= 0
+        || !Number.isSafeInteger(selectedRevision?.revid) || selectedRevision.revid <= 0
+        || !Number.isFinite(Date.parse(selectedRevision?.timestamp))) {
+      throw new Error(`Wiki page revision identity missing for ${pageTitle}`);
+    }
+    // Some Wiki deployments challenge the explicit `oldid` parse endpoint.
+    // Keep the request bound to the selected page and reject any response whose
+    // page/revision identity differs from the metadata read immediately before it.
+    parseUrl.searchParams.set('page', pageTitle);
+    parseUrl.searchParams.set('prop', 'wikitext|text|sections|revid');
+  }
 
   const parseBody = await fetchWikiApiJsonImpl({
     url: parseUrl,
@@ -141,7 +296,10 @@ export async function fetchWikiPagePayload({
     throw new Error(`Wiki page parse result missing for ${pageTitle}`);
   }
 
-  const revisionTimestamp = await fetchWikiPageRevisionTimestamp({
+  if (selectedRevision && (parsed.revid !== selectedRevision.revid || parsed.pageid !== selectedPage.pageid)) {
+    throw new Error(`Wiki page revision binding mismatch for ${pageTitle}`);
+  }
+  const revisionTimestamp = selectedRevision?.timestamp ?? await fetchWikiPageRevisionTimestamp({
     pageTitle: parsed.title ?? pageTitle,
     apiUrl,
     fetchWikiApiJsonImpl
@@ -153,6 +311,7 @@ export async function fetchWikiPagePayload({
     pageTitle: parsed.title ?? pageTitle,
     pageId: parsed.pageid,
     revisionTimestamp,
+    ...(selectedRevision ? { revisionId: selectedRevision.revid } : {}),
     fetchedAt: new Date().toISOString(),
     wikitext: parsed.wikitext,
     html: parsed.text,
@@ -234,7 +393,7 @@ export async function fetchWikiImageInfo({
   url.searchParams.set('action', 'query');
   url.searchParams.set('titles', normalizedTitle);
   url.searchParams.set('prop', 'imageinfo');
-  url.searchParams.set('iiprop', 'url|size|mime');
+  url.searchParams.set('iiprop', 'url|size|mime|timestamp');
   url.searchParams.set('format', 'json');
   url.searchParams.set('formatversion', '2');
 
@@ -252,6 +411,7 @@ export async function fetchWikiImageInfo({
     fileTitle: page.title ?? normalizedTitle,
     url: imageinfo.url,
     descriptionUrl: imageinfo.descriptionurl ?? null,
+    revisionTimestamp: imageinfo.timestamp ?? null,
     mime: imageinfo.mime ?? null,
     width: imageinfo.width ?? null,
     height: imageinfo.height ?? null,

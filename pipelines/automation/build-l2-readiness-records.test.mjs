@@ -16,8 +16,13 @@ import {
   writeL2PolicyCeilingArtifact,
 } from './l2-policy-ceiling-artifact.mjs';
 import { buildL2PolicyCeilingRegistrationInput } from './register-l2-policy-ceiling.mjs';
+import { computePolicySetHash } from './policy-set-hash.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
+const POLICY_ROWS = Object.freeze([
+  { domainId: 'items', policyVersion: 1, policyHash: HASH },
+]);
+const POLICY_SET_HASH = computePolicySetHash(POLICY_ROWS);
 
 function fixture() {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-l2-readiness-records-'));
@@ -167,7 +172,7 @@ function fixture() {
         evidencePath: `reports/domain/${domain}/fixture.json`,
         observedAt: generatedAt,
       })),
-      policySetHash: HASH,
+      policySetHash: POLICY_SET_HASH,
       databaseWrites: false,
       networkAccess: false,
       isolatedResourceWrites: false,
@@ -187,7 +192,7 @@ function fixture() {
     domainId: 'items', verdict: 'BLOCKED', blockingGates: ['policy_ceiling', 'three_successful_l1_runs'],
     currentPolicy: {
       level: 'L1', operationalState: 'ACTIVE', policyVersion: 1,
-      policyHash: HASH, policySetHash: HASH,
+      policyHash: HASH, policySetHash: POLICY_SET_HASH,
     },
     policyCeiling: { status: 'missing' },
     l1Runs: [], successfulCommittedL1Runs: 0, qualifyingCommittedL1Runs: 0,
@@ -204,11 +209,18 @@ function fixture() {
   };
   return {
     repoRoot, runId, generatedAt, runRoot, priorRoot,
+    l1EvidencePolicySetHash: POLICY_SET_HASH,
     panelRoot: path.join(runRoot, 'domain'),
     sharedReports,
     adapterReadback: {
-      policySetHash: HASH,
-      domains: { items: { status: 'pass', evidence: { distinctCommittedL1Runs: 0, fullReconciliation: false }, error: null } },
+      policySetHash: POLICY_SET_HASH,
+      l1EvidencePolicySetHash: POLICY_SET_HASH,
+      policyRows: POLICY_ROWS,
+      domains: { items: { status: 'pass', evidence: {
+        distinctCommittedL1Runs: 0,
+        fullReconciliation: false,
+        qualifyingL1Runs: [],
+      }, error: null } },
     },
     databaseBoundary: {
       flywayLatestVersion: 58, v59Applied: false, l2PolicyVersionRowsObserved: 0,
@@ -225,8 +237,149 @@ function fixture() {
   };
 }
 
+test('keeps the live policy-set hash separate from the historical L1 evidence-set hash', () => {
+  const f = fixture();
+  const livePolicyRows = [{ domainId: 'items', policyVersion: 2, policyHash: `sha256:${'b'.repeat(64)}` }];
+  const livePolicySetHash = computePolicySetHash(livePolicyRows);
+  const run = {
+    runId: 'items_l1_20260830_historical01',
+    status: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    bundlePath: 'reports/authorization/canonical/l1-runs/items/historical01/bundle.json',
+    bundleSha256: HASH,
+    evidencePath: 'reports/runtime/l1-reconciliation/items/historical01/reconciliation-evidence.json',
+    evidenceSha256: HASH,
+    operationId: 'automation-items-l1',
+    policySetHash: POLICY_SET_HASH,
+  };
+  f.adapterReadback.policyRows = livePolicyRows;
+  f.adapterReadback.policySetHash = livePolicySetHash;
+  f.adapterReadback.l1EvidencePolicySetHash = POLICY_SET_HASH;
+  f.adapterReadback.domains.items = {
+    status: 'pass',
+    policy: {
+      domainId: 'items',
+      currentLevel: 'L1',
+      operationalState: 'ACTIVE',
+      policyVersion: 1,
+      policyHash: HASH,
+    },
+    evidence: {
+      distinctCommittedL1Runs: 1,
+      qualifyingL1Runs: [run],
+      fullReconciliation: false,
+    },
+  };
+  const preflightPath = path.join(f.repoRoot, f.v2PreflightPath);
+  const preflight = JSON.parse(fs.readFileSync(preflightPath, 'utf8'));
+  preflight.snapshot.policySetHash = livePolicySetHash;
+  fs.writeFileSync(preflightPath, `${JSON.stringify(preflight, null, 2)}\n`, { mode: 0o600 });
+  f.v2Preflight = preflight;
+
+  const artifacts = buildL2ReadinessArtifacts({
+    ...f,
+    l1EvidencePolicySetHash: POLICY_SET_HASH,
+    domains: ['items'],
+  });
+  const record = artifacts.records[0].record;
+  assert.equal(record.currentPolicy.policySetHash, livePolicySetHash);
+  assert.equal(record.l1EvidencePolicySetHash, POLICY_SET_HASH);
+  assert.equal(record.l1EvidenceAdapterReadback.policySetHash, POLICY_SET_HASH);
+  assert.equal(record.l1Runs[0].policySetHash, POLICY_SET_HASH);
+});
+
+test('does not select historical L1 evidence for a domain that is already L2', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items = {
+    status: 'pass',
+    policy: {
+      domainId: 'items',
+      currentLevel: 'L2',
+      operationalState: 'ACTIVE',
+      policyVersion: 2,
+      policyHash: `sha256:${'b'.repeat(64)}`,
+    },
+    evidence: {
+      distinctCommittedL1Runs: 3,
+      qualifyingL1Runs: [{
+        runId: 'stale-l1-run',
+        status: 'COMPLETED',
+        applyStatus: 'COMMITTED',
+        policySetHash: POLICY_SET_HASH,
+      }],
+      fullReconciliation: { runId: 'stale-l1-run' },
+    },
+  };
+  const livePolicyRows = [{ domainId: 'items', policyVersion: 2, policyHash: `sha256:${'b'.repeat(64)}` }];
+  const livePolicySetHash = computePolicySetHash(livePolicyRows);
+  f.adapterReadback.policyRows = livePolicyRows;
+  f.adapterReadback.policySetHash = livePolicySetHash;
+  f.adapterReadback.l1EvidencePolicySetHash = POLICY_SET_HASH;
+  const preflightPath = path.join(f.repoRoot, f.v2PreflightPath);
+  const preflight = JSON.parse(fs.readFileSync(preflightPath, 'utf8'));
+  preflight.snapshot.policySetHash = livePolicySetHash;
+  fs.writeFileSync(preflightPath, `${JSON.stringify(preflight, null, 2)}\n`, { mode: 0o600 });
+  f.v2Preflight = preflight;
+
+  const artifacts = buildL2ReadinessArtifacts({
+    ...f,
+    l1EvidencePolicySetHash: POLICY_SET_HASH,
+    domains: ['items'],
+  });
+  const record = artifacts.records[0].record;
+  assert.equal(record.currentPolicy.level, 'L2');
+  assert.equal(record.l1EvidenceAdapterReadback.status, 'skipped');
+  assert.equal(record.l1EvidenceAdapterReadback.skipReason, 'domain_already_l2');
+  assert.deepEqual(record.l1Runs, []);
+  assert.equal(record.blockingGates.includes('domain_already_l2'), true);
+  assert.equal(record.blockingGates.includes('l1_bundle_evidence_integrity'), false);
+});
+
+test('requires an explicit L1 evidence policy-set hash', () => {
+  const f = fixture();
+  delete f.l1EvidencePolicySetHash;
+
+  assert.throws(
+    () => buildL2ReadinessArtifacts({ ...f, domains: ['items'] }),
+    /l1 evidence policy-set hash/i,
+  );
+});
+
+function makeLinkedEvidenceRoots(linkedRoot) {
+  const workspace = path.dirname(linkedRoot);
+  const primaryRoot = path.join(workspace, 'primary-evidence-root');
+  const commonGitDir = path.join(primaryRoot, '.git');
+  const worktreeGitDir = path.join(commonGitDir, 'worktrees', 'linked-readiness');
+  fs.mkdirSync(path.join(commonGitDir, 'objects'), { recursive: true });
+  fs.mkdirSync(worktreeGitDir, { recursive: true });
+  fs.mkdirSync(linkedRoot, { recursive: true });
+  fs.writeFileSync(path.join(commonGitDir, 'HEAD'), 'ref: refs/heads/test\n');
+  fs.writeFileSync(path.join(commonGitDir, 'config'), '[core]\n\trepositoryformatversion = 0\n');
+  fs.writeFileSync(path.join(worktreeGitDir, 'commondir'), '../..\n');
+  fs.writeFileSync(path.join(worktreeGitDir, 'gitdir'), `${path.join(linkedRoot, '.git')}\n`);
+  fs.writeFileSync(path.join(linkedRoot, '.git'), `gitdir: ${worktreeGitDir}\n`);
+  return { primaryRoot, linkedRoot };
+}
+
 test('builds display-only readiness artifacts from adapter-backed evidence', () => {
   const f = fixture();
+  f.adapterReadback.domains.items.evidence.excludedHistoricalRuns = [{
+    domainId: 'items',
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    reasonCode: 'legacy_semantic_json_source_hash',
+    dispositionPath: 'reports/authorization/canonical/l1-historical-source-hash-disposition/items/hash/disposition.json',
+  }];
+  const serverFingerprint = {
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'fixture-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  f.adapterReadback.historicalDispositionPaths = [
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/items/hash/disposition.json',
+  ];
+  f.adapterReadback.serverFingerprint = serverFingerprint;
+  f.databaseBoundary.serverFingerprint = { ...serverFingerprint };
   const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
   assert.equal(artifacts.records.length, 1);
   assert.equal(artifacts.records[0].record.proposalInput, false);
@@ -236,6 +389,310 @@ test('builds display-only readiness artifacts from adapter-backed evidence', () 
   assert.equal(artifacts.matrix.domains[0].proposalInput, false);
   assert.equal(artifacts.records[0].record.evidence.uiReadiness.status, 'pass');
   assert.equal(artifacts.records[0].record.evidence.v2Preflight.status, 'blocked');
+  assert.deepEqual(
+    artifacts.records[0].record.l1EvidenceAdapterReadback.excludedHistoricalRuns,
+    f.adapterReadback.domains.items.evidence.excludedHistoricalRuns,
+  );
+});
+
+test('readiness builder audits adapter evidence from an explicit primary worktree and emits stable repository-relative identities', () => {
+  const f = fixture();
+  const roots = makeLinkedEvidenceRoots(f.repoRoot);
+  const runId = 'items_l1_20260829_primary01';
+  const bundleRelativePath = `reports/authorization/canonical/l1-runs/items/${runId}/bundle.json`;
+  const sourceRelativePath = `reports/authorization/canonical/l1-runs/items/${runId}/source.json`;
+  const reconciliationRelativePath = `reports/runtime/l1-reconciliation/items/${runId}/reconciliation-evidence.json`;
+  const write = (relativePath, value) => {
+    const absolutePath = path.join(roots.primaryRoot, relativePath);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    const bytes = Buffer.from(`${typeof value === 'string' ? value : JSON.stringify(value)}\n`);
+    fs.writeFileSync(absolutePath, bytes, { mode: 0o600 });
+    return { absolutePath, hash: `sha256:${createHash('sha256').update(bytes).digest('hex')}` };
+  };
+  const source = write(sourceRelativePath, { records: [1] });
+  const bundle = write(bundleRelativePath, { source: { path: sourceRelativePath, sha256: source.hash } });
+  const reconciliation = write(reconciliationRelativePath, { status: 'verified' });
+  const run = {
+    runId,
+    status: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    operationId: 'automation-items-l1',
+    policySetHash: POLICY_SET_HASH,
+    bundlePath: bundle.absolutePath,
+    bundleSha256: bundle.hash,
+    evidencePath: reconciliation.absolutePath,
+    evidenceSha256: reconciliation.hash,
+    fullReconciliation: true,
+  };
+  f.adapterReadback.domains.items.evidence = {
+    distinctCommittedL1Runs: 1,
+    fullReconciliation: { runId },
+    qualifyingL1Runs: [run],
+  };
+
+  const artifacts = buildL2ReadinessArtifacts({
+    ...f,
+    databaseEvidenceRoot: roots.primaryRoot,
+    domains: ['items'],
+  });
+  const record = artifacts.records[0].record;
+  assert.equal(record.l1Runs[0].bundlePath, bundleRelativePath);
+  assert.equal(record.l1Runs[0].evidencePath, reconciliationRelativePath);
+  assert.equal(record.l1Runs[0].sourceValidity.status, 'match');
+  assert.equal(record.l1Runs[0].evidenceValidity.status, 'match');
+  assert.deepEqual(record.evidence.databaseEvidenceRoot, {
+    kind: 'primary-worktree',
+    repositoryRelativeRoot: '.',
+  });
+});
+
+test('readiness builder reads an explicitly supplied primary-worktree prior template without writing outside the caller', () => {
+  const f = fixture();
+  const roots = makeLinkedEvidenceRoots(f.repoRoot);
+  const priorRoot = path.join(roots.primaryRoot, 'reports/runtime/local-data-chain-closure/20260828/l2-readiness/prior');
+  const priorTemplatePath = path.join(priorRoot, 'domain/items/readiness.json');
+  fs.mkdirSync(path.dirname(priorTemplatePath), { recursive: true });
+  fs.writeFileSync(priorTemplatePath, `${JSON.stringify({
+    schemaVersion: 'terrapedia-l2-domain-readiness-v1',
+    domainId: 'items',
+    verdict: 'BLOCKED',
+    blockingGates: ['policy_ceiling'],
+    currentPolicy: { level: 'L1', operationalState: 'ACTIVE', policyVersion: 1, policyHash: HASH, policySetHash: POLICY_SET_HASH },
+    policyCeiling: { status: 'missing' },
+    l1Runs: [],
+    successfulCommittedL1Runs: 0,
+    qualifyingCommittedL1Runs: 0,
+    fullReconciliation: { status: 'missing' },
+    ownerPromotion: { status: 'missing', decisions: [] },
+    schedulerDecision: { status: 'missing', decisions: [] },
+    evidence: { panelReports: [], sharedReports: [], databaseBoundary: {} },
+    forbiddenActions: [],
+  }, null, 2)}\n`, { mode: 0o600 });
+
+  const artifacts = buildL2ReadinessArtifacts({
+    ...f,
+    databaseEvidenceRoot: roots.primaryRoot,
+    priorRoot,
+    domains: ['items'],
+  });
+
+  assert.equal(artifacts.records[0].record.domainId, 'items');
+  assert.equal(artifacts.runRoot.startsWith(f.repoRoot), true);
+  assert.equal(fs.existsSync(path.join(roots.primaryRoot, 'readiness-index.json')), false);
+});
+
+test('readiness builder preserves warning-only panels while rejecting blocked panels', () => {
+  const f = fixture();
+  const panelPath = path.join(f.runRoot, 'domain/items/relation-readiness-2026-08-27.json');
+  const warningPanel = JSON.parse(fs.readFileSync(panelPath, 'utf8'));
+  const warningEvidence = {
+    ...warningPanel,
+    status: 'warning',
+    warningReasons: ['Missing optional evidence: reports/example*.json'],
+    blockingReasons: [],
+    summary: { ...warningPanel.summary, warningCount: 1, blockedCount: 0 },
+  };
+  fs.writeFileSync(panelPath, `${JSON.stringify(warningEvidence, null, 2)}\n`, { mode: 0o600 });
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+  const relationPanel = artifacts.records[0].record.evidence.panelReports
+    .find((panel) => panel.path.endsWith('/relation-readiness-2026-08-27.json'));
+  assert.equal(relationPanel.status, 'warning');
+
+  const blockedPanel = { ...warningEvidence, status: 'blocked', blockingReasons: ['required evidence missing'] };
+  fs.writeFileSync(panelPath, `${JSON.stringify(blockedPanel, null, 2)}\n`, { mode: 0o600 });
+  assert.throws(
+    () => buildL2ReadinessArtifacts({ ...f, domains: ['items'] }),
+    /blocked|panel/i,
+  );
+});
+
+test('rejects historical disposition readiness when adapter and database server fingerprints diverge', () => {
+  const f = fixture();
+  f.adapterReadback.historicalDispositionPaths = [
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/items/'
+      + `${'a'.repeat(64)}/disposition.json`,
+  ];
+  f.adapterReadback.serverFingerprint = {
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'adapter-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  f.databaseBoundary.serverFingerprint = {
+    ...f.adapterReadback.serverFingerprint,
+    serverUuid: 'boundary-server',
+  };
+
+  assert.throws(
+    () => buildL2ReadinessArtifacts({ ...f, domains: ['items'] }),
+    /server fingerprint.*drifted/i,
+  );
+});
+
+test('rejects excluded historical runs when disposition paths are omitted', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items.evidence.excludedHistoricalRuns = [{
+    domainId: 'items',
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    reasonCode: 'legacy_semantic_json_source_hash',
+  }];
+
+  assert.throws(
+    () => buildL2ReadinessArtifacts({ ...f, domains: ['items'] }),
+    /historical disposition readiness requires adapter and database boundary server fingerprints/i,
+  );
+});
+
+test('binds adapter-selected qualifying L1 runs instead of retaining stale template runs', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items.evidence = {
+    distinctCommittedL1Runs: 3,
+    fullReconciliation: false,
+    qualifyingL1Runs: [
+      {
+        runId: 'items_l1_20260829_serial01',
+        status: 'COMPLETED',
+        applyStatus: 'COMMITTED',
+        bundlePath: 'reports/authorization/canonical/items/current.bundle.json',
+        bundleSha256: HASH,
+        evidencePath: 'reports/runtime/l1-reconciliation/items/current/reconciliation-evidence.json',
+        evidenceSha256: HASH,
+        operationId: 'automation-items-l1',
+        policySetHash: POLICY_SET_HASH,
+      },
+    ],
+  };
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+  assert.deepEqual(
+    artifacts.records[0].record.l1Runs.map((run) => run.runId),
+    ['items_l1_20260829_serial01'],
+  );
+});
+
+test('binds adapter full-reconciliation evidence to the selected run', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items.evidence = {
+    distinctCommittedL1Runs: 3,
+    qualifyingL1Runs: [{
+      runId: 'items_l1_20260829_serial03',
+      status: 'COMPLETED',
+      applyStatus: 'COMMITTED',
+      bundlePath: 'reports/authorization/canonical/items/current.bundle.json',
+      bundleSha256: HASH,
+      evidencePath: 'reports/runtime/l1-reconciliation/items/current/reconciliation-evidence.json',
+      evidenceSha256: HASH,
+      operationId: 'automation-items-l1',
+      policySetHash: POLICY_SET_HASH,
+      fullReconciliation: true,
+    }],
+    fullReconciliation: { fullReconciliation: true },
+  };
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+  assert.equal(artifacts.records[0].record.fullReconciliation.status, 'verified');
+  assert.equal(
+    artifacts.records[0].record.fullReconciliation.evidence,
+    'reports/runtime/l1-reconciliation/items/current/reconciliation-evidence.json',
+  );
+  assert.equal(artifacts.records[0].record.fullReconciliation.evidenceSha256, HASH);
+});
+
+test('does not retain stale template reconciliation when adapter evidence is bound but absent', () => {
+  const f = fixture();
+  const templatePath = path.join(f.priorRoot, 'domain/items/readiness.json');
+  const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+  template.fullReconciliation = {
+    status: 'verified',
+    evidence: 'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+    evidenceSha256: HASH,
+    runId: 'stale-template-run',
+  };
+  fs.writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`, { mode: 0o600 });
+  f.adapterReadback.domains.items.evidence = {
+    distinctCommittedL1Runs: 0,
+    fullReconciliation: false,
+    qualifyingL1Runs: [],
+  };
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+
+  assert.equal(artifacts.records[0].record.fullReconciliation.status, 'missing');
+  assert.notEqual(
+    artifacts.records[0].record.fullReconciliation.evidence,
+    'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+  );
+});
+
+test('does not retain template runs or reconciliation when the adapter reports an error', () => {
+  const f = fixture();
+  const templatePath = path.join(f.priorRoot, 'domain/items/readiness.json');
+  const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+  template.l1Runs = [{
+    runId: 'stale-template-run',
+    runStatus: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    evidence: {
+      path: 'reports/authorization/canonical/items/stale.bundle.json',
+      sha256: HASH,
+    },
+  }];
+  template.fullReconciliation = {
+    status: 'verified',
+    evidence: 'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+    evidenceSha256: HASH,
+    runId: 'stale-template-run',
+  };
+  fs.writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`, { mode: 0o600 });
+  f.adapterReadback.domains.items = {
+    status: 'error',
+    evidence: null,
+    error: 'L1 source artifact hash drifted',
+  };
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+
+  assert.deepEqual(artifacts.records[0].record.l1Runs, []);
+  assert.equal(artifacts.records[0].record.successfulCommittedL1Runs, 0);
+  assert.equal(artifacts.records[0].record.fullReconciliation.status, 'missing');
+  assert.equal(artifacts.records[0].record.fullReconciliation.evidence, undefined);
+  assert.match(artifacts.records[0].record.fullReconciliation.reason, /adapter/i);
+});
+
+test('clears qualifying adapter runs when the adapter status is not pass', () => {
+  const f = fixture();
+  f.adapterReadback.domains.items = {
+    status: 'error',
+    error: 'bundle source hash drifted',
+    evidence: {
+      distinctCommittedL1Runs: 3,
+      qualifyingL1Runs: [{
+        runId: 'items_l1_stale',
+        status: 'COMPLETED',
+        applyStatus: 'COMMITTED',
+        bundlePath: 'reports/authorization/canonical/items/stale.bundle.json',
+        bundleSha256: HASH,
+        evidencePath: 'reports/runtime/l1-reconciliation/items/stale/reconciliation-evidence.json',
+        evidenceSha256: HASH,
+        operationId: 'automation-items-l1',
+        policySetHash: POLICY_SET_HASH,
+      }],
+      fullReconciliation: {
+        runId: 'items_l1_stale',
+        fullReconciliation: true,
+      },
+    },
+  };
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+  const record = artifacts.records[0].record;
+  assert.deepEqual(record.l1Runs, []);
+  assert.equal(record.successfulCommittedL1Runs, 0);
+  assert.equal(record.qualifyingCommittedL1Runs, 0);
+  assert.deepEqual(record.l1EvidenceAdapterReadback.qualifyingL1Runs, []);
+  assert.equal(record.l1EvidenceAdapterReadback.fullReconciliation, false);
+  assert.equal(record.fullReconciliation.status, 'missing');
+  assert.match(record.fullReconciliation.reason, /adapter/i);
+  assert.equal(record.verdict, 'BLOCKED');
 });
 
 test('requires a bound current V2 preflight report', () => {
@@ -266,10 +723,13 @@ test('uses a verified registered L2 ceiling and removes only the ceiling blocker
   const f = fixture();
   const verifiedCeiling = {
     status: 'verified',
+    artifactHash: `sha256:${'d'.repeat(64)}`,
+    currentPolicySetHash: POLICY_SET_HASH,
     policyVersion: 2,
     level: 'L2',
     policyHash: `sha256:${'b'.repeat(64)}`,
     policySetHash: `sha256:${'c'.repeat(64)}`,
+    targetPolicySetHash: `sha256:${'c'.repeat(64)}`,
     requireSnapshot: true,
     ratioInsertCap: 0.1,
     ratioUpdateCap: 0.1,
@@ -290,6 +750,7 @@ test('uses a verified registered L2 ceiling and removes only the ceiling blocker
       commitMarkerPath: 'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json.commit.json',
       commitMarkerFileSha256: `sha256:${'1'.repeat(64)}`,
       decisionIdentity: 'automation-items-l2-policy-ceiling-registration-20260828-owner-01',
+      commitMarkerDecisionIdentity: 'automation-items-l2-policy-ceiling-registration-20260828-owner-01',
     },
   };
   f.adapterReadback.domains.items.policyCeiling = verifiedCeiling;
@@ -300,6 +761,130 @@ test('uses a verified registered L2 ceiling and removes only the ceiling blocker
   assert.equal(artifacts.records[0].record.blockingGates.includes('policy_ceiling'), false);
   assert.deepEqual(artifacts.records[0].record.blockingGates, ['three_successful_l1_runs']);
   assert.equal(artifacts.matrix.domains[0].policyCeiling.status, 'verified');
+});
+
+test('accepts the real registration readback target policy-set field', () => {
+  const f = fixture();
+  const verifiedCeiling = {
+    status: 'verified',
+    artifactHash: `sha256:${'d'.repeat(64)}`,
+    currentPolicySetHash: POLICY_SET_HASH,
+    policyVersion: 2,
+    level: 'L2',
+    policyHash: `sha256:${'b'.repeat(64)}`,
+    // readRegisteredL2PolicyCeilingEvidence exposes the registered target
+    // set as policySetHash (not a second targetPolicySetHash alias).
+    policySetHash: `sha256:${'c'.repeat(64)}`,
+    ratioInsertCap: 0.1,
+    ratioUpdateCap: 0.1,
+    ratioRelationshipDeleteCap: 0.05,
+    ratioDisableCap: 0.005,
+    absoluteInsertCap: 500,
+    absoluteUpdateCap: 500,
+    absoluteRelationshipDeleteCap: 200,
+    absoluteDisableCap: 20,
+    sourceFreshnessMaxAgeMinutes: 60,
+    anomalyAction: 'CIRCUIT_OPEN',
+    ownedTables: [{ databaseRole: 'local', table: 'items', fieldGroup: 'all_columns' }],
+    artifactPath: 'reports/authorization/canonical/l2-policy-ceiling/items/' + `${'d'.repeat(64)}/artifact.json`,
+    artifactFileSha256: `sha256:${'e'.repeat(64)}`,
+    registration: {
+      resultPath: 'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json',
+      resultFileSha256: `sha256:${'f'.repeat(64)}`,
+      commitMarkerPath: 'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json.commit.json',
+      commitMarkerFileSha256: `sha256:${'1'.repeat(64)}`,
+      decisionIdentity: 'items-ceiling-registration',
+      commitMarkerDecisionIdentity: 'items-ceiling-registration',
+    },
+  };
+  f.adapterReadback.domains.items.policyCeiling = verifiedCeiling;
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+
+  assert.equal(
+    artifacts.records[0].record.policyArtifactProvenance.targetPolicySetHash,
+    verifiedCeiling.policySetHash,
+  );
+});
+
+test('removes inherited L1 evidence blockers when the adapter verifies all bound runs', () => {
+  const f = fixture();
+  const write = (relativePath, value) => {
+    const filePath = path.join(f.repoRoot, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+    fs.writeFileSync(filePath, bytes, { mode: 0o600 });
+    return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  };
+  const runs = ['01', '02', '03'].map((suffix) => {
+    const runId = `items_l1_20260829_gate${suffix}`;
+    const sourcePath = `reports/authorization/canonical/l1-runs/items/${runId}/source.json`;
+    const bundlePath = `reports/authorization/canonical/l1-runs/items/${runId}/bundle.json`;
+    const evidencePath = `reports/runtime/l1-reconciliation/items/${runId}/reconciliation-evidence.json`;
+    const sourceSha256 = write(sourcePath, { records: [runId] });
+    const bundleSha256 = write(bundlePath, { source: { path: sourcePath, sha256: sourceSha256 } });
+    const evidenceSha256 = write(evidencePath, { fullReconciliation: true, runId });
+    return {
+      runId,
+      status: 'COMPLETED',
+      runStatus: 'COMPLETED',
+      applyStatus: 'COMMITTED',
+      operationId: 'automation-items-l1',
+      policySetHash: POLICY_SET_HASH,
+      bundlePath,
+      bundleSha256,
+      evidencePath,
+      evidenceSha256,
+      fullReconciliation: true,
+    };
+  });
+  f.adapterReadback.domains.items = {
+    status: 'pass',
+    policyCeiling: {
+      status: 'verified',
+      artifactHash: `sha256:${'d'.repeat(64)}`,
+      currentPolicySetHash: POLICY_SET_HASH,
+      policyVersion: 2,
+      policyHash: `sha256:${'b'.repeat(64)}`,
+      targetPolicySetHash: `sha256:${'c'.repeat(64)}`,
+      artifactPath: 'reports/authorization/canonical/l2-policy-ceiling/items/' + `${'d'.repeat(64)}/artifact.json`,
+      artifactFileSha256: `sha256:${'e'.repeat(64)}`,
+      registration: {
+        resultPath: 'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json',
+        resultFileSha256: `sha256:${'f'.repeat(64)}`,
+        commitMarkerPath: 'reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json.commit.json',
+        commitMarkerFileSha256: `sha256:${'1'.repeat(64)}`,
+        decisionIdentity: 'items-ceiling-registration',
+        commitMarkerDecisionIdentity: 'items-ceiling-registration',
+      },
+    },
+    evidence: {
+      distinctCommittedL1Runs: 3,
+      qualifyingL1Runs: runs,
+      fullReconciliation: { runId: runs[2].runId },
+    },
+  };
+  const templatePath = path.join(f.priorRoot, 'domain/items/readiness.json');
+  const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+  template.blockingGates = [
+    'three_successful_l1_runs',
+    'full_reconciliation',
+    'owner_l2_promotion',
+    'separate_l2_scheduler_decision',
+    'l1_bundle_evidence_integrity',
+    'policy_ceiling',
+  ];
+  fs.writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`, { mode: 0o600 });
+
+  const artifacts = buildL2ReadinessArtifacts({ ...f, domains: ['items'] });
+
+  assert.deepEqual(artifacts.records[0].record.blockingGates, [
+    'owner_l2_promotion',
+    'separate_l2_scheduler_decision',
+  ]);
+  assert.equal(artifacts.records[0].record.l1Runs.every((run) => (
+    run.sourceValidity.status === 'match' && run.evidenceValidity.status === 'match'
+  )), true);
 });
 
 test('reads a registered L2 ceiling only when artifact, marker, and database row agree', async () => {

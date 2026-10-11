@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-armor-sets-l2-reauthorization",
+  "databaseName": "terria_v1_local",
+  "domainId": "armor_sets",
+  "reauthorization": true,
+  "currentPolicy": {
+    "domainId": "armor_sets",
+    "policyVersion": 2,
+    "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:ecf35935ed3681939f9d0b4fab8760a6cd802cccb8647f73a486e25de42c3871",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-armor-sets-l2-reauthorization-20260919-standing-01",
+    "packetHash": "sha256:4bb22d9b3426970b6e48e1ddb4bd9ed9e29b38a867df2a5c1e6689bb2eb077a1",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "expiresAt": "2026-09-20T07:50:39.000Z",
+    "domainId": "armor_sets"
+  },
+  "targetPolicy": {
+    "domainId": "armor_sets",
+    "policyVersion": 2,
+    "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "proposalOnly": false,
+  "proposalPath": "reports/authorization/canonical/automation-armor-sets-l2-reauthorization/6678211f701697aa038fe9f6c9993c238227f8cf9f2b0c8053eeff69ca69e5b7/proposal.json",
+  "proposalSha256": "sha256:774c4df6bfaff254203572e02d572579074021cb57c9ae55c6ecf458f7c7ba90",
+  "proposalHash": "sha256:6678211f701697aa038fe9f6c9993c238227f8cf9f2b0c8053eeff69ca69e5b7"
+}

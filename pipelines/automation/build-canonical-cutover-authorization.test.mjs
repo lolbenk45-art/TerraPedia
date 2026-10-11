@@ -32,6 +32,7 @@ import {
   canonicalItemImageProjectionHash,
   recomputeItemImageProjectionPacketHash,
 } from '../relation/item-image-projection-contract.mjs';
+import { buildHistoricalSourceHashDisposition } from './historical-source-hash-disposition.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const GENERATED_AT = '2026-07-27T15:00:00.000Z';
@@ -306,6 +307,20 @@ test('operation request builder exposes all governed IDs', () => {
     'canonical-projectile-image-origin-normalization',
     'canonical-biome-image-origin-normalization',
     'canonical-armor-set-projection-restoration',
+    'canonical-armor-set-projection-incremental',
+    'canonical-armor-ingestion',
+    'canonical-armor-semantic-repair',
+    'canonical-armor-historical-tuple-repair',
+    'canonical-armor-secondary-projection',
+    'canonical-armor-item-effect-source',
+    'canonical-armor-item-lineage-refresh',
+    'canonical-armor-shroomite-relation-item-refresh',
+    'canonical-armor-relation-item-normalization',
+    'canonical-armor-source-effect-publication',
+    'canonical-armor-missing-attribute-source',
+    'canonical-armor-attribute-relation-publication',
+    'canonical-armor-typed-effect-publication',
+    'canonical-armor-image-cache',
     'canonical-two-item-image-quarantine-repair',
     'canonical-item-base-entity-restoration',
     'canonical-item-source-local-npc-admission',
@@ -323,6 +338,7 @@ test('operation request builder exposes all governed IDs', () => {
     'canonical-projectile-backfill',
     'canonical-projectile-t1-acceptance',
     'canonical-buff-t1-acceptance',
+    'canonical-buff-full-chain',
     'canonical-biome-t1-acceptance',
     'canonical-biome-image-contract-apply',
     'canonical-crawler-v2-scheduler-t1-acceptance',
@@ -351,6 +367,7 @@ test('operation request builder exposes all governed IDs', () => {
     'automation-biomes-first-l1',
     'automation-biomes-second-l1',
     'automation-biomes-l2-promotion',
+    'automation-l1-historical-source-hash-disposition',
     'automation-items-l2-promotion',
     'automation-npcs-l2-promotion',
     'automation-projectiles-l2-promotion',
@@ -367,6 +384,14 @@ test('operation request builder exposes all governed IDs', () => {
     'automation-audio-l2-policy-ceiling-registration',
     'automation-bosses-l2-policy-ceiling-registration',
     'automation-shimmer-l2-policy-ceiling-registration',
+    'automation-items-l2-reauthorization',
+    'automation-npcs-l2-reauthorization',
+    'automation-projectiles-l2-reauthorization',
+    'automation-armor-sets-l2-reauthorization',
+    'automation-buffs-l2-reauthorization',
+    'automation-audio-l2-reauthorization',
+    'automation-bosses-l2-reauthorization',
+    'automation-shimmer-l2-reauthorization',
     'automation-biomes-scheduler-activation',
     'automation-crawler-v2-scheduler-activation',
     'automation-crawler-v2-scheduler-reactivation',
@@ -562,6 +587,321 @@ test('L2 authorization data bundles include the exact policy artifact and propos
   ]);
 });
 
+test('scheduler activation authorization binds the retry-labelled manifest input', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '../..');
+  const retryLabel = 'scheduler-auth-test';
+  const inputPath = `reports/authorization/canonical/automation-crawler-v2-scheduler-activation.${retryLabel}.input.json`;
+  const inputFile = path.join(repoRoot, inputPath);
+  try {
+    fs.writeFileSync(inputFile, '{"schemaVersion":1,"retry":"scheduler-auth-test"}\n', {
+      mode: 0o600,
+      flag: 'wx',
+    });
+    const executionManifest = buildCanonicalOperationExecutionManifest({
+      repoRoot,
+      operationId: 'automation-crawler-v2-scheduler-activation',
+      artifactDate: '2026-09-07',
+      resultLabel: retryLabel,
+    });
+
+    const resolved = resolveCanonicalOperationTechnicalInput({
+      repoRoot,
+      operationId: executionManifest.operationId,
+      executionManifest,
+    });
+
+    assert.deepEqual(resolved.dataEntries.map((entry) => entry.path), [inputPath]);
+  } finally {
+    fs.rmSync(inputFile, { force: true });
+  }
+});
+
+test('historical disposition authorization resolves the manifest-bound candidate path and file hash', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-data-bundle-'));
+  const policySetHash = HASH;
+  const currentPolicy = {
+    domainId: 'items',
+    level: 'L1',
+    operationalState: 'ACTIVE',
+    policyVersion: 1,
+    policyHash: HASH,
+    policySetHash,
+  };
+  const sourceBytes = Buffer.from('{"records":[1]}\n', 'utf8');
+  const sourcePath = 'reports/authorization/canonical/items/legacy.source.json';
+  const entry = {
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    runStatus: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    bundlePath: '/legacy/TerraPedia/reports/authorization/canonical/items/legacy.bundle.json',
+    bundleHash: `sha256:${'b'.repeat(64)}`,
+    bundleFileSha256: `sha256:${'c'.repeat(64)}`,
+    evidenceHash: `sha256:${'d'.repeat(64)}`,
+    baselineFingerprint: `sha256:${'e'.repeat(64)}`,
+    source: {
+      path: sourcePath,
+      declaredSha256: `sha256:${createHash('sha256').update(Buffer.from(JSON.stringify(JSON.parse(sourceBytes.toString('utf8'))), 'utf8')).digest('hex')}`,
+      semanticJsonSha256: `sha256:${createHash('sha256').update(Buffer.from(JSON.stringify(JSON.parse(sourceBytes.toString('utf8'))), 'utf8')).digest('hex')}`,
+      actualByteSha256: `sha256:${createHash('sha256').update(sourceBytes).digest('hex')}`,
+      bytes: sourceBytes.length,
+      encoding: 'utf8',
+    },
+  };
+  const candidate = buildHistoricalSourceHashDisposition({
+    domainId: 'items',
+    currentPolicy,
+    entries: [entry],
+    generatedAt: GENERATED_AT,
+  });
+  const candidatePath = `reports/authorization/canonical/l1-historical-source-hash-disposition/items/${candidate.artifactHash.slice(7)}/candidate.json`;
+  const candidateBytes = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`, 'utf8');
+  const candidateAbsolute = path.join(repoRoot, candidatePath);
+  fs.mkdirSync(path.dirname(candidateAbsolute), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(candidateAbsolute, candidateBytes, { mode: 0o600 });
+  const candidateFileSha256 = `sha256:${createHash('sha256').update(candidateBytes).digest('hex')}`;
+  const executionManifest = {
+    schemaVersion: 1,
+    operationId: 'automation-l1-historical-source-hash-disposition',
+    executionClass: 'historical_source_hash_disposition',
+    command: ['node', 'pipelines/automation/historical-source-hash-disposition.mjs'],
+    inputPaths: [candidatePath],
+    outputPaths: [],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: false,
+    networkAccess: false,
+    historicalSourceHashDisposition: {
+      candidatePath,
+      candidateFileSha256,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+    scope: {
+      domainId: candidate.domainId,
+      runId: candidate.entries[0].runId,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+  };
+
+  const resolved = resolveCanonicalOperationTechnicalInput({
+    repoRoot,
+    operationId: executionManifest.operationId,
+    executionManifest,
+  });
+
+  assert.deepEqual(resolved.dataEntries.map((entryValue) => entryValue.path), [candidatePath]);
+  assert.equal(resolved.dataEntries[0].bytes.toString('utf8'), candidateBytes.toString('utf8'));
+  assert.deepEqual(resolved.executionManifest, executionManifest);
+  const request = buildCanonicalAuthorizationRequestForOperation({
+    repoRoot,
+    operationId: executionManifest.operationId,
+    serverFingerprint: {
+      host: '127.0.0.1',
+      port: 13306,
+      serverUuid: 'historical-request-server',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    },
+    policyRows: [{ domainId: 'items', policyVersion: 1, policyHash: HASH }],
+    executionManifest,
+    generatedAt: GENERATED_AT,
+    expiresAt: EXPIRES_AT,
+  });
+  assert.deepEqual(request.scope, executionManifest.scope);
+});
+
+test('historical disposition resolver rejects path, hash, alias, and scope drift before loading a candidate', () => {
+  const fixture = historicalResolverFixture();
+  const cases = [
+    ['path traversal', (manifest) => {
+      const pathValue = `${fixture.candidatePath}/../candidate.json`;
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['absolute path', (manifest) => {
+      const pathValue = '/tmp/terrapedia-candidate.json';
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['backslash path', (manifest) => {
+      const pathValue = fixture.candidatePath.replaceAll('/', '\\');
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['duplicate separator', (manifest) => {
+      const pathValue = fixture.candidatePath.replace('/candidate.json', '//candidate.json');
+      manifest.inputPaths = [pathValue];
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidatePath: pathValue,
+      };
+    }, /normalized relative path|content-addressed/i],
+    ['candidate file hash drift', (manifest) => {
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidateFileSha256: `sha256:${'f'.repeat(64)}`,
+      };
+    }, /candidate file hash drifted/i],
+    ['artifact address drift', (manifest) => {
+      manifest.historicalSourceHashDisposition = {
+        ...manifest.historicalSourceHashDisposition,
+        candidateArtifactHash: `sha256:${'f'.repeat(64)}`,
+      };
+    }, /path hash|artifact hash/i],
+    ['alias conflict', (manifest) => {
+      manifest.candidate = {
+        ...manifest.historicalSourceHashDisposition,
+        candidateFileSha256: `sha256:${'f'.repeat(64)}`,
+      };
+    }, /alias|binding.*exactly once/i],
+    ['scope domain drift', (manifest) => {
+      manifest.scope = { ...manifest.scope, domainId: 'projectiles' };
+    }, /scope|domain/i],
+    ['scope run drift', (manifest) => {
+      manifest.scope = { ...manifest.scope, runId: 'items_l1_other' };
+    }, /scope|run/i],
+  ];
+  for (const [label, mutate, matcher] of cases) {
+    const manifest = structuredClone(fixture.executionManifest);
+    mutate(manifest);
+    assert.throws(
+      () => resolveCanonicalOperationTechnicalInput({
+        repoRoot: fixture.repoRoot,
+        operationId: fixture.executionManifest.operationId,
+        executionManifest: manifest,
+      }),
+      matcher,
+      label,
+    );
+  }
+
+  const driftedBytes = Buffer.from(`${JSON.stringify({ ...fixture.candidate, domainId: 'projectiles' }, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(path.join(fixture.repoRoot, fixture.candidatePath), driftedBytes, { mode: 0o600 });
+  assert.throws(
+    () => resolveCanonicalOperationTechnicalInput({
+      repoRoot: fixture.repoRoot,
+      operationId: fixture.executionManifest.operationId,
+      executionManifest: fixture.executionManifest,
+    }),
+    /candidate (?:artifact|identity|file) hash drifted|candidate.*identity/i,
+  );
+});
+
+test('historical disposition resolver can be independently re-run in a fresh process', () => {
+  const fixture = historicalResolverFixture();
+  const manifestPath = path.join(fixture.repoRoot, 'manifest.json');
+  fs.writeFileSync(manifestPath, `${JSON.stringify(fixture.executionManifest)}\n`, { mode: 0o600 });
+  const modulePath = path.resolve(import.meta.dirname, 'build-canonical-cutover-authorization.mjs');
+  const script = [
+    `import fs from 'node:fs';`,
+    `import { hashOrderedBundleBytes, resolveCanonicalOperationTechnicalInput } from ${JSON.stringify(modulePath)};`,
+    `const manifest = JSON.parse(fs.readFileSync(process.env.MANIFEST_PATH, 'utf8'));`,
+    `const resolved = resolveCanonicalOperationTechnicalInput({ repoRoot: process.env.REPO_ROOT, operationId: manifest.operationId, executionManifest: manifest });`,
+    `process.stdout.write(JSON.stringify({ paths: resolved.dataEntries.map((entry) => entry.path), bytes: resolved.dataEntries[0].bytes.length, dataBundleSha256: hashOrderedBundleBytes(resolved.dataEntries, 'data bundle') }));`,
+  ].join('\n');
+  const expectedDataBundleSha256 = hashOrderedBundleBytes([
+    { path: fixture.candidatePath, bytes: fixture.candidateBytes },
+  ], 'data bundle');
+  const output = execFileSync(process.execPath, ['--input-type=module', '--eval', script], {
+    encoding: 'utf8',
+    env: { ...process.env, REPO_ROOT: fixture.repoRoot, MANIFEST_PATH: manifestPath },
+  });
+  assert.deepEqual(JSON.parse(output), {
+    paths: [fixture.candidatePath],
+    bytes: fixture.candidateBytes.length,
+    dataBundleSha256: expectedDataBundleSha256,
+  });
+});
+
+test('historical disposition authorization CLI binds request and packet outputs to the candidate scope without overwrite', () => {
+  const fixture = historicalResolverFixture();
+  const manifestPath = path.join(fixture.repoRoot, 'manifest.json');
+  const serverFingerprintPath = path.join(fixture.repoRoot, 'server-fingerprint.json');
+  const policyRowsPath = path.join(fixture.repoRoot, 'policy-rows.json');
+  fs.writeFileSync(manifestPath, `${JSON.stringify(fixture.executionManifest)}\n`, { mode: 0o600 });
+  fs.writeFileSync(serverFingerprintPath, `${JSON.stringify({
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'historical-cli-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  })}\n`, { mode: 0o600 });
+  fs.writeFileSync(policyRowsPath, `${JSON.stringify([{ domainId: 'items', policyVersion: 1, policyHash: HASH }])}\n`, { mode: 0o600 });
+  const candidateDirectory = path.posix.dirname(fixture.candidatePath);
+  const requestPath = `${candidateDirectory}/request.json`;
+  const packetPath = `${candidateDirectory}/packet.json`;
+  const script = path.join(path.resolve(import.meta.dirname, '..'), 'automation', 'build-canonical-cutover-authorization.mjs');
+  const commonArgs = [
+    script,
+    '--mode=request',
+    '--operation-id=automation-l1-historical-source-hash-disposition',
+    '--execution-manifest=manifest.json',
+    '--server-fingerprint=server-fingerprint.json',
+    '--policy-rows=policy-rows.json',
+    '--generated-at=2026-07-27T15:00:00.000Z',
+    '--expires-at=2026-07-28T15:00:00.000Z',
+  ];
+  execFileSync(process.execPath, [...commonArgs, `--output=${requestPath}`], {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  assert.equal(fs.existsSync(path.join(fixture.repoRoot, requestPath)), true);
+  assert.equal((fs.lstatSync(path.join(fixture.repoRoot, requestPath)).mode & 0o077), 0);
+  assert.throws(() => execFileSync(process.execPath, [...commonArgs, `--output=${requestPath}`], {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }), /exists|overwrite/i);
+
+  const request = JSON.parse(fs.readFileSync(path.join(fixture.repoRoot, requestPath), 'utf8'));
+  const ownerInputPath = path.join(fixture.repoRoot, 'owner-input.json');
+  const usedDecisionsPath = path.join(fixture.repoRoot, 'used-decisions.json');
+  fs.writeFileSync(ownerInputPath, `${JSON.stringify({
+    actor: 'admin',
+    reason: 'Review one legacy source hash mismatch.',
+    authorizationReference: 'user://conversation/2026-08-30/historical-disposition',
+    decisionIdentity: 'historical-disposition-cli-items-01',
+    authorizedAt: '2026-07-27T15:01:00.000Z',
+  })}\n`, { mode: 0o600 });
+  fs.writeFileSync(usedDecisionsPath, '[]\n', { mode: 0o600 });
+  const authorizeArgs = [
+    script,
+    '--mode=authorize',
+    '--operation-id=automation-l1-historical-source-hash-disposition',
+    '--execution-manifest=manifest.json',
+    '--server-fingerprint=server-fingerprint.json',
+    '--policy-rows=policy-rows.json',
+    `--request=${requestPath}`,
+    `--request-hash=${request.requestHash}`,
+    '--owner-input=owner-input.json',
+    '--used-decisions=used-decisions.json',
+    `--output=${packetPath}`,
+  ];
+  execFileSync(process.execPath, authorizeArgs, {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  assert.equal(fs.existsSync(path.join(fixture.repoRoot, packetPath)), true);
+  assert.equal((fs.lstatSync(path.join(fixture.repoRoot, packetPath)).mode & 0o077), 0);
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(fixture.repoRoot, packetPath), 'utf8')).scope,
+    fixture.executionManifest.scope,
+  );
+  assert.throws(() => execFileSync(process.execPath, authorizeArgs, {
+    cwd: fixture.repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }), /exists|overwrite/i);
+});
+
 test('every operation resolves its exact frozen data inputs and fails closed when one is missing', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-operation-data-'));
   const write = (relativePath, content = '{}') => {
@@ -585,13 +925,44 @@ test('every operation resolves its exact frozen data inputs and fails closed whe
   write('services/catalog-api/src/main/resources/db/migration/V58__c.sql', 'DDL-58');
 
   for (const operationId of CANONICAL_CUTOVER_OPERATION_IDS) {
+    if (operationId === 'canonical-armor-set-projection-incremental'
+      || operationId === 'canonical-armor-item-effect-source'
+        || operationId === 'canonical-armor-item-lineage-refresh'
+        || operationId === 'canonical-armor-shroomite-relation-item-refresh'
+        || operationId === 'canonical-armor-relation-item-normalization'
+        || operationId === 'canonical-armor-source-effect-publication'
+        || operationId === 'canonical-armor-missing-attribute-source'
+        || operationId === 'canonical-armor-attribute-relation-publication'
+        || operationId === 'canonical-armor-secondary-projection'
+        || operationId === 'canonical-armor-image-cache'
+        || operationId === 'canonical-armor-typed-effect-publication'
+        || operationId === 'canonical-armor-semantic-repair'
+        || operationId === 'canonical-armor-historical-tuple-repair'
+        || operationId === 'canonical-armor-ingestion'
+        || operationId === 'canonical-buff-full-chain') {
+      assert.throws(() => buildCanonicalAuthorizationRequestForOperation({ repoRoot, operationId, generatedAt: GENERATED_AT, expiresAt: EXPIRES_AT }), /manifest/);
+      continue;
+    }
     if (operationId === 'canonical-item-image-lineage-apply'
         || operationId === 'canonical-item-image-projection-apply'
         || operationId === 'canonical-item-image-projection-missing-row-insert'
         || operationId === 'canonical-item-base-entity-restoration'
         || operationId === 'canonical-item-source-local-npc-admission') continue;
     if (operationId.startsWith('automation-')
-        && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration'))) continue;
+        && (operationId.endsWith('-l2-promotion') || operationId.endsWith('-l2-policy-ceiling-registration')
+          || operationId.endsWith('-l2-reauthorization'))) continue;
+    if (operationId === 'automation-l1-historical-source-hash-disposition') {
+      assert.throws(
+        () => buildCanonicalAuthorizationRequestForOperation({
+          repoRoot,
+          operationId,
+          generatedAt: GENERATED_AT,
+          expiresAt: EXPIRES_AT,
+        }),
+        /historical disposition execution manifest/i,
+      );
+      continue;
+    }
     const request = buildCanonicalAuthorizationRequestForOperation({
       repoRoot,
       operationId,
@@ -841,7 +1212,7 @@ test('operation manifests are bound to the exact governed entrypoint and missing
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
       .filter(([, entrypoint]) => entrypoint === null)
       .map(([operationId]) => operationId),
-    ['canonical-npc-apply'],
+    ['canonical-npc-apply', 'automation-l1-historical-source-hash-disposition'],
   );
 
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-operation-entrypoint-'));
@@ -1718,4 +2089,76 @@ function writeShimmerImportContract(repoRoot) {
   }, null, 2)}\n`, { mode: 0o600 });
   fs.chmodSync(contractPath, 0o600);
   return publication;
+}
+
+function historicalResolverFixture() {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-historical-resolver-'));
+  const domainId = 'items';
+  const sourceBytes = Buffer.from('{"records":[1]}\n', 'utf8');
+  const sourcePath = 'reports/authorization/canonical/items/legacy.source.json';
+  const semanticHash = `sha256:${createHash('sha256').update(
+    Buffer.from(JSON.stringify(JSON.parse(sourceBytes.toString('utf8'))), 'utf8'),
+  ).digest('hex')}`;
+  const actualHash = `sha256:${createHash('sha256').update(sourceBytes).digest('hex')}`;
+  const entry = {
+    runId: 'items_l1_auto_0dfbd093f42b072192297f2a727d9c4d',
+    runStatus: 'COMPLETED',
+    applyStatus: 'COMMITTED',
+    bundlePath: '/legacy/TerraPedia/reports/authorization/canonical/items/legacy.bundle.json',
+    bundleHash: `sha256:${'b'.repeat(64)}`,
+    bundleFileSha256: `sha256:${'c'.repeat(64)}`,
+    evidenceHash: `sha256:${'d'.repeat(64)}`,
+    baselineFingerprint: `sha256:${'e'.repeat(64)}`,
+    source: {
+      path: sourcePath,
+      declaredSha256: semanticHash,
+      semanticJsonSha256: semanticHash,
+      actualByteSha256: actualHash,
+      bytes: sourceBytes.length,
+      encoding: 'utf8',
+    },
+  };
+  const policyHash = HASH;
+  const policySetHash = HASH;
+  const candidate = buildHistoricalSourceHashDisposition({
+    domainId,
+    currentPolicy: {
+      domainId,
+      level: 'L1',
+      operationalState: 'ACTIVE',
+      policyVersion: 1,
+      policyHash,
+      policySetHash,
+    },
+    entries: [entry],
+    generatedAt: GENERATED_AT,
+  });
+  const candidatePath = `reports/authorization/canonical/l1-historical-source-hash-disposition/${domainId}/${candidate.artifactHash.slice(7)}/candidate.json`;
+  const candidateBytes = Buffer.from(`${JSON.stringify(candidate, null, 2)}\n`, 'utf8');
+  const candidateAbsolute = path.join(repoRoot, candidatePath);
+  fs.mkdirSync(path.dirname(candidateAbsolute), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(candidateAbsolute, candidateBytes, { mode: 0o600 });
+  const executionManifest = {
+    schemaVersion: 1,
+    operationId: 'automation-l1-historical-source-hash-disposition',
+    executionClass: 'historical_source_hash_disposition',
+    command: ['node', 'pipelines/automation/historical-source-hash-disposition.mjs'],
+    inputPaths: [candidatePath],
+    outputPaths: [],
+    reportPaths: [],
+    progressPaths: [],
+    databaseWrites: false,
+    networkAccess: false,
+    historicalSourceHashDisposition: {
+      candidatePath,
+      candidateFileSha256: `sha256:${createHash('sha256').update(candidateBytes).digest('hex')}`,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+    scope: {
+      domainId,
+      runId: entry.runId,
+      candidateArtifactHash: candidate.artifactHash,
+    },
+  };
+  return { repoRoot, candidate, candidatePath, candidateBytes, executionManifest };
 }

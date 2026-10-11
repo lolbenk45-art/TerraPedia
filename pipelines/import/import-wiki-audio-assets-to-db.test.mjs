@@ -14,6 +14,7 @@ import {
   runAudioAssetImport,
   validateAudioMetadata
 } from './import-wiki-audio-assets-to-db.mjs';
+import { resolveSharedDataRoot } from '../lib/project-root.mjs';
 
 test('parseArgs parses apply and database options', () => {
   assert.deepEqual(parseArgs([
@@ -36,7 +37,7 @@ test('resolveImportOptions defaults to dry-run and latest audio metadata path', 
 
   assert.equal(options.apply, false);
   assert.equal(options.db.database, 'terria_v1_local');
-  assert.equal(options.inputJsonPath, '/home/lolben/data/terraPedia/generated/wiki-audio-assets.latest.json');
+  assert.equal(options.inputJsonPath, resolveSharedDataRoot('generated', 'wiki-audio-assets.latest.json'));
   assert.equal(options.reportPath, path.resolve('/repo', 'reports/audio-db-import-dry-run-2026-06-02.json'));
 });
 

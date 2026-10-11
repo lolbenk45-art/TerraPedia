@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-buffs-l2-reauthorization",
+  "domainId": "buffs",
+  "policyVersion": 2,
+  "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-buffs-l2-reauthorization-20260919-standing-01",
+  "actor": "admin",
+  "reason": "Standing AUTH-04 fresh append-only buffs L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and predecessor L1/full reconciliation, no policy update, scheduler activation, crawler, import, or business data write.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/retry-14/buffs",
+  "packetHash": "sha256:a2fd86a181c37550dd8f6e4accb841b678a123157fcadc63c652cade34ac0705",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-09-19T07:54:48.188Z"
+}

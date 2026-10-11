@@ -278,6 +278,22 @@ if [[ -z "$resolved_redis_data_dir" ]]; then
   log_error "Redis data directory is empty"
   exit 1
 fi
+resolved_queue_v2_repo_root="$(resolve_runtime_path "$TP_CRAWLER_QUEUE_V2_REPO_ROOT")"
+resolved_queue_v2_command_root="$(resolve_runtime_path "$TP_CRAWLER_QUEUE_V2_COMMAND_ROOT")"
+for queue_v2_root in "$resolved_queue_v2_repo_root" "$resolved_queue_v2_command_root"; do
+  if [[ -z "$queue_v2_root" || ! -d "$queue_v2_root" ]]; then
+    log_error "Crawler queue V2 root must resolve to an existing directory: ${queue_v2_root:-<empty>}"
+    exit 1
+  fi
+  if [[ "$queue_v2_root" =~ [[:space:]] ]]; then
+    log_error "Crawler queue V2 roots with whitespace are not supported by the JVM launcher"
+    exit 1
+  fi
+done
+if [[ ! -f "$resolved_queue_v2_command_root/pipelines/monitor/check-source-updates.mjs" ]]; then
+  log_error "Crawler queue V2 command root does not contain pipelines/monitor/check-source-updates.mjs"
+  exit 1
+fi
 
 export APP_PORT="$TP_BACKEND_PORT"
 export TERRAPEDIA_DB_NAME="$TP_DB_NAME"
@@ -292,6 +308,8 @@ export TERRAPEDIA_REDIS_HOST="$TP_REDIS_HOST"
 export TERRAPEDIA_REDIS_PORT="$TP_REDIS_PORT"
 export TERRAPEDIA_REDIS_DATABASE="$TP_REDIS_DATABASE"
 export TERRAPEDIA_REDIS_PASSWORD="$TP_REDIS_PASSWORD"
+export TERRAPEDIA_CRAWLER_QUEUE_V2_REPO_ROOT="$resolved_queue_v2_repo_root"
+export TERRAPEDIA_CRAWLER_QUEUE_V2_COMMAND_ROOT="$resolved_queue_v2_command_root"
 export TERRAPEDIA_ADMIN_USERNAME="$TP_ADMIN_USERNAME"
 export TERRAPEDIA_ADMIN_PASSWORD="$TP_ADMIN_PASSWORD"
 export TERRAPEDIA_ADMIN_DISPLAY_NAME="$TP_ADMIN_DISPLAY_NAME"
@@ -322,6 +340,7 @@ export TERRAPEDIA_MAIL_SSL_ENABLE="$TP_MAIL_SSL_ENABLE"
 export TERRAPEDIA_MAIL_STARTTLS_ENABLE="$TP_MAIL_STARTTLS_ENABLE"
 
 spring_profile="$TP_SPRING_PROFILE"
+backend_jvm_arguments="-DAPP_PORT=$TP_BACKEND_PORT -Dmanagement.health.mail.enabled=false -Dterrapedia.crawler.queue-v2.repo-root=$resolved_queue_v2_repo_root -Dterrapedia.crawler.queue-v2.command-root=$resolved_queue_v2_command_root"
 export SPRING_PROFILES_ACTIVE="$spring_profile"
 export SPRING_FLYWAY_OUT_OF_ORDER="$TP_SPRING_FLYWAY_OUT_OF_ORDER"
 export SPRING_DEVTOOLS_RESTART_ENABLED=false
@@ -337,6 +356,17 @@ bash "$SCRIPT_DIR/verify-local-stack.sh" --skip-front
 preflight_status="passed"
 
 run_snapshot_gc_if_due
+
+prepare_base_automatic_artifact_boundary() {
+  local boundary_json
+  if ! boundary_json="$(node "$REPO_ROOT/pipelines/automation/prepare-base-automatic-artifact-boundary.mjs" "--repo-root=$resolved_queue_v2_repo_root")"; then
+    log_error "Base automatic artifact boundary is not service-UID safe; scheduler startup is blocked"
+    exit 1
+  fi
+  log_info "Prepared base automatic artifact boundary: $boundary_json"
+}
+
+prepare_base_automatic_artifact_boundary
 
 verify_shared_redis_data_dir() {
   case "$TP_REDIS_HOST" in
@@ -622,7 +652,7 @@ start_flaresolverr_if_needed
 if ! tcp_check 127.0.0.1 "$TP_BACKEND_PORT" 800; then
   start_background catalog-api "$REPO_ROOT/services/catalog-api" \
     "mvn -DskipTests -Dspring-boot.run.profiles=\"$spring_profile\" spring-boot:run" \
-    mvn -DskipTests -Dspring-boot.run.profiles="$spring_profile" "-Dspring-boot.run.jvmArguments=-DAPP_PORT=$TP_BACKEND_PORT -Dmanagement.health.mail.enabled=false" spring-boot:run
+    mvn -DskipTests -Dspring-boot.run.profiles="$spring_profile" "-Dspring-boot.run.jvmArguments=$backend_jvm_arguments" spring-boot:run
   wait_port 127.0.0.1 "$TP_BACKEND_PORT" 90 || {
     log_error "Backend failed to start on $TP_BACKEND_PORT. Check $(log_path catalog-api)"
     exit 1
@@ -756,6 +786,10 @@ const processes = processLines.map((line) => JSON.parse(line));
     "configPath": process.env.TP_CONFIG_PATH,
     "backend": {
       httpRateLimitEnabled: process.env.TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED !== 'false',
+      queueV2: {
+        repoRoot: process.env.TERRAPEDIA_CRAWLER_QUEUE_V2_REPO_ROOT || '',
+        commandRoot: process.env.TERRAPEDIA_CRAWLER_QUEUE_V2_COMMAND_ROOT || '',
+      },
     },
     "ports": {
       redis: portState(process.env.TP_REDIS_PORT, redisOpen),

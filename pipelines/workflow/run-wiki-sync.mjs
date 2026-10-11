@@ -70,7 +70,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'module',
     sourceKeys: ['wiki.module.iteminfo'],
     titles: ['Module:Iteminfo/data'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-iteminfo.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-iteminfo.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__iteminfo__data.latest.json'),
     estimatedRequests: 1
@@ -80,7 +80,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'module',
     sourceKeys: ['wiki.module.npcinfo'],
     titles: ['Module:Npcinfo/data'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-npcinfo.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-npcinfo.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__npcinfo__data.latest.json'),
     estimatedRequests: 1
@@ -90,7 +90,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'module',
     sourceKeys: ['wiki.module.projectileinfo'],
     titles: ['Module:Projectileinfo/data'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-projectileinfo.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-projectileinfo.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__projectileinfo__data.latest.json'),
     estimatedRequests: 1
@@ -100,7 +100,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'module',
     sourceKeys: ['wiki.module.armorsetbonuses'],
     titles: ['Module:ArmorSetBonuses'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-armorsetbonuses.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-armorsetbonuses.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__armorsetbonuses.latest.json'),
     estimatedRequests: 1
@@ -110,7 +110,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'page',
     sourceKeys: ['wiki.page.armor_attributes'],
     titles: ['盔甲属性表'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-armor-attributes.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-armor-attributes.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(generatedRoot, 'wiki-armor-attributes.latest.json'),
     estimatedRequests: 1
@@ -120,7 +120,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'template',
     sourceKeys: ['wiki.page.template_getbuffinfo'],
     titles: ['Template:GetBuffInfo'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-buffs.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-buffs.mjs'),
     scriptArgs: (options) => [`--langs=${String(options.langs ?? 'en').trim() || 'en'}`],
     latestJsonPath: path.join(sharedRawWikiRoot, 'template__getbuffinfo.latest.json'),
     estimatedRequests: 18
@@ -130,7 +130,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'page_family_anchor',
     sourceKeys: ['wiki.page.bosses_anchor'],
     titles: ['Bosses'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-bosses.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-bosses.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(generatedRoot, 'wiki-bosses.latest.json'),
     estimatedRequests: 80
@@ -140,7 +140,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'page_family_anchor',
     sourceKeys: ['wiki.page.biomes_anchor'],
     titles: ['Biomes'],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-biomes.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-biomes.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(generatedRoot, 'wiki-biomes.latest.json'),
     estimatedRequests: 70
@@ -150,7 +150,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'page_family_anchor',
     sourceKeys: CATEGORY_TEMPLATE_TITLES.map((title) => `wiki.page.${slugify(title)}`),
     titles: CATEGORY_TEMPLATE_TITLES,
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-item-categories.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-item-categories.mjs'),
     scriptArgs: () => [],
     latestJsonPath: path.join(generatedRoot, 'wiki-item-categories.latest.json'),
     estimatedRequests: 20
@@ -160,7 +160,7 @@ const ENTITY_CONFIG = {
     sourceKind: 'page',
     sourceKeys: ['wiki.page.item_detail'],
     titles: [],
-    scriptPath: path.join(repoRoot, 'pipelines', 'fetch', 'fetch-wiki-item-pages.mjs'),
+    scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-item-pages.mjs'),
     scriptArgs: (options) => {
       const args = [];
       const limit = Math.max(1, Math.min(100, numericOption(options['page-limit'] ?? options.limit, 100)));
@@ -241,25 +241,27 @@ function resolveWorkflowPath(candidate) {
   });
 }
 
-if (options['clear-cooldown'] === true || String(options['clear-cooldown'] ?? '').toLowerCase() === 'true') {
-  clearWikiRequestGateCooldown();
-}
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  if (options['clear-cooldown'] === true || String(options['clear-cooldown'] ?? '').toLowerCase() === 'true') {
+    clearWikiRequestGateCooldown();
+  }
 
-switch (mode) {
-  case 'monitor':
-    await runMonitor();
-    break;
-  case 'plan':
-    await runPlan();
-    break;
-  case 'apply':
-    await runApply({ resume: false });
-    break;
-  case 'resume':
-    await runApply({ resume: true });
-    break;
-  default:
-    throw new Error(`Unsupported --mode value: ${mode}`);
+  switch (mode) {
+    case 'monitor':
+      await runMonitor();
+      break;
+    case 'plan':
+      await runPlan();
+      break;
+    case 'apply':
+      await runApply({ resume: false });
+      break;
+    case 'resume':
+      await runApply({ resume: true });
+      break;
+    default:
+      throw new Error(`Unsupported --mode value: ${mode}`);
+  }
 }
 
 async function runMonitor() {

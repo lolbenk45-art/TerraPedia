@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "buff-source-applicability-classification/v1",
+  "operationId": "canonical-buff-full-chain",
+  "source": {
+    "runId": "b1-a63-20260929-04",
+    "path": ".local/tmp/b1-a63-20260929-02/page-classification-revision-bound.json",
+    "sha256": "sha256:b81ec5bdda25653a9f42060f1a924e2302e141249c15a416b1aaf0621cc245d9",
+    "baseSourceRun": "b1-a63-20260928-03",
+    "baseParsedSha256": "sha256:9363042f776ba666e7fea83a791cc18b2b74e7d9532f69c88dbcff74b3cca47c"
+  },
+  "summary": {
+    "total": 400,
+    "parsed": 30,
+    "missingImmunity": 370,
+    "revisionBoundClassifications": 317,
+    "itemCategoryNotApplicable": 179,
+    "unknown": 191
+  },
+  "status": "blocked",
+  "blockers": [
+    "191 missing-immunity records still lack an explicit revision-bound not_applicable classification or parsed immunity section",
+    "classification metadata is diagnostic and has not been merged into landing payload"
+  ],
+  "writes": {
+    "landing": 0,
+    "maint": 0,
+    "relation": 0,
+    "projection": 0,
+    "decision": 0
+  },
+  "generatedAt": "2026-09-28T21:26:48.141Z"
+}

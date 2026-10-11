@@ -526,11 +526,15 @@ async function fetchBuffPageImmunityFact({
   }
 }
 
-async function fetchDefaultBuffPagePayload({ pageTitle, fetchRenderedHtml } = {}) {
-  if (fetchRenderedHtml !== fetchWikiRenderedHtml) {
+export async function fetchDefaultBuffPagePayload({
+  pageTitle,
+  fetchRenderedHtml,
+  fetchPagePayloadImpl = fetchWikiPagePayload
+} = {}) {
+  if (typeof fetchRenderedHtml === 'function' && fetchRenderedHtml !== fetchWikiRenderedHtml) {
     return { pageTitle, html: await fetchRenderedHtml({ pageTitle }), wikitext: null, sections: null };
   }
-  return fetchWikiPagePayload({ pageTitle });
+  return fetchPagePayloadImpl({ pageTitle, requireRevisionBinding: true });
 }
 
 export function buildBuffFetchProgressPayload(progressPath, {

@@ -309,12 +309,26 @@ export interface CrawlerMonitorWikiLastSweep {
   skipped?: CrawlerMonitorPayload[]
 }
 
+export interface CrawlerMonitorWikiAlert {
+  id?: number | null
+  runId?: string | null
+  severity?: string | null
+  dedupeKey?: string | null
+  status?: string | null
+  title?: string | null
+  details?: string | null
+  domain?: string | null
+  createdAt?: string | null
+  lastSeenAt?: string | null
+}
+
 export interface CrawlerMonitorWikiMonitor {
   generatedAt?: string | null
   dispatchMode?: string | null
   autoDispatchEnabled?: boolean
   autoDispatchSettings?: CrawlerMonitorAutoDispatchSettings | null
   lastSweep?: CrawlerMonitorWikiLastSweep | null
+  alerts?: CrawlerMonitorWikiAlert[]
   summary?: CrawlerMonitorWikiSummary | null
   domains?: CrawlerMonitorWikiDomain[]
   pendingDispatches?: CrawlerMonitorWikiDispatch[]

@@ -123,6 +123,41 @@ class CrawlerAttemptArtifactStoreTest {
     }
 
     @Test
+    void shouldPersistAndRequireTheExactSourceDispatchIdentityAcrossManifestAndPlan() {
+        CrawlerAttemptArtifactStore store = store();
+        SourceDispatchIdentity identity = new SourceDispatchIdentity(
+            "sha256:" + "a".repeat(64),
+            "2026-07-11T13:00:00.123Z",
+            "sha256:" + "b".repeat(64)
+        );
+        String base = "reports/crawler-monitor/v2/2026-07-11/attempt-source/";
+        CrawlerQueueV2Artifacts artifacts = new CrawlerQueueV2Artifacts(
+            base + "progress.json", base + "run.log", null, null
+        );
+
+        store.prepare(
+            "epoch-1", "queue-1", "attempt-source", "items", "wiki-items-refresh", NOW,
+            artifacts, identity
+        );
+        CrawlerAttemptManifest manifest = store.readManifest("attempt-source").orElseThrow();
+        assertEquals(identity, manifest.sourceDispatchIdentity());
+
+        CrawlerOperationPlanSnapshot plan = new CrawlerOperationPlanSnapshot(
+            "fresh", "wiki-items-refresh", "items", "check", true, "Module:Iteminfo/data",
+            "none", "none", 1L, 1L, false, true, null, "summary", NOW, identity
+        );
+        store.writeOperationPlan("attempt-source", plan);
+        assertEquals(identity, store.readOperationPlan("attempt-source").orElseThrow().sourceDispatchIdentity());
+
+        CrawlerOperationPlanSnapshot mismatched = new CrawlerOperationPlanSnapshot(
+            "fresh", "wiki-items-refresh", "items", "check", true, "Module:Iteminfo/data",
+            "none", "none", 1L, 1L, false, true, null, "summary", NOW,
+            new SourceDispatchIdentity("sha256:" + "c".repeat(64), identity.sourceRunIdentity(), identity.sourceContentIdentity())
+        );
+        assertThrows(IllegalArgumentException.class, () -> store.writeOperationPlan("attempt-source", mismatched));
+    }
+
+    @Test
     void shouldRejectNonCanonicalAttemptArtifactPaths() {
         CrawlerAttemptArtifactStore store = store();
         String base = "reports/crawler-monitor/v2/2026-07-11/attempt-invalid/";

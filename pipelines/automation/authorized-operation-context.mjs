@@ -11,7 +11,10 @@ import {
   canonicalServerFingerprint,
   hashCanonicalServerFingerprint,
 } from './automation-database-contract.mjs';
-import { assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryPathConfinement,
+} from '../lib/private-repository-path.mjs';
 
 export function assertAuthorizedOperationDataBundle({
   repoRoot,
@@ -67,20 +70,25 @@ export function loadAuthorizedOperationContext({
   env = process.env,
   operationId,
   now = new Date().toISOString(),
+  repoRoot = null,
 } = {}) {
   const expectedOperationId = requireText(operationId, 'operationId');
   const packetPath = path.resolve(requireText(
     env?.TERRAPEDIA_AUTHORIZED_PACKET_PATH,
     'TERRAPEDIA_AUTHORIZED_PACKET_PATH',
   ));
-  const stat = fs.lstatSync(packetPath);
-  if (!stat.isFile() || stat.isSymbolicLink()) {
-    throw new Error('authorized packet path must be an ordinary file');
-  }
+  const root = path.resolve(repoRoot ?? env?.WORKTREE_ROOT ?? path.dirname(packetPath));
+  const confinedPacketPath = assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: packetPath,
+    label: 'authorized packet path',
+  });
+  const stat = fs.lstatSync(confinedPacketPath);
   if ((stat.mode & 0o077) !== 0) {
     throw new Error('authorized packet file must be private');
   }
-  const packet = JSON.parse(fs.readFileSync(packetPath, 'utf8'));
+  const packetBytes = fs.readFileSync(confinedPacketPath);
+  const packet = JSON.parse(packetBytes.toString('utf8'));
   verifyCanonicalAuthorizationPacket(packet);
   if (packet.operationId !== expectedOperationId) {
     throw new Error(`authorized packet operationId must be ${expectedOperationId}`);
@@ -90,22 +98,28 @@ export function loadAuthorizedOperationContext({
       || Date.parse(verificationTime) >= Date.parse(packet.expiresAt)) {
     throw new Error('authorized packet is not currently valid or is expired');
   }
-  return Object.freeze({
+  const packetPathRelative = repositoryRelativePath(root, confinedPacketPath);
+  const packetFileSha256 = `sha256:${createHash('sha256').update(packetBytes).digest('hex')}`;
+  const technical = Object.freeze({
     operationId: packet.operationId,
-    actor: packet.actor,
-    reason: packet.reason,
-    authorizationReference: packet.authorizationReference,
-    decisionIdentity: packet.decisionIdentity,
-    packetHash: packet.packetHash,
-    authorizedAt: packet.authorizedAt,
-    expiresAt: packet.expiresAt,
-    serverFingerprint: packet.serverFingerprint,
     targetDatabases: packet.targetDatabases,
+    serverFingerprint: packet.serverFingerprint,
     schemaBundleSha256: packet.schemaBundleSha256,
+    schemaBundleEntries: packet.schemaBundleEntries,
     dataBundleSha256: packet.dataBundleSha256,
+    dataBundleEntries: packet.dataBundleEntries,
     policySetHash: packet.policySetHash,
     executionManifestHash: packet.executionManifestHash,
     executionManifest: packet.executionManifest,
+    requiredTechnicalFields: packet.requiredTechnicalFields,
+  });
+  return Object.freeze({
+    ...packet,
+    packet: Object.freeze(packet),
+    packetPath: confinedPacketPath,
+    packetPathRelative,
+    packetFileSha256,
+    technical,
   });
 }
 
@@ -259,4 +273,12 @@ function requireText(value, label) {
   const text = String(value ?? '').trim();
   if (!text) throw new Error(`${label} is required`);
   return text;
+}
+
+function repositoryRelativePath(repoRoot, filePath) {
+  const relative = path.relative(path.resolve(repoRoot), path.resolve(filePath)).replaceAll('\\', '/');
+  if (!relative || relative === '..' || relative.startsWith('../') || path.posix.isAbsolute(relative)) {
+    throw new Error('authorized packet path must be inside the repository root');
+  }
+  return relative;
 }

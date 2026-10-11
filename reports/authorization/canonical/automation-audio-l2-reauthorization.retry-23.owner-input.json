@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: append-only stable L2 reauthorization for the expired audio policy identity; no policy transition, source refresh, scheduler activation, or direct data write.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/audio/retry-23",
+  "decisionIdentity": "automation-audio-l2-reauthorization-20260921-standing-06"
+}

@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized bounded V2 scheduler activation for the fresh H8 eight-domain preflight; natural tick only, no manual sweep, with rollback on drift or failure.",
+  "authorizationReference": "user://conversation/2026-09-18/scheduler-activation/retry-07",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260918-owner-04",
+  "authorizedAt": "2026-09-18T03:33:00.000Z"
+}

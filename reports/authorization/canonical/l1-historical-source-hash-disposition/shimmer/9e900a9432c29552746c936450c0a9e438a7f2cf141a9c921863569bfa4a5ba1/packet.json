@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-09-18T06:20:00.000Z",
+  "expiresAt": "2026-09-18T07:20:00.000Z",
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:f0aba713f262053f6871c281e3f016bd3fd3434c15624fb05306349457c6059c",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/9e900a9432c29552746c936450c0a9e438a7f2cf141a9c921863569bfa4a5ba1/candidate.json",
+      "sizeBytes": 2294,
+      "contentHash": "sha256:978aad9ea9b0efa09c6c891c6968aacccf4124869c7fcf8d9254c453f65ca92b"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:241adda3d82c9729dd088532f60ac7b312fc9d3a87a25f5ffba01568db5c4fd4",
+  "executionManifest": {
+    "command": [
+      "node",
+      "pipelines/automation/historical-source-hash-disposition.mjs"
+    ],
+    "databaseWrites": false,
+    "executionClass": "historical_source_hash_disposition",
+    "historicalSourceHashDisposition": {
+      "candidateArtifactHash": "sha256:9e900a9432c29552746c936450c0a9e438a7f2cf141a9c921863569bfa4a5ba1",
+      "candidateFileSha256": "sha256:978aad9ea9b0efa09c6c891c6968aacccf4124869c7fcf8d9254c453f65ca92b",
+      "candidatePath": "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/9e900a9432c29552746c936450c0a9e438a7f2cf141a9c921863569bfa4a5ba1/candidate.json"
+    },
+    "inputPaths": [
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/9e900a9432c29552746c936450c0a9e438a7f2cf141a9c921863569bfa4a5ba1/candidate.json"
+    ],
+    "networkAccess": false,
+    "operationId": "automation-l1-historical-source-hash-disposition",
+    "outputPaths": [],
+    "progressPaths": [],
+    "reportPaths": [],
+    "schemaVersion": 1,
+    "scope": {
+      "candidateArtifactHash": "sha256:9e900a9432c29552746c936450c0a9e438a7f2cf141a9c921863569bfa4a5ba1",
+      "domainId": "shimmer",
+      "runId": "shimmer_l1_20260824closure01"
+    }
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "User-authorized fresh immutable Shimmer historical source-hash disposition bound to H0 L1 policy rows; exclude only the proven legacy semantic-JSON hash mismatch from L1 qualification.",
+  "authorizationReference": "user://conversation/2026-09-18/l1-historical-source-hash-disposition/shimmer-retry-02",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-shimmer-20260918-admin-03",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "scope": {
+    "domainId": "shimmer",
+    "runId": "shimmer_l1_20260824closure01",
+    "candidateArtifactHash": "sha256:9e900a9432c29552746c936450c0a9e438a7f2cf141a9c921863569bfa4a5ba1"
+  },
+  "requestHash": "sha256:f2137e24c7b24850b0780de179304f1ccf8871a0126fc6089b079f013de0717f",
+  "authorizedAt": "2026-09-18T06:21:00.000Z",
+  "packetHash": "sha256:e3c2113f13c313ea692398821470ac1ce15e5be2bebc9dfc80eaddb1c1f72637"
+}

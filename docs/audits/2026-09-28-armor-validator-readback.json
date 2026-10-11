@@ -1,0 +1,36 @@
+{
+  "observedAt": "2026-09-27T23:32:27.927Z",
+  "historicalDecision": "canonical-armor-secondary-projection-a63-20260927-22",
+  "terminalRowsSha256": "sha256:3569b189ad0b04a00946a618cb1b0bff0c8b00249cb8f9140bb361f92f30af0a",
+  "databaseAfterSetUnchanged": true,
+  "rederivedChangeCount": null,
+  "pendingAttributeChanges": [
+    {
+      "itemId": 88,
+      "recordKey": "455238488de0d3a575da5ff82f5de157dd0034fd49924155a19a981ad63177bb",
+      "sentrySlots": "2"
+    },
+    {
+      "itemId": 88,
+      "recordKey": "beb2902c7ffa7a5fdcdec48c2c02c0eff65cc35fa8be56e97539386222afc525",
+      "sentrySlots": "1"
+    }
+  ],
+  "publicAdminNinjaParity": [
+    {
+      "itemId": 256,
+      "effects": 3
+    },
+    {
+      "itemId": 257,
+      "effects": 3
+    },
+    {
+      "itemId": 258,
+      "effects": 3
+    }
+  ],
+  "newProposalBlocker": "ambiguous active MiningHelmet source attributes",
+  "acceptance": "bounded-secondary-parity-only",
+  "databaseWrites": false
+}

@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const monitorDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(monitorDir, '..', '..', '..');
+const repoRoot = path.resolve(monitorDir, '..', '..');
 const scriptPath = path.join(monitorDir, 'crawler-queue-v2-items-fixture.mjs');
 const itemsInput = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
 

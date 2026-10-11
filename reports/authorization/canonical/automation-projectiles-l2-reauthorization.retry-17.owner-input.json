@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04/AUTH-05 prerequisite: append-only stable L2 reauthorization for expired projectiles policy identity before the retry-26 scheduler canary; no policy update, source refresh, scheduler activation, or business-data write beyond the registered decision row.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/projectiles/retry-17",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20260919-standing-02"
+}

@@ -7,6 +7,7 @@ import path from 'node:path';
 import {
   resolveSchedulerActivationCodeBundlePaths,
   SCHEDULER_ACTION_BY_DOMAIN,
+  normalizeSchedulerCanaryAction,
   sha256Json,
 } from './crawler-v2-scheduler-activation-preflight.mjs';
 import {
@@ -103,6 +104,14 @@ function assertPreflight(preflight, t1Report, codeBundle, now) {
   }
 }
 
+function normalizePreflightCanary(preflight) {
+  const canary = normalizeSchedulerCanaryAction(preflight?.canary?.actionId, preflight?.domains);
+  if (preflight?.canary?.domainId !== canary.domainId) {
+    throw new Error('preflight canary domain does not match its action');
+  }
+  return canary;
+}
+
 export function normalizeSchedulerEligibleDomains(domains) {
   if (!Array.isArray(domains) || domains.length === 0) {
     throw new Error('scheduler activation eligible domains are required');
@@ -187,6 +196,7 @@ export function buildCrawlerV2SchedulerActivationProposal({
 } = {}) {
   if (arguments[0]?.current !== undefined) throw new Error('current state constants are forbidden; provide preflight');
   assertPreflight(preflight, t1Report, codeBundle, now);
+  const canary = normalizePreflightCanary(preflight);
   const eligibleDomains = normalizeSchedulerEligibleDomains(preflight.domains);
   const policyBinding = assertSchedulerPolicyBinding({
     policyRows: preflight.policyRows,
@@ -229,8 +239,10 @@ export function buildCrawlerV2SchedulerActivationProposal({
       reconcilerHealthy: preflight.reconciler.status === 'healthy',
     },
     eligibleDomains,
+    canary,
     requested: {
       sweepIntervalMinutes: preflight.control.sweepIntervalMinutes,
+      canaryActionId: canary.actionId,
       actor: null,
       reason: null,
       expiresAt: null,

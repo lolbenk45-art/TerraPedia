@@ -20,6 +20,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.Mockito.verify;
@@ -347,7 +348,21 @@ class PublicItemRelationControllerTest {
         effect.setStatKey("damage_bonus");
         effect.setClassScope("melee");
         effect.setSlotType("headSlot");
+        effect.setOperation("multiply");
+        effect.setValueDecimal(BigDecimal.valueOf(1.12));
+        effect.setValueMaxDecimal(BigDecimal.valueOf(1.20));
         effect.setUnit("percent");
+        effect.setVariantLabel("ShroomiteHelmet");
+        effect.setConditionText("while using ranged weapons");
+        effect.setSourceKind("armor_item_page");
+        effect.setSourceMaintRecordKey("a".repeat(64));
+        effect.setSourceMaintId(123L);
+        effect.setLandingSourceId(456L);
+        effect.setLandingSourceKey("wiki.page.shroomite");
+        effect.setLandingContentHash("b".repeat(64));
+        effect.setSourceProvider("terraria.wiki.gg");
+        effect.setSourcePage("Shroomite Helmet");
+        effect.setSourceRevisionTimestamp("2026-01-31 20:21:00");
 
         when(publicItemService.getPublicItemEquipmentEffects(559L)).thenReturn(List.of(effect));
 
@@ -360,7 +375,21 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.data[0].statKey").value("damage_bonus"))
             .andExpect(jsonPath("$.data[0].classScope").value("melee"))
             .andExpect(jsonPath("$.data[0].slotType").value("headSlot"))
-            .andExpect(jsonPath("$.data[0].unit").value("percent"));
+            .andExpect(jsonPath("$.data[0].operation").value("multiply"))
+            .andExpect(jsonPath("$.data[0].valueDecimal").value(1.12))
+            .andExpect(jsonPath("$.data[0].valueMaxDecimal").value(1.20))
+            .andExpect(jsonPath("$.data[0].unit").value("percent"))
+            .andExpect(jsonPath("$.data[0].variantLabel").value("ShroomiteHelmet"))
+            .andExpect(jsonPath("$.data[0].conditionText").value("while using ranged weapons"))
+            .andExpect(jsonPath("$.data[0].sourceKind").value("armor_item_page"))
+            .andExpect(jsonPath("$.data[0].sourceMaintRecordKey").value("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+            .andExpect(jsonPath("$.data[0].sourceMaintId").value(123))
+            .andExpect(jsonPath("$.data[0].landingSourceId").value(456))
+            .andExpect(jsonPath("$.data[0].landingSourceKey").value("wiki.page.shroomite"))
+            .andExpect(jsonPath("$.data[0].landingContentHash").value("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"))
+            .andExpect(jsonPath("$.data[0].sourceProvider").value("terraria.wiki.gg"))
+            .andExpect(jsonPath("$.data[0].sourcePage").value("Shroomite Helmet"))
+            .andExpect(jsonPath("$.data[0].sourceRevisionTimestamp").value("2026-01-31 20:21:00"));
 
         verify(publicItemService).getPublicItemEquipmentEffects(559L);
     }

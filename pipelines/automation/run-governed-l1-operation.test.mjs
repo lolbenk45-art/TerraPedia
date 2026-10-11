@@ -12,6 +12,7 @@ import {
   buildImportPlan,
   getGovernedL1DomainConfig,
   hashFileBytes,
+  sourceCommandArgs,
 } from './run-governed-l1-operation.mjs';
 import {
   CANONICAL_CUTOVER_OPERATION_IDS,
@@ -31,6 +32,12 @@ test('exposes the approved eight-domain serial L1 order and exact owned tables',
     { databaseRole: 'local', table: 'npcs' },
   ]);
   assert.throws(() => getGovernedL1DomainConfig('biomes'), /unsupported governed L1 domain/);
+});
+
+test('Buff automatic source collection includes page immunity evidence', () => {
+  assert.deepEqual(sourceCommandArgs('buffs', '/tmp/buffs-progress.json', 'buffs-run'), [
+    '--progress-path=/tmp/buffs-progress.json',
+  ]);
 });
 
 test('derives an immutable run artifact root from the domain and run id', () => {

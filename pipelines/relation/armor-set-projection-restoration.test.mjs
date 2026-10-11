@@ -3,6 +3,10 @@ import test from 'node:test';
 
 const operation = await import('./armor-set-projection-restoration.mjs').catch(() => ({}));
 
+test('historical restoration entrypoint cannot build an incremental proposal under its old operation identity', () => {
+  assert.equal(operation.buildArmorSetProjectionIncrementalProposal, undefined);
+});
+
 test('Armor authorization uses the formal database fingerprint and a no-overwrite retry namespace', () => {
   assert.deepEqual(operation.ARMOR_SET_PROJECTION_RESTORATION_AUTHORIZATION_DATABASES, [
     'terria_v1_local',

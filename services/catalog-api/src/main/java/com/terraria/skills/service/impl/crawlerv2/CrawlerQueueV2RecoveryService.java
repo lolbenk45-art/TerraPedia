@@ -109,19 +109,28 @@ public class CrawlerQueueV2RecoveryService {
                     interruptHistoricalManifest(engine.stateStoreEpoch(), manifest, checkedAt);
                     continue;
                 }
+                CrawlerQueueV2Queue queue = repository.findQueue(redisAttempt.queueId()).orElse(null);
                 if (redisAttempt.status() == CrawlerQueueV2Status.CANCEL_REQUESTED) {
-                    supervisor.cancel(redisAttempt);
+                    if (!isCancellationAdoptable(redisAttempt, manifest, queue)) {
+                        stallWithoutProcessSearch(redisAttempt, queue, checkedAt);
+                    } else {
+                        supervisor.cancel(redisAttempt);
+                    }
                     continue;
                 }
                 boolean paused = redisAttempt.status() == CrawlerQueueV2Status.PAUSED;
-                if (!isAdoptable(engine.stateStoreEpoch(), redisAttempt, manifest, checkedAt)
+                if (!isAdoptable(engine.stateStoreEpoch(), redisAttempt, manifest, queue, checkedAt)
                     || !supervisor.recoverExactProcess(redisAttempt, paused)) {
-                    stallWithoutProcessSearch(redisAttempt, checkedAt);
+                    stallWithoutProcessSearch(redisAttempt, queue, checkedAt);
                 }
             }
             for (CrawlerQueueV2Attempt unmatchedRedisAttempt : currentEpochLive.values()) {
                 // Redis-only live state has no immutable attempt evidence and cannot be adopted.
-                stallWithoutProcessSearch(unmatchedRedisAttempt, checkedAt);
+                stallWithoutProcessSearch(
+                    unmatchedRedisAttempt,
+                    repository.findQueue(unmatchedRedisAttempt.queueId()).orElse(null),
+                    checkedAt
+                );
             }
             return remember(new RecoveryResult(false, null, engine.stateStoreEpoch(), checkedAt));
     }
@@ -213,8 +222,13 @@ public class CrawlerQueueV2RecoveryService {
         String epoch,
         CrawlerQueueV2Attempt attempt,
         CrawlerAttemptManifest manifest,
+        CrawlerQueueV2Queue queue,
         Instant now
     ) {
+        if (!hasValidQueueIdentityBinding(attempt, queue)) {
+            return false;
+        }
+        boolean schedulerOwned = queue != null && queue.isSchedulerOwned();
         if (manifest.contractVersion() != attempt.contractVersion()
             || !Objects.equals(epoch, attempt.stateStoreEpoch())
             || !Objects.equals(manifest.stateStoreEpoch(), attempt.stateStoreEpoch())
@@ -228,11 +242,29 @@ public class CrawlerQueueV2RecoveryService {
                 && attempt.status() != CrawlerQueueV2Status.PAUSED)
             || !Objects.equals(manifest.pid(), attempt.pid())
             || !Objects.equals(manifest.processStartedAt(), attempt.processStartedAt())
+            || !Objects.equals(manifest.sourceDispatchIdentity(), attempt.sourceDispatchIdentity())
             || attempt.fenceToken() == null
             || attempt.fenceToken() <= 0L
             || attempt.pid() == null
             || attempt.processStartedAt() == null) {
             return false;
+        }
+        if (schedulerOwned) {
+            SourceDispatchIdentity identity = attempt.sourceDispatchIdentity();
+            if (identity == null || !queue.hasExactSourceDispatchBinding(identity)) {
+                return false;
+            }
+            CrawlerOperationPlanSnapshot plan;
+            try {
+                plan = artifactStore.readOperationPlan(attempt.attemptId()).orElse(null);
+            } catch (RuntimeException exception) {
+                return false;
+            }
+            if (plan == null
+                || !Objects.equals(plan.actionId(), attempt.actionId())
+                || !Objects.equals(plan.sourceDispatchIdentity(), identity)) {
+                return false;
+            }
         }
         if (attempt.status() == CrawlerQueueV2Status.PAUSED) {
             return true;
@@ -267,6 +299,63 @@ public class CrawlerQueueV2RecoveryService {
         return isFreshAndNotFuture(progress.generatedAt(), cutoff, now)
             && isFreshAndNotFuture(progress.lastHeartbeatAt(), cutoff, now)
             && isFreshAndNotFuture(attempt.lastHeartbeatAt(), cutoff, now);
+    }
+
+    private boolean isCancellationAdoptable(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerAttemptManifest manifest,
+        CrawlerQueueV2Queue queue
+    ) {
+        if (!hasValidQueueIdentityBinding(attempt, queue)) {
+            return false;
+        }
+        SourceDispatchIdentity identity = attempt.sourceDispatchIdentity();
+        if (identity == null) {
+            return true;
+        }
+        if (!hasExactCancellationManifestBinding(attempt, manifest)) {
+            return false;
+        }
+        try {
+            CrawlerOperationPlanSnapshot plan = artifactStore.readOperationPlan(attempt.attemptId()).orElse(null);
+            return plan != null
+                && Objects.equals(plan.actionId(), attempt.actionId())
+                && Objects.equals(plan.sourceDispatchIdentity(), identity);
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private boolean hasExactCancellationManifestBinding(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerAttemptManifest manifest
+    ) {
+        if (manifest == null
+            || manifest.contractVersion() != attempt.contractVersion()
+            || !Objects.equals(manifest.stateStoreEpoch(), attempt.stateStoreEpoch())
+            || !Objects.equals(manifest.queueId(), attempt.queueId())
+            || !Objects.equals(manifest.attemptId(), attempt.attemptId())
+            || !Objects.equals(manifest.fenceToken(), attempt.fenceToken())
+            || !Objects.equals(manifest.domain(), attempt.domain())
+            || !Objects.equals(manifest.actionId(), attempt.actionId())
+            || !Objects.equals(manifest.pid(), attempt.pid())
+            || !Objects.equals(manifest.processStartedAt(), attempt.processStartedAt())
+            || !Objects.equals(manifest.sourceDispatchIdentity(), attempt.sourceDispatchIdentity())) {
+            return false;
+        }
+        CrawlerQueueV2Artifacts artifacts = attempt.artifacts();
+        return artifacts != null
+            && Objects.equals(manifest.progressPath(), artifacts.progressPath())
+            && Objects.equals(manifest.logPath(), artifacts.logPath())
+            && Objects.equals(manifest.reportPath(), artifacts.reportPath())
+            && Objects.equals(manifest.outputPath(), artifacts.outputPath());
+    }
+
+    private boolean hasValidQueueIdentityBinding(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Queue queue
+    ) {
+        return queue != null && queue.hasExactAttemptBinding(attempt);
     }
 
     private void interruptHistoricalManifest(String epoch, CrawlerAttemptManifest manifest, Instant now) {
@@ -314,14 +403,17 @@ public class CrawlerQueueV2RecoveryService {
         return fenceToken != null && fenceToken > 0L;
     }
 
-    private void stallWithoutProcessSearch(CrawlerQueueV2Attempt attempt, Instant now) {
+    private void stallWithoutProcessSearch(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Queue queue,
+        Instant now
+    ) {
         if (!stateMachine.canTransition(attempt.status(), CrawlerQueueV2Status.STALLED)) {
             return;
         }
-        CrawlerQueueV2Queue queue = repository.findQueue(attempt.queueId()).orElse(null);
-        if (queue == null
-            || !Objects.equals(attempt.stateStoreEpoch(), queue.stateStoreEpoch())
-            || !Objects.equals(attempt.queueId(), queue.queueId())) {
+        if (queue != null
+            && (!Objects.equals(attempt.stateStoreEpoch(), queue.stateStoreEpoch())
+            || !Objects.equals(attempt.queueId(), queue.queueId()))) {
             return;
         }
         Instant deadline = stateMachine.deadlineFor(
@@ -336,7 +428,7 @@ public class CrawlerQueueV2RecoveryService {
                 attempt.queueId(),
                 attempt.attemptId(),
                 attempt.lane(),
-                queue.dedupeKey(),
+                recoveryDedupeKey(attempt, queue),
                 attempt.coveredDomains(),
                 attempt.fenceToken(),
                 attempt.stateVersion(),
@@ -363,6 +455,14 @@ public class CrawlerQueueV2RecoveryService {
         }
     }
 
+    private String recoveryDedupeKey(CrawlerQueueV2Attempt attempt, CrawlerQueueV2Queue queue) {
+        if (queue != null && !isBlank(queue.dedupeKey())) {
+            return queue.dedupeKey();
+        }
+        // STALLED retains ownership, so this key is never created, released, or used to reclaim a live dedupe key.
+        return "recovery-orphan:" + attempt.queueId() + ":" + attempt.attemptId();
+    }
+
     private CrawlerAttemptManifest syntheticManifest(CrawlerQueueV2Attempt attempt) {
         CrawlerAttemptArtifactStore.PreparedArtifacts prepared = artifactStore.prepare(
             attempt.stateStoreEpoch(),
@@ -372,6 +472,7 @@ public class CrawlerQueueV2RecoveryService {
             attempt.actionId(),
             attempt.requestedAt()
         );
+        artifactStore.bindSourceDispatchIdentity(attempt.attemptId(), attempt.sourceDispatchIdentity());
         CrawlerAttemptManifest manifest = new CrawlerAttemptManifest(
             attempt.contractVersion(),
             attempt.stateStoreEpoch(),
@@ -395,7 +496,8 @@ public class CrawlerQueueV2RecoveryService {
             null,
             null,
             null,
-            List.of()
+            List.of(),
+            attempt.sourceDispatchIdentity()
         );
         artifactStore.writeManifest(manifest);
         return manifest;
@@ -425,7 +527,8 @@ public class CrawlerQueueV2RecoveryService {
             manifest.artifactsExpiredAt(),
             manifest.cleanedAt(),
             manifest.cleanedBy(),
-            manifest.cleanedPaths()
+            manifest.cleanedPaths(),
+            manifest.sourceDispatchIdentity()
         );
     }
 

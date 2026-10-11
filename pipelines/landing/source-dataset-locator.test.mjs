@@ -21,6 +21,36 @@ test('resolveDatasetFilter parses comma separated dataset list', () => {
   assert.deepEqual(resolveDatasetFilter(undefined), []);
 });
 
+test('Armor landing keeps the real module producer revision and fetched timestamps', async (t) => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-armor-landing-'));
+  t.after(() => fs.rm(tempRoot, { recursive: true, force: true }));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+  const sourcePath = path.join(sharedDataRoot, 'raw', 'wiki', 'module__armorsetbonuses.parsed.latest.json');
+  const payload = {
+    armorSets: [], totalArmorSets: 0,
+    sourcePageTitle: 'Module:ArmorSetBonuses', sourceRevisionTimestamp: '2026-09-23T23:00:00Z',
+    fetchedAt: '2026-09-24T01:00:00.000Z',
+  };
+  await writeJson(sourcePath, payload);
+  const [row] = await listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['armor_sets_raw'] });
+  assert.equal(row.sourceKey, 'wiki.module.armorsetbonuses');
+  assert.deepEqual({
+    sourcePage: row.sourcePage, sourceRevisionTimestamp: row.sourceRevisionTimestamp,
+    fetchedAt: row.fetchedAt, parsedAt: row.parsedAt,
+  }, {
+    sourcePage: payload.sourcePageTitle, sourceRevisionTimestamp: payload.sourceRevisionTimestamp,
+    fetchedAt: payload.fetchedAt, parsedAt: payload.fetchedAt,
+  });
+
+  await writeJson(sourcePath, { armorSets: [] });
+  const [missing] = await listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot, datasets: ['armor_sets_raw'] });
+  assert.equal(missing.sourcePage, 'Module:ArmorSetBonuses');
+  assert.equal(missing.sourceRevisionTimestamp, null);
+  assert.equal(missing.fetchedAt, null);
+  assert.equal(missing.parsedAt, null);
+});
+
 test('listSourceDatasetLandingInputs locates single-file and multi-file landing sources', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-landing-'));
   const repoRoot = path.join(tempRoot, 'repo');

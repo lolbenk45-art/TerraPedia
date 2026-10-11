@@ -9,6 +9,7 @@ import {
   verifyFullReconciliationEvidence,
 } from './reconciliation-evidence-contract.mjs';
 import { assertRepositoryOrdinaryFile, assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import { automaticReconciliationRoot, assertAutomaticAttemptMatches } from './automatic-execution-artifacts.mjs';
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const DOMAIN_L1_OPERATION_IDS = Object.freeze({
@@ -32,6 +33,7 @@ export function buildL1ReconciliationEvidence({
   const root = path.resolve(repoRoot);
   const bundle = readJsonArtifact(root, bundlePath, 'L1 bundle', { canonical: true });
   assertBundleIdentity(bundle);
+  const sourceDispatchIdentity = normalizeSourceDispatchIdentity(bundle.sourceDispatchIdentity);
   assertFrozenSource(root, bundle);
   const sourceCoverageRelativePath = normalizeL1EvidencePath(sourceCoveragePath, 'source coverage', bundle, 'source-coverage');
   const tableReadbackRelativePath = normalizeL1EvidencePath(ownedTableReadbackPath, 'owned-table readback', bundle, 'owned-table-readback');
@@ -39,9 +41,9 @@ export function buildL1ReconciliationEvidence({
   const sourceCoverage = readJsonArtifact(root, sourceCoverageRelativePath, 'source coverage');
   const tableReadback = readJsonArtifact(root, tableReadbackRelativePath, 'owned-table readback');
   const attemptState = readJsonArtifact(root, attemptStateRelativePath, 'attempt state');
-  assertSourceCoverage(sourceCoverage, bundle);
-  assertTableReadback(tableReadback, bundle);
-  assertAttemptState(attemptState, bundle);
+  assertSourceCoverage(sourceCoverage, bundle, sourceDispatchIdentity);
+  assertTableReadback(tableReadback, bundle, sourceDispatchIdentity);
+  assertAttemptState(attemptState, bundle, sourceDispatchIdentity);
 
   const evidence = buildFullReconciliationEvidence({
     domainId: bundle.domainId,
@@ -63,6 +65,7 @@ export function buildL1ReconciliationEvidence({
     generationReadback: true,
     activeAttemptCount: Number(attemptState.activeAttemptCount),
     overdueAttemptCount: Number(attemptState.overdueAttemptCount),
+    ...(sourceDispatchIdentity == null ? {} : { sourceDispatchIdentity }),
   });
   return verifyFullReconciliationEvidence(evidence, {
     domainId: bundle.domainId,
@@ -70,6 +73,7 @@ export function buildL1ReconciliationEvidence({
     policyVersion: bundle.policy.policyVersion,
     policyHash: bundle.policy.policyHash,
     policySetHash: bundle.policy.policySetHash,
+    ...(sourceDispatchIdentity == null ? {} : { sourceDispatchIdentity }),
   });
 }
 
@@ -128,9 +132,12 @@ function assertBundleIdentity(bundle) {
   if (DOMAIN_L1_OPERATION_IDS[domain] !== bundle.operationId) {
     throw new Error('L1 bundle operation identity is not exact for its domain');
   }
-  if (bundle.databaseName !== 'terria_v1_local' || bundle.policy?.level !== 'L1'
+  const executionMode = bundle.executionMode ?? 'MANUAL_OWNER_L1';
+  const expectedLevel = executionMode === 'ACTIVATION_GATED_AUTO' ? 'L2' : 'L1';
+  if (!['MANUAL_OWNER_L1', 'ACTIVATION_GATED_AUTO'].includes(executionMode)
+      || bundle.databaseName !== 'terria_v1_local' || bundle.policy?.level !== expectedLevel
       || bundle.policy?.operationalState !== 'ACTIVE') {
-    throw new Error('L1 bundle policy identity is invalid');
+    throw new Error('reconciliation bundle policy identity is invalid');
   }
   if (!Number.isSafeInteger(bundle.policy.policyVersion) || bundle.policy.policyVersion < 1
       || !HASH_PATTERN.test(bundle.policy.policyHash ?? '')
@@ -143,12 +150,49 @@ function assertBundleIdentity(bundle) {
   if (!Array.isArray(bundle.ownedTables) || bundle.ownedTables.length === 0) {
     throw new Error('L1 bundle owned table scope is invalid');
   }
+  if (executionMode === 'ACTIVATION_GATED_AUTO') {
+    assertAutomaticScopeMatchesPolicy(bundle);
+  }
   if (!HASH_PATTERN.test(bundle.bundleHash ?? '')) {
     throw new Error('L1 bundle hash is invalid');
   }
   const { bundleHash, ...body } = bundle;
   if (hashJson(body) !== bundleHash) {
     throw new Error('L1 bundle hash or content mismatch');
+  }
+}
+
+function assertAutomaticScopeMatchesPolicy(bundle) {
+  const normalizeScopes = (value, label) => {
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new Error(`automatic ${label} owned table scope is invalid`);
+    }
+    const keys = new Set();
+    return value.map((scope) => {
+      const normalized = {
+        databaseRole: requireText(scope?.databaseRole, `automatic ${label} databaseRole`),
+        table: requireText(scope?.table, `automatic ${label} table`),
+        fieldGroup: requireText(scope?.fieldGroup, `automatic ${label} fieldGroup`),
+        ...(scope?.logicalPredicateHash == null
+          ? {}
+          : { logicalPredicateHash: requireHash(scope.logicalPredicateHash, `automatic ${label} logicalPredicateHash`) }),
+      };
+      if (normalized.table === 'npcs' && normalized.logicalPredicateHash == null) {
+        throw new Error('automatic shared npcs scope requires a logical predicate hash');
+      }
+      const key = `${normalized.databaseRole}:${normalized.table}:${normalized.fieldGroup}:${normalized.logicalPredicateHash ?? ''}`;
+      if (keys.has(key)) throw new Error(`automatic ${label} owned table scope contains duplicates`);
+      keys.add(key);
+      return normalized;
+    }).sort((left, right) => (
+      `${left.databaseRole}:${left.table}:${left.fieldGroup}:${left.logicalPredicateHash ?? ''}`
+        .localeCompare(`${right.databaseRole}:${right.table}:${right.fieldGroup}:${right.logicalPredicateHash ?? ''}`)
+    ));
+  };
+  const policyScopes = normalizeScopes(bundle.policy?.policyJson?.ownedTables, 'policy');
+  const bundleScopes = normalizeScopes(bundle.ownedTables, 'bundle');
+  if (JSON.stringify(policyScopes) !== JSON.stringify(bundleScopes)) {
+    throw new Error('automatic reconciliation owned table scope does not match the L2 policy');
   }
 }
 
@@ -165,8 +209,9 @@ function assertFrozenSource(root, bundle) {
   return absolute;
 }
 
-function assertSourceCoverage(value, bundle) {
+function assertSourceCoverage(value, bundle, sourceDispatchIdentity) {
   assertArtifact(value, 'l1-source-coverage', bundle);
+  assertArtifactSourceDispatchIdentity(value, sourceDispatchIdentity);
   if (value.completeSourceCoverage !== true || value.terminalProgress !== true
       || Number(value.unclassifiedCount) !== 0
       || normalizeRelativePath(value.sourcePath, 'sourcePath') !== normalizeRelativePath(bundle.source.path, 'bundle source path')
@@ -175,8 +220,9 @@ function assertSourceCoverage(value, bundle) {
   }
 }
 
-function assertTableReadback(value, bundle) {
+function assertTableReadback(value, bundle, sourceDispatchIdentity) {
   assertArtifact(value, 'l1-owned-table-readback', bundle);
+  assertArtifactSourceDispatchIdentity(value, sourceDispatchIdentity);
   if (value.generationReadback !== true || Number(value.unauthorizedMutationCount) !== 0
       || Number(value.unclassifiedMutationCount ?? 0) !== 0
       || JSON.stringify(value.ownedTables) !== JSON.stringify(bundle.ownedTables)) {
@@ -184,8 +230,9 @@ function assertTableReadback(value, bundle) {
   }
 }
 
-function assertAttemptState(value, bundle) {
+function assertAttemptState(value, bundle, sourceDispatchIdentity) {
   assertArtifact(value, 'l1-attempt-state', bundle);
+  assertArtifactSourceDispatchIdentity(value, sourceDispatchIdentity);
   if (Number(value.activeAttemptCount) !== 0 || Number(value.overdueAttemptCount) !== 0) {
     throw new Error('attempt state has active or overdue work');
   }
@@ -196,6 +243,35 @@ function assertArtifact(value, kind, bundle) {
       || value.domainId !== bundle.domainId || value.runId !== bundle.runId) {
     throw new Error(`${kind} artifact identity is invalid`);
   }
+  assertAutomaticAttemptMatches(value.automaticAttemptIdentity, bundle.importPlan?.automaticAttemptIdentity, kind);
+}
+
+function assertArtifactSourceDispatchIdentity(value, expected) {
+  const actual = normalizeSourceDispatchIdentity(value?.sourceDispatchIdentity);
+  if (!sameSourceDispatchIdentity(actual, expected)) {
+    throw new Error('reconciliation artifact source dispatch identity does not match the frozen bundle');
+  }
+}
+
+function normalizeSourceDispatchIdentity(value) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('source dispatch identity must be an object');
+  }
+  const sourceFingerprint = requireHash(value.sourceFingerprint, 'sourceDispatchIdentity.sourceFingerprint');
+  const sourceRunIdentity = requireText(value.sourceRunIdentity, 'sourceDispatchIdentity.sourceRunIdentity');
+  if (!Number.isFinite(Date.parse(sourceRunIdentity))) {
+    throw new Error('sourceDispatchIdentity.sourceRunIdentity must be an ISO timestamp');
+  }
+  const sourceContentIdentity = requireHash(value.sourceContentIdentity, 'sourceDispatchIdentity.sourceContentIdentity');
+  return { sourceFingerprint, sourceRunIdentity, sourceContentIdentity };
+}
+
+function sameSourceDispatchIdentity(left, right) {
+  if (left == null || right == null) return left == null && right == null;
+  return left.sourceFingerprint === right.sourceFingerprint
+    && left.sourceRunIdentity === right.sourceRunIdentity
+    && left.sourceContentIdentity === right.sourceContentIdentity;
 }
 
 function readJsonArtifact(root, filePath, label, { canonical = false } = {}) {
@@ -227,9 +303,21 @@ function normalizeRelativePath(value, label) {
 
 function normalizeL1EvidencePath(value, label, binding, artifactName) {
   const normalized = normalizeRelativePath(value, label);
-  const domainId = requireText(binding?.domainId, `${label} domainId`);
-  const runId = requireText(binding?.runId, `${label} runId`);
-  const expected = `reports/runtime/l1-reconciliation/${domainId}/${runId}/${artifactName}.json`;
+  let root = automaticReconciliationRoot(binding);
+  // Final evidence already hashes all three artifact paths and their contents.
+  // Recover its execution root from those existing fields without a schema change.
+  if (binding.fullReconciliation === true && binding.sourceArtifactPath?.startsWith(`${root}_exec_`)) {
+    const suffix = binding.sourceArtifactPath.slice(root.length);
+    if (!/^_exec_[a-f0-9]{64}\/source-coverage\.json$/.test(suffix)) {
+      throw new Error(`${label} must be under the exact L1 run root`);
+    }
+    root = path.posix.dirname(binding.sourceArtifactPath);
+    if (binding.ownedTableReadbackPath !== `${root}/owned-table-readback.json`
+        || binding.attemptStatePath !== `${root}/attempt-state.json`) {
+      throw new Error(`${label} must be under the exact L1 run root`);
+    }
+  }
+  const expected = `${root}/${artifactName}.json`;
   if (normalized !== expected) {
     throw new Error(`${label} must be under the exact L1 run root`);
   }
@@ -250,6 +338,11 @@ function requireText(value, label) {
   const text = String(value ?? '').trim();
   if (!text) throw new Error(`${label} is required`);
   return text;
+}
+
+function requireHash(value, label) {
+  if (!HASH_PATTERN.test(value ?? '')) throw new Error(`${label} must be a sha256 hash`);
+  return value;
 }
 
 function hashJson(value) {

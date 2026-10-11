@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -20,6 +21,16 @@ import {
 } from './authorized-operation-context.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
+const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
+const CANONICAL_DECISION_LEDGER = path.join(
+  REPO_ROOT,
+  'reports/authorization/canonical/used-decisions.json',
+);
+
+function prepareCanonicalDecisionLedger() {
+  // Git preserves the ledger bytes, while runtime consumers require 0600.
+  fs.chmodSync(CANONICAL_DECISION_LEDGER, 0o600);
+}
 
 function packet() {
   const technical = {
@@ -55,15 +66,58 @@ function packet() {
 test('authorized child context revalidates a private exact-operation packet', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-'));
   const file = path.join(dir, 'packet.json');
-  fs.writeFileSync(file, `${JSON.stringify(packet())}\n`, { mode: 0o600 });
+  const authorizedPacket = packet();
+  const packetBytes = Buffer.from(`${JSON.stringify(authorizedPacket)}\n`, 'utf8');
+  fs.writeFileSync(file, packetBytes, { mode: 0o600 });
   const context = loadAuthorizedOperationContext({
-    env: { TERRAPEDIA_AUTHORIZED_PACKET_PATH: file },
+    env: { TERRAPEDIA_AUTHORIZED_PACKET_PATH: file, WORKTREE_ROOT: dir },
     operationId: 'automation-biomes-l1-policy-promotion',
     now: '2026-07-28T03:02:00.000Z',
   });
   assert.equal(context.actor, 'system-owner');
-  assert.equal(context.packetHash, packet().packetHash);
+  assert.equal(context.packetHash, authorizedPacket.packetHash);
   assert.equal(context.decisionIdentity, 'decision-l1-promotion');
+  assert.deepEqual(context.packet, authorizedPacket);
+  assert.equal(context.packetPath, file);
+  assert.equal(context.packetPathRelative, 'packet.json');
+  assert.equal(
+    context.packetFileSha256,
+    `sha256:${createHash('sha256').update(packetBytes).digest('hex')}`,
+  );
+  assert.deepEqual(context.schemaBundleEntries, authorizedPacket.schemaBundleEntries);
+  assert.deepEqual(context.dataBundleEntries, authorizedPacket.dataBundleEntries);
+  assert.deepEqual(context.requiredTechnicalFields, authorizedPacket.requiredTechnicalFields);
+  assert.deepEqual(context.technical, {
+    operationId: authorizedPacket.operationId,
+    targetDatabases: authorizedPacket.targetDatabases,
+    serverFingerprint: authorizedPacket.serverFingerprint,
+    schemaBundleSha256: authorizedPacket.schemaBundleSha256,
+    schemaBundleEntries: authorizedPacket.schemaBundleEntries,
+    dataBundleSha256: authorizedPacket.dataBundleSha256,
+    dataBundleEntries: authorizedPacket.dataBundleEntries,
+    policySetHash: authorizedPacket.policySetHash,
+    executionManifestHash: authorizedPacket.executionManifestHash,
+    executionManifest: authorizedPacket.executionManifest,
+    requiredTechnicalFields: authorizedPacket.requiredTechnicalFields,
+  });
+});
+
+test('explicit repository root controls packet confinement even when the environment names another root', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-explicit-root-'));
+  const otherRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-other-root-'));
+  const file = path.join(dir, 'packet.json');
+  const authorizedPacket = packet();
+  fs.writeFileSync(file, `${JSON.stringify(authorizedPacket)}\n`, { mode: 0o600 });
+  const context = loadAuthorizedOperationContext({
+    env: {
+      TERRAPEDIA_AUTHORIZED_PACKET_PATH: file,
+      WORKTREE_ROOT: otherRoot,
+    },
+    repoRoot: dir,
+    operationId: authorizedPacket.operationId,
+    now: '2026-07-28T03:02:00.000Z',
+  });
+  assert.equal(context.packetPathRelative, 'packet.json');
 });
 
 test('authorized child server fingerprint must match the packet fingerprint hash', () => {
@@ -226,6 +280,7 @@ test('projection child authorization environment requires exact same-attempt pac
 });
 
 test('NPC owner executor rejects direct CLI use before it can read an input or connect', () => {
+  prepareCanonicalDecisionLedger();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'authorized-context-'));
   const file = path.join(dir, 'packet.json');
   const now = Date.now();

@@ -18,6 +18,7 @@ import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Status;
+import com.terraria.skills.service.impl.crawlerv2.SourceDispatchIdentity;
 import com.terraria.skills.service.CrawlerAutomationPolicyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,25 +27,40 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.EnumSet;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,6 +68,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -64,12 +82,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class CrawlerMonitorServiceImplTest {
+
+    private static final List<String> AUTO_ELIGIBLE_SOURCE_KEYS = List.of(
+        "wiki.module.iteminfo",
+        "wiki.module.npcinfo",
+        "wiki.module.projectileinfo",
+        "wiki.module.armorsetbonuses",
+        "wiki.page.template_getbuffinfo",
+        "wiki.audio_assets.catalog",
+        "wiki.bosses.catalog",
+        "wiki.shimmer.page_and_langlinks"
+    );
 
     @TempDir
     private Path tempDir;
@@ -103,6 +135,69 @@ class CrawlerMonitorServiceImplTest {
 
         assertFalse(compatibilityConstructor.isAnnotationPresent(Autowired.class));
         assertTrue(springConstructor.isAnnotationPresent(Autowired.class));
+    }
+
+    @Test
+    void durableAutomationAlertsAreReadAndPersistedWithStableIdentity() {
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        when(jdbcTemplate.queryForList(anyString())).thenReturn(List.of(Map.of(
+            "id", 7L,
+            "runId", "items_run_1",
+            "severity", "CRITICAL",
+            "dedupeKey", "scheduler:source-probe:wiki.module.iteminfo",
+            "status", "OPEN",
+            "detailsJson", "{\"title\":\"Items source probe failed\",\"details\":\"upstream timeout\",\"domain\":\"items\"}",
+            "firstSeenAt", "2026-08-31 00:00:00",
+            "lastSeenAt", "2026-08-31 00:01:00"
+        )));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+        service.setJdbcTemplate(jdbcTemplate);
+
+        List<CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO> alerts = service.loadAutomationAlertsForTesting();
+
+        assertEquals(1, alerts.size());
+        assertEquals("scheduler:source-probe:wiki.module.iteminfo", alerts.get(0).getDedupeKey());
+        assertEquals("Items source probe failed", alerts.get(0).getTitle());
+        assertEquals("upstream timeout", alerts.get(0).getDetails());
+        assertEquals("items", alerts.get(0).getDomain());
+
+        service.recordAutomationAlertForTesting(
+            "items_run_2",
+            "critical",
+            "scheduler:source-probe:wiki.module.iteminfo",
+            Map.of("title", "Items source probe failed", "details", "retry timeout")
+        );
+        verify(jdbcTemplate).update(anyString(), any(Object[].class));
+    }
+
+    @Test
+    void automationAlertLedgerReadFailureRemainsVisibleAsSyntheticCriticalAlert() {
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        when(jdbcTemplate.queryForList(anyString())).thenThrow(
+            new DataAccessResourceFailureException("automation alert ledger unavailable")
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+        service.setJdbcTemplate(jdbcTemplate);
+
+        List<CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO> alerts = service.loadAutomationAlertsForTesting();
+
+        assertEquals(1, alerts.size());
+        CrawlerMonitorOverviewDTO.WikiMonitorAlertDTO alert = alerts.get(0);
+        assertEquals("CRITICAL", alert.getSeverity());
+        assertEquals("OPEN", alert.getStatus());
+        assertEquals("crawler-monitor:automation-alerts-read", alert.getDedupeKey());
+        assertEquals("Crawler automation alerts unavailable", alert.getTitle());
+        assertTrue(alert.getDetails().contains("automation alert ledger unavailable"));
     }
 
     @Test
@@ -743,6 +838,28 @@ class CrawlerMonitorServiceImplTest {
         return service;
     }
 
+    private void allowSchedulerActivation(CrawlerMonitorServiceImpl service) {
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of())
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+    }
+
+    private void assertSchedulerActivationGateAlert(JdbcTemplate jdbcTemplate) throws IOException {
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(jdbcTemplate).update(anyString(), arguments.capture());
+        Object[] values = arguments.getValue();
+        assertEquals("CRITICAL", values[1]);
+        assertEquals("scheduler:activation-gate", values[2]);
+        Map<String, Object> details = new ObjectMapper().readValue(
+            (String) values[3],
+            new TypeReference<>() {}
+        );
+        assertEquals("scheduler_activation_required", details.get("reason"));
+        assertEquals(List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE"), details.get("reasons"));
+    }
+
     private static CrawlerQueueV2ApplicationService.OverviewSnapshot v2Overview(
         List<CrawlerQueueV2OverviewDTO.AttemptDTO> liveQueue,
         List<CrawlerQueueV2OverviewDTO.AttemptDTO> attemptHistory
@@ -772,6 +889,55 @@ class CrawlerMonitorServiceImplTest {
         String actionId,
         boolean resumeSupported,
         List<String> allowedActions
+    ) {
+        return v2Attempt(queueId, attemptId, status, domain, actionId, resumeSupported, allowedActions, null);
+    }
+
+    private static CrawlerQueueV2OverviewDTO.AttemptDTO v2Attempt(
+        String queueId,
+        String attemptId,
+        String status,
+        String domain,
+        String actionId,
+        boolean resumeSupported,
+        List<String> allowedActions,
+        String sourceValue
+    ) {
+        return v2Attempt(
+            queueId, attemptId, status, domain, actionId, resumeSupported, allowedActions, sourceValue,
+            "scheduler", "v2-automation", true
+        );
+    }
+
+    private static CrawlerQueueV2OverviewDTO.AttemptDTO v2Attempt(
+        String queueId,
+        String attemptId,
+        String status,
+        String domain,
+        String actionId,
+        boolean resumeSupported,
+        List<String> allowedActions,
+        String sourceValue,
+        String queueOrigin
+    ) {
+        return v2Attempt(
+            queueId, attemptId, status, domain, actionId, resumeSupported, allowedActions, sourceValue,
+            queueOrigin, "manual".equals(queueOrigin) ? "admin" : "v2-automation", true
+        );
+    }
+
+    private static CrawlerQueueV2OverviewDTO.AttemptDTO v2Attempt(
+        String queueId,
+        String attemptId,
+        String status,
+        String domain,
+        String actionId,
+        boolean resumeSupported,
+        List<String> allowedActions,
+        String sourceValue,
+        String queueOrigin,
+        String queueRequestedBy,
+        boolean queueMetadataAvailable
     ) {
         Instant now = Instant.parse("2026-07-13T01:00:00Z");
         return new CrawlerQueueV2OverviewDTO.AttemptDTO(
@@ -803,7 +969,68 @@ class CrawlerMonitorServiceImplTest {
             null,
             null,
             null,
-            null
+            null,
+            sourceValue == null
+                ? null
+                : new SourceDispatchIdentity(
+                    testSourceFingerprint(sourceValue),
+                    now.toString(),
+                    testSourceFingerprint("snapshot:" + sourceValue)
+                ),
+            queueOrigin,
+            queueRequestedBy,
+            queueMetadataAvailable
+        );
+    }
+
+    private CrawlerQueueV2OverviewDTO.AttemptDTO v2AttemptBoundToCurrentProbe(
+        String queueId,
+        String attemptId,
+        String status,
+        String domain,
+        String actionId,
+        boolean resumeSupported,
+        List<String> allowedActions,
+        String sourceValue
+    ) throws Exception {
+        Map<String, Object> state = readJsonMap(repoRoot.resolve("data/generated/source-update-monitor.latest.json"));
+        String checkedAt = String.valueOf(state.get("checkedAt"));
+        String contentIdentity = testSourceFingerprint(new ObjectMapper().writeValueAsString(state));
+        Instant now = Instant.parse("2026-07-13T01:00:00Z");
+        return new CrawlerQueueV2OverviewDTO.AttemptDTO(
+            queueId,
+            attemptId,
+            "epoch-1",
+            null,
+            1L,
+            status,
+            "standard",
+            domain,
+            List.of(domain),
+            actionId,
+            status,
+            null,
+            null,
+            now,
+            null,
+            now,
+            now,
+            now,
+            null,
+            null,
+            null,
+            resumeSupported,
+            allowedActions,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            new SourceDispatchIdentity(testSourceFingerprint(sourceValue), checkedAt, contentIdentity),
+            "scheduler",
+            "v2-automation",
+            true
         );
     }
 
@@ -830,6 +1057,41 @@ class CrawlerMonitorServiceImplTest {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new AssertionError(exception);
+        }
+    }
+
+    private static boolean waitUntilCondition(BooleanSupplier condition) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            if (condition.getAsBoolean()) {
+                return true;
+            }
+            try {
+                Thread.sleep(10L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return condition.getAsBoolean();
+    }
+
+    private static long processGroupId(long pid) {
+        return readProcStatField(pid, 2);
+    }
+
+    private static long sessionId(long pid) {
+        return readProcStatField(pid, 3);
+    }
+
+    private static long readProcStatField(long pid, int index) {
+        try {
+            String raw = Files.readString(Path.of("/proc", Long.toString(pid), "stat"));
+            int commandEnd = raw.lastIndexOf(')');
+            String[] fields = raw.substring(commandEnd + 2).trim().split("\\s+");
+            return Long.parseLong(fields[index]);
+        } catch (Exception exception) {
+            return -1L;
         }
     }
 
@@ -1008,7 +1270,8 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
             "enabled", true,
             "mode", "changed-only",
-            "sweepIntervalMinutes", 1
+            "sweepIntervalMinutes", 1,
+            "canaryActionId", "wiki-items-refresh"
         ));
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -1034,7 +1297,8 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
             "enabled", true,
             "mode", "changed-only",
-            "sweepIntervalMinutes", 1
+            "sweepIntervalMinutes", 1,
+            "canaryActionId", "wiki-items-refresh"
         ));
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -1043,6 +1307,333 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("scheduler_activation_required", sweep.getSkipped().get(0).get("reason"));
         assertEquals(List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE"), sweep.getSkipped().get(0).get("reasons"));
         verifyNoInteractions(launcher);
+    }
+
+    @Test
+    void blocksEnabledV1AutomationBeforeSourceCheckWithoutFreshSchedulerActivation() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertEquals("scheduler_activation_required", sweep.getSkipped().get(0).get("reason"));
+        assertEquals(0, launcher.launchCount);
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/source-update-monitor.latest.json")));
+    }
+
+    @Test
+    void blocksV1AutomationAndPersistsActivationGateWhenPolicyLookupThrows() throws Exception {
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenThrow(
+            new DataAccessResourceFailureException("scheduler policy store unavailable")
+        );
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        service.setCrawlerAutomationPolicyService(policyService);
+        service.setJdbcTemplate(jdbcTemplate);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertEquals("scheduler_activation_required", sweep.getSkipped().get(0).get("reason"));
+        assertEquals(List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE"), sweep.getSkipped().get(0).get("reasons"));
+        verify(policyService).schedulerEligibility(anyString());
+        verifyNoInteractions(launcher);
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/source-update-monitor.latest.json")));
+        assertSchedulerActivationGateAlert(jdbcTemplate);
+    }
+
+    @Test
+    void scheduledV1SweepPersistsOnlyActivationGateWhenPolicyLookupThrows() throws Exception {
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenThrow(
+            new DataAccessResourceFailureException("scheduler policy store unavailable")
+        );
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        service.setCrawlerAutomationPolicyService(policyService);
+        service.setJdbcTemplate(jdbcTemplate);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        service.scheduledAutoDispatchSweep();
+
+        assertSchedulerActivationGateAlert(jdbcTemplate);
+        assertEquals("blocked", readJson(repoRoot.resolve("reports/crawler-monitor/auto-dispatch.last-sweep.json")).get("status"));
+        verifyNoInteractions(launcher);
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/source-update-monitor.latest.json")));
+    }
+
+    @Test
+    void rechecksSchedulerActivationInsideTheV2MutationClosureAfterSourceProbe() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        AtomicBoolean schedulerAuthorized = new AtomicBoolean(true);
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of()));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items", "attempt-items", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", checkedAt,
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok"
+                ))
+            )
+        ) {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
+                Process process = super.launch(request);
+                schedulerAuthorized.set(false);
+                return process;
+            }
+        };
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenAnswer(invocation -> {
+            if (schedulerAuthorized.get()) {
+                return new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of());
+            }
+            return new CrawlerAutomationPolicyService.AutomationEligibility(
+                false,
+                List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED")
+            );
+        });
+        service.setCrawlerAutomationPolicyService(policyService);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals(1, launcher.launchCount);
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "scheduler_activation_required".equals(item.get("reason"))
+                && List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED").equals(item.get("reasons"))
+        ), () -> "expected revalidated authorization skip but was " + sweep.getSkipped());
+        verify(v2Service, never()).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void rechecksSchedulerActivationInsideTheV2MutationClosureBeforeRetry() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        AtomicBoolean schedulerAuthorized = new AtomicBoolean(true);
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO failedBuff = v2Attempt(
+            "queue-buff", "attempt-buff-failed", "failed", "buffs",
+            "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash"
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedBuff)));
+        when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-buff", "attempt-buff-retry", null, 1L,
+            CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", checkedAt,
+                "sources", List.of(Map.of(
+                    "key", "wiki.page.template_getbuffinfo",
+                    "changed", true,
+                    "status", "ok"
+                ))
+            )
+        ) {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
+                Process process = super.launch(request);
+                schedulerAuthorized.set(false);
+                return process;
+            }
+        };
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenAnswer(invocation -> {
+            if (schedulerAuthorized.get()) {
+                return new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of());
+            }
+            return new CrawlerAutomationPolicyService.AutomationEligibility(
+                false,
+                List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED")
+            );
+        });
+        service.setCrawlerAutomationPolicyService(policyService);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals(1, launcher.launchCount);
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "scheduler_activation_required".equals(item.get("reason"))
+                && List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED").equals(item.get("reasons"))
+        ));
+        verify(v2Service, never()).control(any());
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void blocksV2AutomationInsideMutationClosureAndPersistsActivationGateWhenPolicyLookupThrows() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        AtomicBoolean policyLookupShouldFail = new AtomicBoolean(false);
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true)
+        ) {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
+                Process process = super.launch(request);
+                policyLookupShouldFail.set(true);
+                return process;
+            }
+        };
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenAnswer(invocation -> {
+            if (policyLookupShouldFail.get()) {
+                throw new IllegalStateException("scheduler policy service unavailable");
+            }
+            return new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of());
+        });
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        service.setCrawlerAutomationPolicyService(policyService);
+        service.setJdbcTemplate(jdbcTemplate);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "scheduler_activation_required".equals(item.get("reason"))
+                && List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE").equals(item.get("reasons"))
+        ));
+        assertEquals(1, launcher.launchCount);
+        verify(v2Service, never()).overview();
+        verify(v2Service, never()).control(any());
+        verify(v2Service, never()).enqueue(any());
+        assertSchedulerActivationGateAlert(jdbcTemplate);
+    }
+
+    @Test
+    void scheduledV2SweepPersistsOnlyActivationGateWhenPolicyLookupThrowsInsideMutationClosure() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        AtomicBoolean policyLookupShouldFail = new AtomicBoolean(false);
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of()));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true)
+        ) {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
+                Process process = super.launch(request);
+                policyLookupShouldFail.set(true);
+                return process;
+            }
+        };
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenAnswer(invocation -> {
+            if (policyLookupShouldFail.get()) {
+                throw new IllegalStateException("scheduler policy service unavailable");
+            }
+            return new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of());
+        });
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        service.setCrawlerAutomationPolicyService(policyService);
+        service.setJdbcTemplate(jdbcTemplate);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        service.scheduledV2AutomationSweep();
+
+        assertSchedulerActivationGateAlert(jdbcTemplate);
+        assertEquals("blocked", readJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json")).get("status"));
+        assertEquals(1, launcher.launchCount);
+        verify(v2Service, never()).control(any());
+        verify(v2Service, never()).enqueue(any());
     }
 
     @Test
@@ -1063,7 +1654,7 @@ class CrawlerMonitorServiceImplTest {
         }).when(router).withMutationPermit(any());
         SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
             repoRoot,
-            Map.of("checkedAt", "2026-06-20T03:00:00Z", "sources", List.of())
+            completeEligibleSourceState("2026-07-13T01:00:00Z")
         ) {
             @Override
             public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
@@ -1081,6 +1672,10 @@ class CrawlerMonitorServiceImplTest {
             mock(CrawlerQueueV2ApplicationService.class),
             mock(WikiMonitorDispatchQueueRepository.class)
         );
+        allowSchedulerActivation(service);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
@@ -1209,9 +1804,10 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldRetainCleanupFailureStandardLockWhenExpiredStartingItemIsReconciled() throws Exception {
-        String queueId = "queue-cleanup-failed-starting";
-        String dispatchId = "dispatch-cleanup-failed-starting";
+    @SuppressWarnings("unchecked")
+    void shouldRetainCleanupFailureLockWhenExpiredStartingItemIsReconciled() throws Exception {
+        String queueId = "queue-expired-cleanup-failed";
+        String dispatchId = "starting-cleanup-failed-dispatch";
         seedStandardStartingQueueItem(queueId, "domain-source-bosses");
         Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
         writeJson(lockPath, Map.of(
@@ -1219,7 +1815,9 @@ class CrawlerMonitorServiceImplTest {
             "dispatchId", dispatchId,
             "domain", "bosses",
             "actionId", "domain-source-bosses",
-            "lockedAt", "2026-06-14T01:00:00Z"
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:00:00Z"
         ));
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
             "queueId", queueId,
@@ -1238,7 +1836,11 @@ class CrawlerMonitorServiceImplTest {
 
         service.scheduledWikiMonitorQueueDrainSweep();
 
-        assertEquals("failed", firstQueueItemMirror().get("status"));
+        Map<String, Object> queueMirror = readJsonMap(
+            repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json")
+        );
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
         assertTrue(Files.exists(lockPath));
     }
 
@@ -3668,6 +4270,43 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void standardDispatchCleansProcessWhenPostLaunchIdentityInspectionThrows() throws Exception {
+        BlockingProcess process = new BlockingProcess();
+        AtomicBoolean destroyed = new AtomicBoolean();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public CrawlerMonitorServiceImpl.ProcessGroupIdentity inspectProcessGroupIdentity(Process ignored) {
+                throw new IllegalStateException("simulated dispatch identity inspection failure");
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyed.set(true);
+                process.destroy();
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-21T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        WikiMonitorQueueItem item = queueItem(
+            "wiki-monitor-queue-20260621020000-inspectfail",
+            "standard",
+            "bosses",
+            "domain-source-bosses"
+        );
+
+        WikiMonitorQueueStartResult result = service.standardQueueExecutorForTesting().start(repoRoot, item);
+
+        assertEquals(StartStatus.LAUNCH_FAILED, result.getStatus());
+        assertTrue(destroyed.get(), "post-launch inspection failures must clean the dispatch process");
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
     void shouldStartQueueExecutorsWithoutCallingPublicDispatchEntrypoints() throws Exception {
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new PidAwareBlockingProcess(62620L));
         RecursiveGuardCrawlerMonitorService service = new RecursiveGuardCrawlerMonitorService(
@@ -3728,12 +4367,13 @@ class CrawlerMonitorServiceImplTest {
             Clock.fixed(Instant.parse("2026-06-20T03:05:00Z"), ZoneOffset.UTC),
             launcher
         );
+        allowSchedulerActivation(service);
         service.updateAutoDispatchSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
 
         assertEquals("completed", sweep.getStatus());
-        assertEquals(4, sweep.getDetected().size());
+        assertEquals(8, sweep.getDetected().size());
         assertEquals(4, sweep.getDispatched().size());
         assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
         assertEquals(List.of("items"), sweep.getDispatched().get(0).get("domains"));
@@ -3760,6 +4400,1760 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void sourceUpdateStateHealthRequiresCompleteFreshSingleRunEligibleEvidence() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC)
+        );
+        Map<String, Object> healthy = completeEligibleSourceState("2026-08-31T00:59:00Z");
+
+        assertTrue(service.sourceUpdateStateHealthyForTesting(healthy));
+
+        List<Map<String, Object>> missingChanged = new ArrayList<>(sourceEntries(healthy));
+        Map<String, Object> missingChangedEntry = new java.util.LinkedHashMap<>(missingChanged.get(0));
+        missingChangedEntry.remove("changed");
+        missingChanged.set(0, missingChangedEntry);
+        assertFalse(service.sourceUpdateStateHealthyForTesting(sourceState(
+            "2026-08-31T00:59:00Z",
+            true,
+            missingChanged
+        )));
+
+        List<Map<String, Object>> nonBooleanChanged = new ArrayList<>(sourceEntries(healthy));
+        Map<String, Object> nonBooleanChangedEntry = new java.util.LinkedHashMap<>(nonBooleanChanged.get(0));
+        nonBooleanChangedEntry.put("changed", "true");
+        nonBooleanChanged.set(0, nonBooleanChangedEntry);
+        assertFalse(service.sourceUpdateStateHealthyForTesting(sourceState(
+            "2026-08-31T00:59:00Z",
+            true,
+            nonBooleanChanged
+        )));
+
+        List<Map<String, Object>> missingSources = new ArrayList<>(sourceEntries(healthy));
+        missingSources.remove(0);
+        assertFalse(service.sourceUpdateStateHealthyForTesting(sourceState(
+            "2026-08-31T00:59:00Z",
+            true,
+            missingSources
+        )));
+
+        List<Map<String, Object>> duplicateSources = new ArrayList<>(sourceEntries(healthy));
+        duplicateSources.add(duplicateSources.get(0));
+        assertFalse(service.sourceUpdateStateHealthyForTesting(sourceState(
+            "2026-08-31T00:59:00Z",
+            true,
+            duplicateSources
+        )));
+
+        List<Map<String, Object>> wrongRunSources = new ArrayList<>(sourceEntries(healthy));
+        wrongRunSources.set(0, sourceEntry("wiki.module.iteminfo", "2026-08-31T00:58:59Z"));
+        assertFalse(service.sourceUpdateStateHealthyForTesting(sourceState(
+            "2026-08-31T00:59:00Z",
+            true,
+            wrongRunSources
+        )));
+
+        assertFalse(service.sourceUpdateStateHealthyForTesting(completeEligibleSourceState("2026-08-30T00:00:00Z")));
+        assertFalse(service.sourceUpdateStateHealthyForTesting(sourceState(
+            "2026-08-31T00:59:00Z",
+            false,
+            sourceEntries(healthy)
+        )));
+    }
+
+    @Test
+    void sourceUpdateCheckRejectsACompleteReportFromBeforeTheCurrentProbeRun() throws Exception {
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState("2026-08-31T00:59:00Z"),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        assertEquals("error", sweep.getStatus());
+        assertEquals("source_update_check_failed", sweep.getSkipped().get(0).get("reason"));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    void sourceProbeInitialRuntimePublicationFailureReturnsTerminalFailureAndAlertEvidence() throws Exception {
+        AtomicBoolean failInitialRuntimePublication = new AtomicBoolean(true);
+        ObjectMapper objectMapper = org.mockito.Mockito.spy(new ObjectMapper());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            if (failInitialRuntimePublication.getAndSet(false)) {
+                throw new IllegalStateException("initial runtime publication failed");
+            }
+            return invocation.callRealMethod();
+        }).when(objectMapper).writerWithDefaultPrettyPrinter();
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setJdbcTemplate(jdbcTemplate);
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertFalse(result.success());
+        assertTrue(result.message().contains("initial runtime publication failed"));
+        assertFalse(result.alertDelivery().retryPending());
+        verify(jdbcTemplate).update(anyString(), any(Object[].class));
+        Map<String, Object> runtime = readJson(repoRoot.resolve("data/generated/source-update-monitor.runtime.json"));
+        assertEquals("failed", runtime.get("status"));
+        assertTrue(String.valueOf(runtime.get("message")).contains("initial runtime publication failed"));
+        verifyNoInteractions(launcher);
+    }
+
+    @Test
+    void sourceProbeTerminalRuntimePublicationFailureRaisesFailClosedErrorAndCriticalAlert() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        AtomicInteger runtimeWriterCalls = new AtomicInteger();
+        ObjectMapper objectMapper = org.mockito.Mockito.spy(new ObjectMapper());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            if (runtimeWriterCalls.incrementAndGet() >= 3) {
+                throw new IllegalStateException("terminal runtime publication failed");
+            }
+            return invocation.callRealMethod();
+        }).when(objectMapper).writerWithDefaultPrettyPrinter();
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState(checkedAt),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        service.setJdbcTemplate(jdbcTemplate);
+
+        java.lang.reflect.InvocationTargetException invocation = assertThrows(
+            java.lang.reflect.InvocationTargetException.class,
+            () -> invokeSourceUpdateMonitorCheck(service)
+        );
+
+        assertTrue(invocation.getCause() instanceof IllegalStateException);
+        assertTrue(invocation.getCause().getMessage().contains("terminal runtime publication failed"));
+        verify(jdbcTemplate).update(
+            org.mockito.ArgumentMatchers.argThat(sql -> sql.contains("crawler_automation_alert")),
+            any(Object[].class)
+        );
+        assertTrue(runtimeWriterCalls.get() >= 3);
+        Path runtimePath = repoRoot.resolve("data/generated/source-update-monitor.runtime.json");
+        assertTrue(Files.exists(runtimePath));
+        Map<String, Object> runtime = readJson(runtimePath);
+        assertEquals("failed", runtime.get("status"));
+        assertNotEquals("running", runtime.get("status"));
+        assertNotEquals("launching", runtime.get("status"));
+    }
+
+    @Test
+    void sourceProbeTerminalRuntimeFallbackFailurePreservesOriginalPublicationFailure() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path runtimeParent = repoRoot.resolve("data/generated");
+        AtomicInteger runtimeWriterCalls = new AtomicInteger();
+        ObjectMapper objectMapper = org.mockito.Mockito.spy(new ObjectMapper());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            if (runtimeWriterCalls.incrementAndGet() >= 3) {
+                Files.setPosixFilePermissions(
+                    runtimeParent,
+                    Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE)
+                );
+                throw new IllegalStateException("terminal runtime publication failed");
+            }
+            return invocation.callRealMethod();
+        }).when(objectMapper).writerWithDefaultPrettyPrinter();
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState(checkedAt),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        service.setJdbcTemplate(jdbcTemplate);
+
+        try {
+            java.lang.reflect.InvocationTargetException invocation = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> invokeSourceUpdateMonitorCheck(service)
+            );
+
+            Throwable failure = invocation.getCause();
+            assertTrue(failure instanceof IllegalStateException);
+            assertTrue(failure.getCause() instanceof IllegalStateException);
+            assertTrue(failure.getCause().getMessage().contains("terminal runtime publication failed"));
+            assertTrue(Arrays.stream(failure.getSuppressed())
+                .anyMatch(suppressed -> suppressed.getMessage().contains("fallback")));
+            verify(jdbcTemplate).update(
+                org.mockito.ArgumentMatchers.argThat(sql -> sql.contains("crawler_automation_alert")),
+                any(Object[].class)
+            );
+        } finally {
+            Files.setPosixFilePermissions(
+                runtimeParent,
+                Set.of(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE,
+                    PosixFilePermission.OWNER_EXECUTE
+                )
+            );
+        }
+    }
+
+    @Test
+    void sourceProbeRetainsRuntimeFenceWhenCleanupAndTerminalPublicationBothFail() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path runtimePath = repoRoot.resolve("data/generated/source-update-monitor.runtime.json");
+        AtomicInteger runtimeWriterCalls = new AtomicInteger();
+        ObjectMapper objectMapper = org.mockito.Mockito.spy(new ObjectMapper());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            if (runtimeWriterCalls.incrementAndGet() >= 3) {
+                // Make the manual fallback fail after the running marker has
+                // already been published, so the old cleanup path would
+                // delete this fence.
+                Files.deleteIfExists(runtimePath);
+                Files.createDirectory(runtimePath);
+                throw new IllegalStateException("terminal runtime publication failed");
+            }
+            return invocation.callRealMethod();
+        }).when(objectMapper).writerWithDefaultPrettyPrinter();
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        ControllableBlockingProcess process = new TimeoutRecordingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public boolean destroy(Process process) {
+                super.destroy(process);
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        service.setJdbcTemplate(jdbcTemplate);
+        service.setDispatchTimeoutForTesting(Duration.ofMillis(1));
+
+        try {
+            java.lang.reflect.InvocationTargetException invocation = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> invokeSourceUpdateMonitorCheck(service)
+            );
+
+            Throwable failure = invocation.getCause();
+            assertTrue(failure instanceof IllegalStateException);
+            assertTrue(runtimeWriterCalls.get() >= 4);
+            assertTrue(Files.isDirectory(runtimePath, java.nio.file.LinkOption.NOFOLLOW_LINKS),
+                "the cleanup-uncertain runtime fence must not be deleted after fallback failure");
+
+            CrawlerMonitorServiceImpl.ProcessLauncher nextLauncher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+            CrawlerMonitorServiceImpl nextService = new CrawlerMonitorServiceImpl(
+                new ObjectMapper(),
+                repoRoot,
+                Clock.fixed(Instant.parse("2026-08-31T01:01:00Z"), ZoneOffset.UTC),
+                nextLauncher
+            );
+            CrawlerMonitorServiceImpl.SourceUpdateCheckResult blocked =
+                invokeSourceUpdateMonitorCheck(nextService);
+            assertFalse(blocked.success());
+            assertTrue(blocked.message().toLowerCase(Locale.ROOT).contains("runtime"));
+            verifyNoInteractions(nextLauncher);
+        } finally {
+            Files.setPosixFilePermissions(
+                runtimePath.getParent(),
+                Set.of(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE,
+                    PosixFilePermission.OWNER_EXECUTE
+                )
+            );
+            Files.deleteIfExists(runtimePath);
+        }
+    }
+
+    @Test
+    void sourceProbeRuntimeCleanupMakesSuccessfulDeletionDurable() throws Exception {
+        Path runtimePath = repoRoot.resolve("data/generated/source-update-monitor.runtime.json");
+        writeJson(runtimePath, Map.of("status", "running", "runId", "stale-run"));
+        RuntimeException failure = new IllegalStateException("runtime publication failed");
+        Method cleanup = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "removeSourceUpdateRuntimeAfterPublicationFailure",
+            Path.class,
+            RuntimeException.class
+        );
+        cleanup.setAccessible(true);
+
+        cleanup.invoke(
+            new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot),
+            repoRoot,
+            failure
+        );
+
+        assertFalse(Files.exists(runtimePath));
+        assertEquals(0, failure.getSuppressed().length);
+    }
+
+    @Test
+    void sourceProbeRuntimeCleanupSurfacesSymlinkDeletionFailure() throws Exception {
+        Files.createDirectories(repoRoot.resolve("data/generated"));
+        Path runtimePath = repoRoot.resolve("data/generated/source-update-monitor.runtime.json");
+        Path target = repoRoot.resolve("data/generated/source-update-monitor-target.json");
+        Files.writeString(target, "{}\n");
+        Files.createSymbolicLink(runtimePath, target.getFileName());
+        RuntimeException failure = new IllegalStateException("runtime publication failed");
+        Method cleanup = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "removeSourceUpdateRuntimeAfterPublicationFailure",
+            Path.class,
+            RuntimeException.class
+        );
+        cleanup.setAccessible(true);
+
+        cleanup.invoke(
+            new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot),
+            repoRoot,
+            failure
+        );
+
+        assertTrue(Files.exists(runtimePath, java.nio.file.LinkOption.NOFOLLOW_LINKS));
+        assertTrue(Arrays.stream(failure.getSuppressed())
+            .anyMatch(suppressed -> suppressed.getMessage().contains("symbolic-linked")));
+    }
+
+    @Test
+    void sourceUpdateProbeUsesBoundedWaitAndDestroysTheEntireProcessTreeOnTimeout() throws Exception {
+        TimeoutRecordingProcess timeoutRoot = new TimeoutRecordingProcess();
+        ControllableBlockingProcess root = timeoutRoot;
+        ControllableBlockingProcess child = new TimeoutRecordingProcess();
+        root.children = List.of(child);
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(root);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofMillis(321));
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertFalse(result.success());
+        assertEquals(321L, timeoutRoot.observedTimeoutMillis);
+        assertEquals(1, root.terminateCount);
+        assertEquals(1, child.terminateCount);
+        assertTrue(result.alertDelivery().retryPending());
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json")));
+        Map<String, Object> runtime = readJson(repoRoot.resolve("data/generated/source-update-monitor.runtime.json"));
+        assertEquals("failed", runtime.get("status"));
+    }
+
+    @Test
+    void sourceUpdateProbeReportsProcessTreeCleanupFailure() throws Exception {
+        ControllableBlockingProcess root = new TimeoutRecordingProcess();
+        root.children = List.of(new TimeoutRecordingProcess());
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(root) {
+            @Override
+            public boolean destroy(Process process) {
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofMillis(321));
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertFalse(result.success());
+        assertTrue(result.message().toLowerCase(Locale.ROOT).contains("cleanup"));
+        assertTrue(result.alertDelivery().retryPending());
+        Map<String, Object> runtime = readJson(repoRoot.resolve("data/generated/source-update-monitor.runtime.json"));
+        assertEquals(true, runtime.get("processCleanupFailed"));
+
+        CrawlerMonitorServiceImpl.ProcessLauncher nextLauncher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        CrawlerMonitorServiceImpl nextService = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:01:00Z"), ZoneOffset.UTC),
+            nextLauncher
+        );
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult blocked = invokeSourceUpdateMonitorCheck(nextService);
+        assertFalse(blocked.success());
+        assertTrue(blocked.message().toLowerCase(Locale.ROOT).contains("cleanup"));
+        verifyNoInteractions(nextLauncher);
+    }
+
+    @Test
+    void sourceUpdateProbeDestroysTheEntireProcessTreeWhenWatcherIsInterrupted() throws Exception {
+        ControllableBlockingProcess root = new InterruptingSourceProbeProcess();
+        ControllableBlockingProcess child = new InterruptingSourceProbeProcess();
+        root.children = List.of(child);
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(root) {
+            @Override
+            public boolean destroy(Process process) {
+                boolean destroyed = super.destroy(process);
+                Thread.currentThread().interrupt();
+                return destroyed;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result;
+        try {
+            result = invokeSourceUpdateMonitorCheck(service);
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+
+        assertFalse(result.success());
+        assertEquals(1, root.terminateCount);
+        assertEquals(1, child.terminateCount);
+        assertTrue(result.alertDelivery().retryPending());
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json")));
+        Map<String, Object> runtime = readJson(repoRoot.resolve("data/generated/source-update-monitor.runtime.json"));
+        assertEquals("failed", runtime.get("status"));
+    }
+
+    @Test
+    void processLauncherForcefullyTerminatesAnIgnoredTermProcessTree() throws Exception {
+        Process process = new ProcessBuilder(
+            "sh",
+            "-c",
+            "trap '' TERM; (trap '' TERM; sleep 30) & wait"
+        ).start();
+        List<ProcessHandle> descendants = List.of();
+        try {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (descendants.isEmpty() && System.nanoTime() < deadline) {
+                descendants = process.toHandle().descendants().toList();
+                if (descendants.isEmpty()) {
+                    Thread.sleep(10L);
+                }
+            }
+            assertFalse(descendants.isEmpty(), "test process tree did not expose a descendant");
+            CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+                @Override
+                public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                    throw new UnsupportedOperationException("launch is not used by this test");
+                }
+            };
+
+            assertTrue(process.isAlive());
+            assertTrue(launcher.destroy(process));
+
+            assertTrue(process.waitFor(2, TimeUnit.SECONDS), "process launcher left the root process alive");
+            assertFalse(process.isAlive());
+            for (ProcessHandle descendant : descendants) {
+                assertFalse(descendant.isAlive(), "process launcher left a descendant alive: " + descendant.pid());
+            }
+        } finally {
+            descendants.forEach(handle -> {
+                if (handle.isAlive()) {
+                    handle.destroyForcibly();
+                }
+            });
+            if (process.isAlive()) {
+                process.destroyForcibly();
+            }
+            process.waitFor(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void sourceUpdateProbeRejectsACompletedRootWithALiveDescendant() throws Exception {
+        writeJson(
+            repoRoot.resolve("data/generated/source-update-monitor.latest.json"),
+            completeEligibleSourceState("2026-08-31T01:00:00Z")
+        );
+        Process process = new ProcessBuilder(
+            "sh",
+            "-c",
+            "(trap '' TERM; sleep 30) & sleep 0.2; exit 0"
+        ).start();
+        List<ProcessHandle> descendants = List.of();
+        try {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (descendants.isEmpty() && System.nanoTime() < deadline) {
+                descendants = process.toHandle().descendants().toList();
+                if (descendants.isEmpty()) {
+                    Thread.sleep(10L);
+                }
+            }
+            assertFalse(descendants.isEmpty(), "test process tree did not expose a descendant");
+
+            CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+                new ObjectMapper(),
+                repoRoot,
+                Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+                new RecordingProcessLauncher(process)
+            );
+
+            CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+            assertFalse(result.success());
+            assertTrue(result.message().toLowerCase(Locale.ROOT).contains("descendant"));
+            assertTrue(result.alertDelivery().retryPending());
+            assertTrue(descendants.stream().noneMatch(ProcessHandle::isAlive),
+                "source probe left an orphaned descendant alive");
+        } finally {
+            descendants.forEach(handle -> {
+                if (handle.isAlive()) {
+                    handle.destroyForcibly();
+                }
+            });
+            if (process.isAlive()) {
+                process.destroyForcibly();
+            }
+            process.waitFor(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void sourceUpdateProbeRejectsLateSpawnedDescendantAfterRootExit() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(Path.of("/proc")));
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            Files.isExecutable(Path.of("/usr/bin/setsid")) || Files.isExecutable(Path.of("/bin/setsid"))
+        );
+        writeJson(
+            repoRoot.resolve("data/generated/source-update-monitor.latest.json"),
+            completeEligibleSourceState("2026-08-31T01:00:00Z")
+        );
+        String marker = "terrapedia-late-source-probe-" + UUID.randomUUID().toString().replace("-", "");
+        Path sourceMonitorScript = Files.createDirectories(repoRoot.resolve("pipelines/monitor"))
+            .resolve("check-source-updates.mjs");
+        Files.writeString(
+            sourceMonitorScript,
+            "import { spawn } from 'node:child_process';\n"
+                + "setTimeout(() => {\n"
+                + "  spawn(process.execPath, ['-e', 'process.on(\\\"SIGTERM\\\", () => {}); setTimeout(() => {}, 30000)', '"
+                + marker
+                + "'], { stdio: 'ignore' });\n"
+                + "  process.exit(0);\n"
+                + "}, 200);\n"
+        );
+        try {
+            CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+                new ObjectMapper(),
+                repoRoot,
+                Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC)
+            );
+
+            CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+            assertFalse(result.success());
+            assertTrue(result.message().toLowerCase(Locale.ROOT).contains("descendant"));
+            assertTrue(result.alertDelivery().retryPending());
+            assertTrue(waitUntilCondition(() -> ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .map(handle -> handle.info().commandLine().orElse(""))
+                .noneMatch(commandLine -> commandLine.contains(marker))));
+        } finally {
+            ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .filter(handle -> handle.info().commandLine().orElse("").contains(marker))
+                .forEach(handle -> handle.destroyForcibly());
+        }
+    }
+
+    @Test
+    void startupRecoveryCleansPersistedSourceProbeRuntimeBeforeReturning() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(Path.of("/proc")));
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            Files.isExecutable(Path.of("/usr/bin/setsid")) || Files.isExecutable(Path.of("/bin/setsid"))
+        );
+        String token = "source-probe-recovery-" + UUID.randomUUID().toString().replace("-", "");
+        ProcessBuilder builder = new ProcessBuilder(
+            "setsid",
+            "--",
+            "sh",
+            "-c",
+            "(trap '' TERM; sleep 30) & sleep 0.2; exit 0"
+        );
+        builder.environment().put("TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN", token);
+        Process process = builder.start();
+        long pid = process.pid();
+        Instant startedAt = process.toHandle().info().startInstant().orElse(Instant.now());
+        try {
+            assertTrue(process.waitFor(2, TimeUnit.SECONDS));
+            assertTrue(waitUntilCondition(() -> ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .anyMatch(handle -> processGroupId(handle.pid()) == pid && sessionId(handle.pid()) == pid)));
+
+            writeJson(repoRoot.resolve("data/generated/source-update-monitor.runtime.json"), Map.of(
+                "actionId", "source-update-monitor-check",
+                "runId", "source-probe-recovery",
+                "status", "running",
+                "startedAt", startedAt.toString(),
+                "processGroupToken", token
+            ));
+
+            CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+            service.reconcileActiveDispatchesOnStartup();
+
+            assertTrue(waitUntilCondition(() -> ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .noneMatch(handle -> processGroupId(handle.pid()) == pid && sessionId(handle.pid()) == pid)),
+                "startup recovery must clean the persisted source probe process group");
+            Map<String, Object> runtime = readJson(repoRoot.resolve("data/generated/source-update-monitor.runtime.json"));
+            assertEquals("failed", runtime.get("status"));
+            assertTrue(String.valueOf(runtime.get("message")).toLowerCase(Locale.ROOT).contains("restart"));
+        } finally {
+            ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .filter(handle -> processGroupId(handle.pid()) == pid && sessionId(handle.pid()) == pid)
+                .forEach(handle -> handle.destroyForcibly());
+            if (process.isAlive()) process.destroyForcibly();
+            process.waitFor(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void sourceProbeCleanupRescansForAProcessSpawnedDuringDestroy() throws Exception {
+        LateForkingProcessLauncher launcher = new LateForkingProcessLauncher();
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ZERO);
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertFalse(result.success());
+        assertTrue(launcher.destroyedPids.contains(launcher.lateChild.pid()),
+            "cleanup must destroy a member discovered after the first process-group snapshot");
+        assertFalse(launcher.lateChild.isAlive());
+    }
+
+    @Test
+    void sourceProbeCleansUpWhenPostLaunchIdentityVerificationFails() throws Exception {
+        BlockingProcess process = new BlockingProcess();
+        AtomicBoolean destroyed = new AtomicBoolean();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public boolean supportsPersistedProcessGroupInspection() {
+                return true;
+            }
+
+            @Override
+            public CrawlerMonitorServiceImpl.ProcessGroupIdentity inspectProcessGroupIdentity(Process ignored) {
+                return null;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyed.set(true);
+                process.destroy();
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertFalse(result.success());
+        assertTrue(destroyed.get(), "a launched process must be cleaned up before identity failure is returned");
+        assertFalse(process.isAlive());
+    }
+
+    @Test
+    void sourceProbeCleansUpWhenPostLaunchInspectionThrows() throws Exception {
+        BlockingProcess process = new BlockingProcess();
+        AtomicBoolean destroyed = new AtomicBoolean();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public CrawlerMonitorServiceImpl.ProcessGroupIdentity inspectProcessGroupIdentity(Process ignored) {
+                throw new IllegalStateException("simulated process identity inspection failure");
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyed.set(true);
+                process.destroy();
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertFalse(result.success());
+        assertTrue(destroyed.get(), "runtime inspection failures must clean up a launched source probe");
+        assertFalse(process.isAlive());
+    }
+
+    @Test
+    void startupRecoveryRetainsDispatchLockWhenLiveRootTokenDoesNotMatch() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(Path.of("/proc")));
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            Files.isExecutable(Path.of("/usr/bin/setsid")) || Files.isExecutable(Path.of("/bin/setsid"))
+        );
+        String actualToken = "actual-root-token-" + UUID.randomUUID().toString().replace("-", "");
+        String expectedToken = "expected-root-token-" + UUID.randomUUID().toString().replace("-", "");
+        ProcessBuilder builder = new ProcessBuilder("setsid", "--", "sh", "-c", "sleep 30");
+        builder.environment().put("TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN", actualToken);
+        Process process = builder.start();
+        long pid = process.pid();
+        Instant startedAt = process.toHandle().info().startInstant().orElse(Instant.now());
+        try {
+            assertTrue(waitUntilCondition(() -> process.isAlive()));
+            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+            Files.createDirectories(lockPath.getParent());
+            writeJson(lockPath, Map.of(
+                "dispatchId", "token-mismatch-dispatch",
+                "domain", "items",
+                "actionId", "wiki-items-refresh",
+                "status", "running",
+                "pid", pid,
+                "startedAt", startedAt.toString(),
+                "processGroupToken", expectedToken
+            ));
+            writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+                "dispatchId", "token-mismatch-dispatch",
+                "domain", "items",
+                "actionId", "wiki-items-refresh",
+                "status", "running"
+            ));
+
+            CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+            service.reconcileActiveDispatchesOnStartup();
+
+            assertTrue(Files.exists(lockPath), "an unverified live root must retain the lock");
+            assertTrue(activeDispatchProcesses(service).isEmpty(),
+                "a live root with a mismatched token must not be reattached");
+        } finally {
+            if (process.isAlive()) process.destroyForcibly();
+            process.waitFor(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void startupRecoveryRetainsDispatchLockWhenAGroupMemberTokenDiffers() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(Path.of("/proc")));
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            Files.isExecutable(Path.of("/usr/bin/setsid")) || Files.isExecutable(Path.of("/bin/setsid"))
+        );
+        String expectedToken = "expected-group-token-" + UUID.randomUUID().toString().replace("-", "");
+        ProcessBuilder builder = new ProcessBuilder(
+            "setsid",
+            "--",
+            "sh",
+            "-c",
+            "TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN=other-member-token sleep 30 & sleep 30"
+        );
+        builder.environment().put("TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN", expectedToken);
+        Process process = builder.start();
+        long pid = process.pid();
+        Instant startedAt = process.toHandle().info().startInstant().orElse(Instant.now());
+        try {
+            assertTrue(waitUntilCondition(() -> process.isAlive()));
+            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+            Files.createDirectories(lockPath.getParent());
+            writeJson(lockPath, Map.of(
+                "dispatchId", "mixed-token-dispatch",
+                "domain", "items",
+                "actionId", "wiki-items-refresh",
+                "status", "running",
+                "pid", pid,
+                "startedAt", startedAt.toString(),
+                "processGroupToken", expectedToken
+            ));
+            writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+                "dispatchId", "mixed-token-dispatch",
+                "domain", "items",
+                "actionId", "wiki-items-refresh",
+                "status", "running"
+            ));
+
+            CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+            service.reconcileActiveDispatchesOnStartup();
+
+            assertTrue(Files.exists(lockPath), "a mixed-token process group must retain the lock");
+            assertTrue(activeDispatchProcesses(service).isEmpty(),
+                "a mixed-token process group must not be reattached");
+        } finally {
+            if (process.isAlive()) process.destroyForcibly();
+            process.waitFor(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void startupRecoveryCleansAResidualIsolatedProcessGroupBeforeReleasingLock() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.isDirectory(Path.of("/proc")));
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            Files.isExecutable(Path.of("/usr/bin/setsid")) || Files.isExecutable(Path.of("/bin/setsid"))
+        );
+            ProcessBuilder residualProcessBuilder = new ProcessBuilder(
+            "setsid",
+            "--",
+            "sh",
+            "-c",
+            "(trap '' TERM; sleep 30) & sleep 0.2; exit 0"
+        );
+        residualProcessBuilder.environment().put(
+            "TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN",
+            "startup-residual-token"
+        );
+        Process process = residualProcessBuilder.start();
+        long pid = process.pid();
+        try {
+            assertTrue(process.waitFor(2, TimeUnit.SECONDS));
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            boolean residualGroupObserved = false;
+            while (System.nanoTime() < deadline) {
+                residualGroupObserved = ProcessHandle.allProcesses()
+                    .filter(ProcessHandle::isAlive)
+                    .anyMatch(handle -> processGroupId(handle.pid()) == pid && sessionId(handle.pid()) == pid);
+                if (residualGroupObserved) break;
+                Thread.sleep(10L);
+            }
+            assertTrue(residualGroupObserved, "test process group did not expose a residual member");
+
+            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+            Files.createDirectories(lockPath.getParent());
+            writeJson(lockPath, Map.of(
+                "dispatchId", "startup-residual-dispatch",
+                "domain", "items",
+                "actionId", "wiki-items-refresh",
+                "status", "running",
+                "pid", pid,
+                "startedAt", Instant.now().minusSeconds(1).toString(),
+                "processGroupToken", "startup-residual-token"
+            ));
+            writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+                "dispatchId", "startup-residual-dispatch",
+                "domain", "items",
+                "actionId", "wiki-items-refresh",
+                "status", "running"
+            ));
+
+            CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+            service.reconcileActiveDispatchesOnStartup();
+
+            assertTrue(waitUntilCondition(() -> ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .noneMatch(handle -> processGroupId(handle.pid()) == pid && sessionId(handle.pid()) == pid)));
+            assertFalse(Files.exists(lockPath), "lock may be released only after the residual process group is gone");
+        } finally {
+            ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .filter(handle -> processGroupId(handle.pid()) == pid && sessionId(handle.pid()) == pid)
+                .forEach(handle -> handle.destroyForcibly());
+            if (process.isAlive()) process.destroyForcibly();
+            process.waitFor(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void sourceUpdateProbeFailsClosedWhenDescendantInspectionIsUnavailable() throws Exception {
+        writeJson(
+            repoRoot.resolve("data/generated/source-update-monitor.latest.json"),
+            completeEligibleSourceState("2026-08-31T01:00:00Z")
+        );
+        UninspectableCompletedProcess process = new UninspectableCompletedProcess(0);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(process)
+        );
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertFalse(result.success());
+        assertTrue(result.message().toLowerCase(Locale.ROOT).contains("descendant"));
+        assertTrue(result.alertDelivery().retryPending());
+    }
+
+    @Test
+    void v1AutoDispatchUsesTheValidatedSourceSnapshotAfterAStateFileSwap() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Map<String, Object> validatedState = completeEligibleSourceState(checkedAt);
+        List<Map<String, Object>> replacementSources = new ArrayList<>(sourceEntries(validatedState));
+        Map<String, Object> changedItem = new java.util.LinkedHashMap<>(replacementSources.get(0));
+        changedItem.put("changed", true);
+        replacementSources.set(0, changedItem);
+        Map<String, Object> replacementState = sourceState(checkedAt, false, replacementSources);
+        Path statePath = repoRoot.resolve("data/generated/source-update-monitor.latest.json");
+        SwappingSourceStateObjectMapper objectMapper = new SwappingSourceStateObjectMapper(statePath, replacementState);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            validatedState,
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        assertTrue(objectMapper.stateWasSwapped());
+        assertEquals("completed", sweep.getStatus());
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getDetected().stream().noneMatch(item -> Boolean.TRUE.equals(item.get("changed"))));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    void v2AutoDispatchUsesTheValidatedSourceSnapshotAfterAStateFileSwap() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Map<String, Object> validatedState = completeEligibleSourceState(checkedAt);
+        List<Map<String, Object>> replacementSources = new ArrayList<>(sourceEntries(validatedState));
+        Map<String, Object> changedItem = new java.util.LinkedHashMap<>(replacementSources.get(0));
+        changedItem.put("changed", true);
+        replacementSources.set(0, changedItem);
+        Map<String, Object> replacementState = sourceState(checkedAt, false, replacementSources);
+        Path statePath = repoRoot.resolve("data/generated/source-update-monitor.latest.json");
+        SwappingSourceStateObjectMapper objectMapper = new SwappingSourceStateObjectMapper(statePath, replacementState);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            validatedState,
+            false
+        );
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        configureMutationPermit(router);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of()));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items", "attempt-items", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            null,
+            launcher,
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class)
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of())
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertTrue(objectMapper.stateWasSwapped());
+        assertEquals("completed", sweep.getStatus());
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getDetected().stream().noneMatch(item -> Boolean.TRUE.equals(item.get("changed"))));
+        assertEquals(1, launcher.launchCount);
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void v1AutoDispatchFreezesNestedProbeMetadataAndCarriesSnapshotIdentity() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        NestedMetadataMutationObjectMapper objectMapper = new NestedMetadataMutationObjectMapper();
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        assertTrue(objectMapper.nestedMetadataMutationAttempted());
+        assertFalse(objectMapper.nestedMetadataMutationSucceeded());
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals(checkedAt, sweep.getDispatched().get(0).get("sourceRunIdentity"));
+        assertTrue(String.valueOf(sweep.getDispatched().get(0).get("sourceContentIdentity")).matches("sha256:[0-9a-f]{64}"));
+    }
+
+    @Test
+    void v2AutoDispatchFreezesNestedProbeMetadataAndCarriesSnapshotIdentity() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        NestedMetadataMutationObjectMapper objectMapper = new NestedMetadataMutationObjectMapper();
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true),
+            false
+        );
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        configureMutationPermit(router);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of()));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items", "attempt-items", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            null,
+            launcher,
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class)
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of())
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertTrue(objectMapper.nestedMetadataMutationAttempted());
+        assertFalse(objectMapper.nestedMetadataMutationSucceeded());
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals(checkedAt, sweep.getDispatched().get(0).get("sourceRunIdentity"));
+        assertTrue(String.valueOf(sweep.getDispatched().get(0).get("sourceContentIdentity")).matches("sha256:[0-9a-f]{64}"));
+        verify(v2Service).enqueue(any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void invalidSourceProbeQueuesRetryableAlertStateWhenJdbcTemplateIsUnavailable() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Map<String, Object> invalidState = sourceState(
+            checkedAt,
+            false,
+            sourceEntries(completeEligibleSourceState(checkedAt))
+        );
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(repoRoot, invalidState, false);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        assertEquals("error", sweep.getStatus());
+        assertEquals("retry_pending", sweep.getSkipped().get(0).get("alertDeliveryStatus"));
+        assertTrue(Files.exists(outboxPath));
+        Map<String, Object> outbox = readJson(outboxPath);
+        assertEquals("retry_pending", outbox.get("status"));
+        List<Map<String, Object>> alerts = (List<Map<String, Object>>) outbox.get("alerts");
+        assertTrue(alerts.stream().anyMatch(alert -> "scheduler:source-probe:all".equals(alert.get("dedupeKey"))));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void invalidSourceProbeQueuesRetryableAlertStateWhenJdbcPersistenceFails() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Map<String, Object> invalidState = sourceState(
+            checkedAt,
+            false,
+            sourceEntries(completeEligibleSourceState(checkedAt))
+        );
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(repoRoot, invalidState, false);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        org.mockito.Mockito.doThrow(new DataAccessResourceFailureException("database unavailable"))
+            .when(jdbcTemplate)
+            .update(anyString(), any(Object[].class));
+        service.setJdbcTemplate(jdbcTemplate);
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        assertEquals("error", sweep.getStatus());
+        assertEquals("retry_pending", sweep.getSkipped().get(0).get("alertDeliveryStatus"));
+        assertTrue(Files.exists(outboxPath));
+        Map<String, Object> outbox = readJson(outboxPath);
+        assertEquals("retry_pending", outbox.get("status"));
+        List<Map<String, Object>> alerts = (List<Map<String, Object>>) outbox.get("alerts");
+        assertTrue(alerts.stream().anyMatch(alert -> "database unavailable".equals(alert.get("failureMessage"))));
+        verify(jdbcTemplate).update(anyString(), any(Object[].class));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void retryOutboxPreservesDistinctAlertsAcrossConcurrentWrites() throws Exception {
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        writeJson(outboxPath, Map.of(
+            "status", "delivered",
+            "updatedAt", "2026-08-31T00:59:00Z",
+            "alerts", List.of()
+        ));
+        BlockingFirstRetryOutboxReadObjectMapper objectMapper = new BlockingFirstRetryOutboxReadObjectMapper(outboxPath);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<?> first = null;
+        Future<?> second = null;
+        try {
+            first = executor.submit(() -> service.recordAutomationAlertForTesting(
+                null,
+                "CRITICAL",
+                "scheduler:source-probe:items",
+                Map.of("title", "items")
+            ));
+            awaitLatch(objectMapper.firstReadEntered());
+            second = executor.submit(() -> service.recordAutomationAlertForTesting(
+                null,
+                "CRITICAL",
+                "scheduler:source-probe:npcs",
+                Map.of("title", "npcs")
+            ));
+            objectMapper.awaitSecondReadOrSerializedWriter();
+            objectMapper.releaseFirstRead();
+            first.get(2, TimeUnit.SECONDS);
+            second.get(2, TimeUnit.SECONDS);
+        } finally {
+            objectMapper.releaseFirstRead();
+            executor.shutdownNow();
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        }
+
+        Map<String, Object> outbox = readJson(outboxPath);
+        List<Map<String, Object>> alerts = (List<Map<String, Object>>) outbox.get("alerts");
+        assertEquals(2, alerts.size());
+        assertTrue(alerts.stream().anyMatch(alert -> "scheduler:source-probe:items".equals(alert.get("dedupeKey"))));
+        assertTrue(alerts.stream().anyMatch(alert -> "scheduler:source-probe:npcs".equals(alert.get("dedupeKey"))));
+    }
+
+    @Test
+    void retryOutboxWithUnsupportedStatusPreservesRawEvidenceAndRejectsNewAlert() throws Exception {
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String malformedPayload = "{\"status\":\"unknown\",\"updatedAt\":\"2026-08-31T00:59:00Z\",\"alerts\":[]}";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, malformedPayload);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+            null,
+            "CRITICAL",
+            "scheduler:source-probe:items",
+            Map.of("title", "items")
+        ));
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(malformedPayload, Files.readString(outboxPath));
+    }
+
+    @Test
+    void retryOutboxWithMissingDedupeKeyPreservesRawEvidenceAndRejectsNewAlert() throws Exception {
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String malformedPayload = "{\"status\":\"retry_pending\",\"updatedAt\":\"2026-08-31T00:59:00Z\",\"alerts\":[{}]}";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, malformedPayload);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+            null,
+            "CRITICAL",
+            "scheduler:source-probe:items",
+            Map.of("title", "items")
+        ));
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(malformedPayload, Files.readString(outboxPath));
+    }
+
+    @Test
+    void retryOutboxWithBlankDedupeKeyBlocksHealthyV1Dispatch() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String malformedPayload = "{\"status\":\"retry_pending\",\"updatedAt\":\"2026-08-31T00:59:00Z\",\"alerts\":[{\"dedupeKey\":\" \"}]}";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, malformedPayload);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, service::runAutoDispatchSweepOnce);
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(malformedPayload, Files.readString(outboxPath));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    void retryOutboxWithDeliveredStatusAndPendingAlertBlocksHealthyV1Dispatch() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String malformedPayload = "{\"status\":\"delivered\",\"updatedAt\":\"2026-08-31T00:59:00Z\",\"alerts\":[{\"dedupeKey\":\"scheduler:source-probe:items\"}]}";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, malformedPayload);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, service::runAutoDispatchSweepOnce);
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(malformedPayload, Files.readString(outboxPath));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    void retryOutboxWithRetryPendingStatusAndNoAlertsPreservesRawEvidenceAndRejectsNewAlert() throws Exception {
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String malformedPayload = "{\"status\":\"retry_pending\",\"updatedAt\":\"2026-08-31T00:59:00Z\",\"alerts\":[]}";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, malformedPayload);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+            null,
+            "CRITICAL",
+            "scheduler:source-probe:items",
+            Map.of("title", "items")
+        ));
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(malformedPayload, Files.readString(outboxPath));
+    }
+
+    @Test
+    void retryOutboxWithMissingDedupeKeyBlocksHealthyV2Dispatch() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String malformedPayload = "{\"status\":\"retry_pending\",\"updatedAt\":\"2026-08-31T00:59:00Z\",\"alerts\":[{}]}";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, malformedPayload);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceStateWithNestedMetadata(checkedAt, true),
+            false
+        );
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        configureMutationPermit(router);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of()));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            null,
+            launcher,
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class)
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of())
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, service::runV2AutomationSweepOnce);
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(malformedPayload, Files.readString(outboxPath));
+        assertEquals(1, launcher.launchCount);
+        verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void retryOutboxRejectsSymlinkedAncestorBeforeExternalPublication() throws Exception {
+        Path externalDirectory = Files.createDirectories(tempDir.resolve("external-crawler-monitor"));
+        Path crawlerMonitorDirectory = repoRoot.resolve("reports/crawler-monitor");
+        Files.createSymbolicLink(crawlerMonitorDirectory, externalDirectory);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+            null,
+            "CRITICAL",
+            "scheduler:source-probe:items",
+            Map.of("title", "items")
+        ));
+
+        assertTrue(failure.getMessage().contains("retry outbox path is not confined"));
+        assertTrue(Files.isSymbolicLink(crawlerMonitorDirectory));
+        assertFalse(Files.exists(externalDirectory.resolve("automation-alert-delivery.latest.json")));
+        assertFalse(Files.exists(externalDirectory.resolve("automation-alert-delivery.lock")));
+    }
+
+    @Test
+    void retryOutboxRejectsGroupWritableRepositoryRootBeforeCreatingOutbox() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            FileSystems.getDefault().supportedFileAttributeViews().contains("posix")
+        );
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(repoRoot);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+        try {
+            Set<PosixFilePermission> unsafePermissions = EnumSet.copyOf(originalPermissions);
+            unsafePermissions.add(PosixFilePermission.GROUP_WRITE);
+            Files.setPosixFilePermissions(repoRoot, unsafePermissions);
+
+            IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+                null,
+                "CRITICAL",
+                "scheduler:source-probe:items",
+                Map.of("title", "items")
+            ));
+
+            assertTrue(failure.getMessage().contains("retry outbox path is not confined"));
+            assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor")));
+        } finally {
+            Files.setPosixFilePermissions(repoRoot, originalPermissions);
+        }
+    }
+
+    @Test
+    void retryOutboxRejectsParentSwapDuringReadAndPreservesPriorEvidence() throws Exception {
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String originalPayload = "{\"status\":\"delivered\",\"updatedAt\":\"2026-08-31T00:59:00Z\",\"alerts\":[]}";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, originalPayload);
+        Path relocatedDirectory = tempDir.resolve("relocated-crawler-monitor");
+        SwappingRetryOutboxParentObjectMapper objectMapper = new SwappingRetryOutboxParentObjectMapper(
+            outboxPath,
+            relocatedDirectory
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+            null,
+            "CRITICAL",
+            "scheduler:source-probe:items",
+            Map.of("title", "items")
+        ));
+
+        assertTrue(objectMapper.parentWasSwapped());
+        assertTrue(failure.getMessage().contains("retry outbox path is not confined"));
+        assertTrue(Files.isSymbolicLink(outboxPath.getParent()));
+        assertEquals(originalPayload, Files.readString(relocatedDirectory.resolve(outboxPath.getFileName())));
+    }
+
+    @Test
+    void retryOutboxSurfacesDirectorySyncFailure() throws Exception {
+        Path crawlerMonitorDirectory = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(crawlerMonitorDirectory);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+        try {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, EnumSet.of(
+                PosixFilePermission.OWNER_WRITE,
+                PosixFilePermission.OWNER_EXECUTE
+            ));
+
+            IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+                null,
+                "CRITICAL",
+                "scheduler:source-probe:items",
+                Map.of("title", "items")
+            ));
+
+            assertTrue(failure.getMessage().contains("Failed to atomically write automation alert retry outbox"));
+        } finally {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, originalPermissions);
+        }
+        assertTrue(Files.isRegularFile(crawlerMonitorDirectory.resolve("automation-alert-delivery.latest.json")));
+    }
+
+    @Test
+    void sourceProbePropagatesRetryOutboxWriteFailureInsteadOfReportingPersisted() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            FileSystems.getDefault().supportedFileAttributeViews().contains("posix")
+        );
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path crawlerMonitorDirectory = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(crawlerMonitorDirectory);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", checkedAt,
+                "summary", Map.of("probeHealthy", false, "errorSources", 1),
+                "sources", List.of()
+            ),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        try {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, EnumSet.of(
+                PosixFilePermission.OWNER_WRITE,
+                PosixFilePermission.OWNER_EXECUTE
+            ));
+
+            java.lang.reflect.InvocationTargetException invocation = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> invokeSourceUpdateMonitorCheck(service)
+            );
+            assertTrue(invocation.getCause() instanceof IllegalStateException);
+            assertTrue(invocation.getCause().getMessage().contains(
+                "Failed to atomically write automation alert retry outbox"
+            ));
+        } finally {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, originalPermissions);
+        }
+    }
+
+    @Test
+    void sourceProbeRetriesProcessTreeCleanupBeforeRethrowingRetryOutboxFailure() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            FileSystems.getDefault().supportedFileAttributeViews().contains("posix")
+        );
+        Path crawlerMonitorDirectory = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(crawlerMonitorDirectory);
+        TimeoutRecordingProcess root = new TimeoutRecordingProcess();
+        AtomicInteger destroyCalls = new AtomicInteger();
+        AtomicInteger successfulDestroyCalls = new AtomicInteger();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(root) {
+            @Override
+            public boolean destroy(Process process) {
+                if (destroyCalls.incrementAndGet() == 1) {
+                    return false;
+                }
+                successfulDestroyCalls.incrementAndGet();
+                return super.destroy(process);
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofMillis(1));
+        try {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, EnumSet.of(
+                PosixFilePermission.OWNER_WRITE,
+                PosixFilePermission.OWNER_EXECUTE
+            ));
+
+            java.lang.reflect.InvocationTargetException invocation = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> invokeSourceUpdateMonitorCheck(service)
+            );
+            assertTrue(invocation.getCause() instanceof IllegalStateException);
+            assertTrue(invocation.getCause().getMessage().contains(
+                "Failed to atomically write automation alert retry outbox"
+            ));
+            assertEquals(2, destroyCalls.get(),
+                "retry outbox failure must trigger a final bounded process-tree cleanup attempt");
+            assertEquals(1, successfulDestroyCalls.get(),
+                "the successful retry must terminate the source-probe root");
+        } finally {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, originalPermissions);
+        }
+    }
+
+    @Test
+    void sourceProbeRetriesGroupCleanupWhenTheGroupRemainsLiveAfterSuccessfulDestroy() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            FileSystems.getDefault().supportedFileAttributeViews().contains("posix")
+        );
+        Path crawlerMonitorDirectory = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(crawlerMonitorDirectory);
+        LiveGroupCleanupVerificationFailureLauncher launcher = new LiveGroupCleanupVerificationFailureLauncher();
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        try {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, EnumSet.of(
+                PosixFilePermission.OWNER_WRITE,
+                PosixFilePermission.OWNER_EXECUTE
+            ));
+
+            java.lang.reflect.InvocationTargetException invocation = assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> invokeSourceUpdateMonitorCheck(service)
+            );
+            assertTrue(invocation.getCause() instanceof IllegalStateException);
+            assertTrue(invocation.getCause().getMessage().contains(
+                "Failed to atomically write automation alert retry outbox"
+            ));
+            assertEquals(2, launcher.destroyCalls,
+                "a live process group after destroy must trigger a final cleanup attempt");
+            assertFalse(launcher.member.alive,
+                "the final cleanup attempt must remove the still-live group member");
+        } finally {
+            Files.setPosixFilePermissions(crawlerMonitorDirectory, originalPermissions);
+        }
+    }
+
+    @Test
+    void malformedRetryOutboxPreservesRawEvidenceAndRejectsNewAlert() throws Exception {
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String interruptedPayload = "{\"status\":\"retry_pending\",\"alerts\":[";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, interruptedPayload);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class)
+        );
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> service.recordAutomationAlertForTesting(
+            null,
+            "CRITICAL",
+            "scheduler:source-probe:items",
+            Map.of("title", "items")
+        ));
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(interruptedPayload, Files.readString(outboxPath));
+    }
+
+    @Test
+    void malformedRetryOutboxBlocksHealthySourceDispatch() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String interruptedPayload = "{\"status\":\"retry_pending\",\"alerts\":[";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, interruptedPayload);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState(checkedAt),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        service.setJdbcTemplate(jdbcTemplate);
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, service::runAutoDispatchSweepOnce);
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(interruptedPayload, Files.readString(outboxPath));
+        assertEquals(1, launcher.launchCount);
+        verifyNoInteractions(jdbcTemplate);
+    }
+
+    @Test
+    void malformedRetryOutboxBlocksHealthySourceDispatchWithoutJdbcTemplate() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        String interruptedPayload = "{\"status\":\"retry_pending\",\"alerts\":[";
+        Files.createDirectories(outboxPath.getParent());
+        Files.writeString(outboxPath, interruptedPayload);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState(checkedAt),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, service::runAutoDispatchSweepOnce);
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertEquals(interruptedPayload, Files.readString(outboxPath));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    void nonRegularRetryOutboxBlocksHealthySourceDispatchWithoutJdbcTemplate() throws Exception {
+        String checkedAt = "2026-08-31T01:00:00Z";
+        Path outboxPath = repoRoot.resolve("reports/crawler-monitor/automation-alert-delivery.latest.json");
+        Files.createDirectories(outboxPath);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState(checkedAt),
+            false
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse(checkedAt), ZoneOffset.UTC),
+            launcher
+        );
+        allowSchedulerActivation(service);
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        service.updateAutoDispatchSettings(settings);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, service::runAutoDispatchSweepOnce);
+
+        assertTrue(failure.getMessage().contains("retry outbox is unreadable"));
+        assertTrue(Files.isDirectory(outboxPath));
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
     void shouldRunSourceUpdateDetectionBeforeAutoDispatchingChangedDomains() throws Exception {
         writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
             "checkedAt", "2026-06-20T02:00:00Z",
@@ -3782,6 +6176,7 @@ class CrawlerMonitorServiceImplTest {
             Clock.fixed(Instant.parse("2026-06-20T03:05:00Z"), ZoneOffset.UTC),
             launcher
         );
+        allowSchedulerActivation(service);
         service.updateAutoDispatchSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
@@ -3807,6 +6202,34 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void sourceMonitorUsesConfiguredCodeRootWhileRetainingDurableStateRoot() throws Exception {
+        Path commandRoot = repoRoot.resolveSibling("scheduler-command-root");
+        Path commandScript = commandRoot.resolve("pipelines/monitor/check-source-updates.mjs");
+        Files.createDirectories(commandScript.getParent());
+        Files.writeString(commandScript, "// test command root\n");
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState("2026-06-20T03:00:00Z")
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T03:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        Field commandRootField = CrawlerMonitorServiceImpl.class.getDeclaredField("configuredQueueV2CommandRoot");
+        commandRootField.setAccessible(true);
+        commandRootField.set(service, commandRoot.toString());
+
+        CrawlerMonitorServiceImpl.SourceUpdateCheckResult result = invokeSourceUpdateMonitorCheck(service);
+
+        assertTrue(result.success());
+        assertEquals(commandScript.toString(), launcher.requests.get(0).command().get(1));
+        assertEquals(repoRoot.toFile(), launcher.requests.get(0).directory());
+        assertEquals(repoRoot.toString(), launcher.requests.get(0).environment().get("WORKTREE_ROOT"));
+    }
+
+    @Test
     void shouldObserveChangedSourcesWithoutV2EnqueueWhenAutomationIsDisabled() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
@@ -3829,6 +6252,8 @@ class CrawlerMonitorServiceImplTest {
         assertFalse(settings.isEnabled());
         assertEquals("changed-only", settings.getMode());
         assertEquals(60, settings.getSweepIntervalMinutes());
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
@@ -3837,6 +6262,107 @@ class CrawlerMonitorServiceImplTest {
         assertTrue(sweep.getSkipped().stream()
             .anyMatch(item -> "automation_disabled".equals(item.get("reason"))));
         verify(v2Service, never()).enqueue(any());
+    }
+
+    @Test
+    void blocksDisabledV2AutomationBeforeSourceCheckWithoutFreshSchedulerActivation() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString())).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(
+                false,
+                List.of("SCHEDULER_ACTIVATION_DECISION_REQUIRED")
+            )
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertEquals("scheduler_activation_required", sweep.getSkipped().get(0).get("reason"));
+        assertEquals(0, launcher.launchCount);
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/source-update-monitor.latest.json")));
+        verifyNoInteractions(v2Service);
+    }
+
+    @Test
+    void blocksV2AutomationBeforeSourceCheckWhenCanaryScopeIsMissing() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState("2026-06-20T03:00:00Z")
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-config.json"), Map.of(
+            "enabled", true,
+            "mode", "changed-only",
+            "sweepIntervalMinutes", 60
+        ));
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("blocked", sweep.getStatus());
+        assertEquals(List.of("SCHEDULER_CANARY_SCOPE_REQUIRED"), sweep.getSkipped().get(0).get("reasons"));
+        assertEquals(0, launcher.launchCount);
+        verifyNoInteractions(v2Service);
+    }
+
+    @Test
+    void checksTheConfiguredCanaryScopeForEverySchedulerEligibilityDomain() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            completeEligibleSourceState("2026-06-20T03:00:00Z")
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerAutomationPolicyService policyService = mock(CrawlerAutomationPolicyService.class);
+        when(policyService.schedulerEligibility(anyString(), eq("wiki-items-refresh"))).thenReturn(
+            new CrawlerAutomationPolicyService.AutomationEligibility(true, List.of())
+        );
+        service.setCrawlerAutomationPolicyService(policyService);
+        Method gate = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "schedulerActivationGateReasons", String.class
+        );
+        gate.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<String> reasons = (List<String>) gate.invoke(service, "wiki-items-refresh");
+
+        assertEquals(List.of(), reasons);
+        verify(policyService, times(8)).schedulerEligibility(anyString(), eq("wiki-items-refresh"));
+        verify(policyService, never()).schedulerEligibility(anyString(), isNull());
     }
 
     @Test
@@ -3864,6 +6390,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -3881,15 +6408,67 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldRetryFailedResumableSourceThroughV2WhenAutomationIsEnabled() {
+    void enqueuesOnlyConfiguredV2CanaryActionWhenMultipleEligibleSourcesChange() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
-        CrawlerQueueV2OverviewDTO.AttemptDTO failedBuff = v2Attempt(
-            "queue-buff", "attempt-buff-failed", "failed", "buffs",
-            "buff-page-immunity-refresh", true, List.of("retry")
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items", "attempt-items", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        String checkedAt = "2026-06-20T03:00:00Z";
+        List<Map<String, Object>> sources = new ArrayList<>();
+        for (String sourceKey : List.of("wiki.module.iteminfo", "wiki.module.npcinfo")) {
+            Map<String, Object> source = new java.util.LinkedHashMap<>(sourceEntry(sourceKey, checkedAt));
+            source.put("changed", true);
+            sources.add(source);
+        }
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            sourceState(checkedAt, true, sources)
         );
-        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedBuff)));
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals("wiki-items-refresh", service.getV2AutomationSettings().getCanaryActionId());
+        assertEquals(8, sweep.getDetected().size());
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "wiki-npcs-refresh".equals(item.get("actionId"))
+                && "canary_scope_excluded".equals(item.get("reason"))
+        ));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("wiki-items-refresh", command.getValue().actionId());
+    }
+
+    @Test
+    void shouldRetryFailedResumableSourceThroughV2WhenAutomationIsEnabled() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenAnswer(invocation -> v2Overview(
+            List.of(),
+            List.of(v2AttemptBoundToCurrentProbe(
+                "queue-buff", "attempt-buff-failed", "failed", "buffs",
+                "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash"
+            ))
+        ));
         when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
             true, true, 1, "queue-buff", "attempt-buff-retry", null, 1L,
             CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
@@ -3898,7 +6477,13 @@ class CrawlerMonitorServiceImplTest {
             repoRoot,
             Map.of(
                 "checkedAt", "2026-06-20T03:00:00Z",
-                "sources", List.of(Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"))
+                "sources", List.of(Map.of(
+                    "key", "wiki.page.template_getbuffinfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "buff-hash",
+                    "previousValue", "buff-hash"
+                ))
             )
         );
         CrawlerMonitorServiceImpl service = v2Service(
@@ -3910,6 +6495,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -3928,22 +6514,34 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldPauseAutomaticRecoveryAfterThreeFailedResumeAttempts() {
+    void shouldStartFreshAutomationWhenFailedAttemptHasStaleSourceRunIdentity() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
-        List<CrawlerQueueV2OverviewDTO.AttemptDTO> failedAttempts = List.of(
-            v2Attempt("queue-buff", "attempt-buff-initial", "failed", "buffs", "buff-page-immunity-refresh", true, List.of()),
-            v2Attempt("queue-buff", "attempt-buff-retry-1", "failed", "buffs", "buff-page-immunity-refresh", true, List.of()),
-            v2Attempt("queue-buff", "attempt-buff-retry-2", "failed", "buffs", "buff-page-immunity-refresh", true, List.of()),
-            v2Attempt("queue-buff", "attempt-buff-retry-3", "failed", "buffs", "buff-page-immunity-refresh", true, List.of("retry"))
+        CrawlerQueueV2OverviewDTO.AttemptDTO failedBuff = v2Attempt(
+            "queue-buff", "attempt-buff-stale", "failed", "buffs",
+            "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash"
         );
-        when(v2Service.overview()).thenReturn(v2Overview(List.of(), failedAttempts));
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(failedBuff)));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-buff-fresh", "attempt-buff-fresh", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-buff", "attempt-buff-retry", null, 1L,
+            CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
+        ));
         SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
             repoRoot,
             Map.of(
                 "checkedAt", "2026-06-20T03:00:00Z",
-                "sources", List.of(Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"))
+                "sources", List.of(Map.of(
+                    "key", "wiki.page.template_getbuffinfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "buff-hash",
+                    "previousValue", "buff-hash"
+                ))
             )
         );
         CrawlerMonitorServiceImpl service = v2Service(
@@ -3955,6 +6553,50 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("attempt-buff-fresh", sweep.getDispatched().get(0).get("attemptId"));
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldPauseAutomaticRecoveryAfterThreeFailedResumeAttempts() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenAnswer(invocation -> v2Overview(List.of(), List.of(
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-initial", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-retry-1", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-retry-2", "failed", "buffs", "buff-page-immunity-refresh", true, List.of(), "buff-hash"),
+            v2AttemptBoundToCurrentProbe("queue-buff", "attempt-buff-retry-3", "failed", "buffs", "buff-page-immunity-refresh", true, List.of("retry"), "buff-hash")
+        )));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.page.template_getbuffinfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "buff-hash",
+                    "previousValue", "buff-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -3973,11 +6615,12 @@ class CrawlerMonitorServiceImplTest {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
-        CrawlerQueueV2OverviewDTO.AttemptDTO timedOutShimmer = v2Attempt(
-            "queue-shimmer", "attempt-shimmer-timeout", "timed_out", "shimmer",
-            "domain-source-shimmer", false, List.of("retry", "cleanup")
-        );
-        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(timedOutShimmer)));
+        when(v2Service.overview()).thenAnswer(invocation -> v2Overview(List.of(), List.of(
+            v2AttemptBoundToCurrentProbe(
+                "queue-shimmer", "attempt-shimmer-timeout", "timed_out", "shimmer",
+                "domain-source-shimmer", false, List.of("retry", "cleanup"), "shimmer-hash"
+            )
+        )));
         when(v2Service.control(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
             true, true, 1, "queue-shimmer", "attempt-shimmer-retry", null, 1L,
             CrawlerQueueV2Status.RETRY_WAIT, null, null, null, List.of("cancel")
@@ -4013,6 +6656,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("domain-source-shimmer");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -4035,15 +6679,15 @@ class CrawlerMonitorServiceImplTest {
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
         CrawlerQueueV2OverviewDTO.AttemptDTO activeBuff = v2Attempt(
             "queue-buff", "attempt-buff-running", "running", "buffs",
-            "buff-page-immunity-refresh", true, List.of("cancel")
+            "buff-page-immunity-refresh", true, List.of("cancel"), "buff-hash"
         );
         CrawlerQueueV2OverviewDTO.AttemptDTO completedBuff = v2Attempt(
             "queue-buff", "attempt-buff-running", "completed", "buffs",
-            "buff-page-immunity-refresh", true, List.of("cleanup")
+            "buff-page-immunity-refresh", true, List.of("cleanup"), "buff-hash"
         );
         CrawlerQueueV2OverviewDTO.AttemptDTO completedArmor = v2Attempt(
             "queue-armor", "attempt-armor-completed", "completed", "armor_sets",
-            "domain-source-armor-sets", false, List.of("cleanup")
+            "domain-source-armor-sets", false, List.of("cleanup"), "armor-hash"
         );
         when(v2Service.overview()).thenReturn(v2Overview(List.of(activeBuff), List.of(completedArmor)));
         writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json"), Map.of(
@@ -4081,6 +6725,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("buff-page-immunity-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
@@ -4088,9 +6733,6 @@ class CrawlerMonitorServiceImplTest {
         assertTrue(sweep.getDispatched().isEmpty());
         assertTrue(sweep.getSkipped().stream().anyMatch(item ->
             "automatic_attempt_active".equals(item.get("reason"))
-        ));
-        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
-            "automatic_attempt_completed".equals(item.get("reason"))
         ));
 
         when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(completedBuff, completedArmor)));
@@ -4122,13 +6764,13 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldStartFreshAutomationWhenCompletedAttemptHasAnOlderSourceFingerprint() throws Exception {
+    void shouldSkipFreshArmorAutomationWhenCompletedAttemptHasAnOlderSourceFingerprintWithoutBinding() throws Exception {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
         CrawlerQueueV2OverviewDTO.AttemptDTO completedArmor = v2Attempt(
             "queue-armor", "attempt-armor-completed", "completed", "armor_sets",
-            "domain-source-armor-sets", false, List.of("cleanup")
+            "domain-source-armor-sets", false, List.of("cleanup"), "old-armor-hash"
         );
         when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(completedArmor)));
         when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
@@ -4166,17 +6808,94 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("domain-source-armor-sets");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
-        assertEquals("attempt-armor-new", sweep.getDispatched().get(0).get("attemptId"));
-        assertEquals(
-            "wiki.module.armorsetbonuses=new-armor-hash",
-            sweep.getDispatched().get(0).get("sourceFingerprint")
-        );
-        verify(v2Service).enqueue(any());
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "domain-source-armor-sets".equals(item.get("actionId"))
+                && "automatic_operation_binding_required".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).enqueue(any());
         verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void armorBindingReusesTheBoundSourceSnapshotWithoutRerunningTheProbe() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of()));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-armor", "attempt-bound-armor", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        String checkedAt = "2026-07-13T00:59:00Z";
+        List<Map<String, Object>> sources = new ArrayList<>();
+        for (String sourceKey : AUTO_ELIGIBLE_SOURCE_KEYS) {
+            Map<String, Object> source = new java.util.LinkedHashMap<>(sourceEntry(sourceKey, checkedAt));
+            if ("wiki.module.armorsetbonuses".equals(sourceKey)) {
+                source.put("changed", true);
+                source.put("previousValue", testContentHash("previous-armor"));
+            }
+            sources.add(source);
+        }
+        Map<String, Object> state = sourceState(checkedAt, true, sources);
+        Path statePath = repoRoot.resolve("data/generated/source-update-monitor.latest.json");
+        writeJson(statePath, state);
+        String sourceFingerprint = testSourceFingerprint("wiki.module.armorsetbonuses");
+        String sourceContentIdentity = testSourceFingerprint(new ObjectMapper().writeValueAsString(readJson(statePath)));
+        Path bindingPath = repoRoot.resolve(
+            "reports/authorization/canonical/automatic-armor/" + sourceFingerprint.substring("sha256:".length()) + ".binding.json"
+        );
+        Map<String, Object> binding = new java.util.LinkedHashMap<>();
+        binding.put("schemaVersion", "armor-automatic-dispatch-binding/v1");
+        binding.put("actionId", "domain-source-armor-sets");
+        binding.put("operationId", "canonical-armor-ingestion");
+        binding.put("attemptId", "attempt-bound-armor");
+        binding.put("sourceDispatchIdentity", Map.of(
+            "sourceFingerprint", sourceFingerprint,
+            "sourceRunIdentity", checkedAt,
+            "sourceContentIdentity", sourceContentIdentity
+        ));
+        binding.put("expiresAt", "2026-07-13T01:30:00Z");
+        binding.put("activation", Map.of("expiresAt", "2026-07-13T01:30:00Z"));
+        binding.put("consumedAt", null);
+        writeJson(bindingPath, binding);
+        Files.setPosixFilePermissions(bindingPath, Set.of(
+            PosixFilePermission.OWNER_READ,
+            PosixFilePermission.OWNER_WRITE
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of("checkedAt", "2026-07-13T01:00:00Z", "sources", List.of()),
+            false
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("domain-source-armor-sets");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals(0, launcher.launchCount);
+        assertEquals("attempt-bound-armor", sweep.getDispatched().get(0).get("attemptId"));
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals(checkedAt, command.getValue().sourceDispatchIdentity().sourceRunIdentity());
+        assertEquals("attempt-bound-armor", command.getValue().requestedAttemptId());
     }
 
     @Test
@@ -4186,7 +6905,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
         CrawlerQueueV2OverviewDTO.AttemptDTO completedItems = v2Attempt(
             "queue-items", "attempt-items-completed", "completed", "items",
-            "wiki-items-refresh", false, List.of("cleanup")
+            "wiki-items-refresh", false, List.of("cleanup"), "stale-canonical-hash"
         );
         when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(completedItems)));
         when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
@@ -4225,12 +6944,206 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
         assertEquals("attempt-items-new", sweep.getDispatched().get(0).get("attemptId"));
         verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldIgnoreTerminalLegacyAttemptWithUnavailableQueueMetadata() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO legacyItems = v2Attempt(
+            "queue-items-legacy", "attempt-items-legacy", "completed", "items",
+            "wiki-items-refresh", false, List.of("cleanup"), null, null, null, false
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(legacyItems)));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items-new", "attempt-items-new", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "live-items-hash",
+                    "previousValue", "stale-canonical-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("attempt-items-new", sweep.getDispatched().get(0).get("attemptId"));
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldStillBlockNonTerminalLegacyAttemptWithUnavailableQueueMetadata() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO legacyItems = v2Attempt(
+            "queue-items-legacy", "attempt-items-legacy", "running", "items",
+            "wiki-items-refresh", false, List.of("cancel"), null, null, null, false
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(), List.of(legacyItems)));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "live-items-hash",
+                    "previousValue", "stale-canonical-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_queue_metadata_untrusted".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void shouldEnqueueChangedAutomaticSourceWhenMatchingLiveAttemptIsManual() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO manualItems = v2Attempt(
+            "queue-items-manual", "attempt-items-manual", "running", "items",
+            "wiki-items-refresh", false, List.of("cancel"), null, "manual"
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(manualItems), List.of()));
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-items-auto", "attempt-items-auto", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/v2/automation-last-sweep.json"), Map.of(
+            "checkedAt", "2026-06-20T02:00:00Z",
+            "status", "completed",
+            "detected", List.of(),
+            "skipped", List.of(),
+            "dispatched", List.of(Map.of(
+                "actionId", "wiki-items-refresh",
+                "sourceFingerprint", "wiki.module.iteminfo=manual-items-hash"
+            ))
+        ));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "automatic-items-hash",
+                    "previousValue", "manual-items-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("attempt-items-auto", sweep.getDispatched().get(0).get("attemptId"));
+        verify(v2Service).enqueue(any());
+        verify(v2Service, never()).control(any());
+    }
+
+    @Test
+    void blocksChangedAutomaticSourceWhenMatchingLiveAttemptHasUntrustedSchedulerMetadata() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        CrawlerQueueV2OverviewDTO.AttemptDTO malformedItems = v2Attempt(
+            "queue-items-malformed", "attempt-items-malformed", "running", "items",
+            "wiki-items-refresh", false, List.of("cancel"), "malformed-items-hash",
+            "scheduler", "admin", true
+        );
+        when(v2Service.overview()).thenReturn(v2Overview(List.of(malformedItems), List.of()));
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "changed", true,
+                    "status", "ok",
+                    "currentValue", "automatic-items-hash",
+                    "previousValue", "malformed-items-hash"
+                ))
+            )
+        );
+        CrawlerMonitorServiceImpl service = v2Service(
+            router,
+            v2Service,
+            mock(WikiMonitorDispatchQueueRepository.class),
+            launcher
+        );
+        CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
+        settings.setEnabled(true);
+        settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-items-refresh");
+        service.updateV2AutomationSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_queue_metadata_untrusted".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).enqueue(any());
         verify(v2Service, never()).control(any());
     }
 
@@ -4262,7 +7175,7 @@ class CrawlerMonitorServiceImplTest {
                 "sources", List.of(Map.of(
                     "key", "wiki.module.npcinfo",
                     "changed", true,
-                    "status", "missing_ingestion_manifest",
+                    "status", "ok",
                     "currentValue", "npc-source-hash"
                 ))
             )
@@ -4276,16 +7189,16 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO settings = new CrawlerV2AutomationDTO();
         settings.setEnabled(true);
         settings.setSweepIntervalMinutes(60);
+        settings.setCanaryActionId("wiki-npcs-refresh");
         service.updateV2AutomationSettings(settings);
 
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runV2AutomationSweepOnce();
 
-        assertEquals("attempt-npc-new", sweep.getDispatched().get(0).get("attemptId"));
-        assertEquals(
-            "wiki.module.npcinfo=npc-source-hash",
-            sweep.getDispatched().get(0).get("sourceFingerprint")
-        );
-        verify(v2Service).enqueue(any());
+        assertTrue(sweep.getDispatched().isEmpty());
+        assertTrue(sweep.getSkipped().stream().anyMatch(item ->
+            "automatic_source_identity_missing".equals(item.get("reason"))
+        ));
+        verify(v2Service, never()).enqueue(any());
         verify(v2Service, never()).control(any());
     }
 
@@ -4353,6 +7266,7 @@ class CrawlerMonitorServiceImplTest {
         CrawlerV2AutomationDTO enabled = new CrawlerV2AutomationDTO();
         enabled.setEnabled(true);
         enabled.setSweepIntervalMinutes(60);
+        enabled.setCanaryActionId("wiki-items-refresh");
         service.updateV2AutomationSettings(enabled);
 
         CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
@@ -4851,7 +7765,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldKeepCleanupFailureStandardLockWhenStaleAdmissionChecksForWork() throws Exception {
+    void shouldRetainStaleCleanupFailureLockBeforeLaunching() throws Exception {
         Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
         writeJson(lockPath, Map.of(
             "dispatchId", "stale-cleanup-failed",
@@ -4864,8 +7778,7 @@ class CrawlerMonitorServiceImplTest {
             "domain", "items",
             "actionId", "wiki-items-refresh",
             "status", "failed",
-            "processCleanupFailed", true,
-            "completedAt", "2026-06-14T00:30:00Z"
+            "processCleanupFailed", true
         ));
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
@@ -4875,13 +7788,10 @@ class CrawlerMonitorServiceImplTest {
             launcher
         );
 
-        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
+        service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
 
-        assertTrue(result.isAccepted());
-        assertEquals("queued", result.getStatus());
-        assertEquals(true, result.getQueued());
-        assertEquals(0, launcher.launchCount);
         assertTrue(Files.exists(lockPath));
+        assertEquals(0, launcher.launchCount);
     }
 
     @Test
@@ -6725,6 +9635,103 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void shouldKeepStandardDispatchLockedWhenTimedOutProcessCleanupFails() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        AtomicBoolean destroyAttempted = new AtomicBoolean();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyAttempted.set(true);
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        service.setJdbcTemplate(jdbcTemplate);
+        service.setDispatchTimeoutForTesting(Duration.ofMillis(100));
+
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("bosses", "domain-source-bosses")
+        );
+        assertTrue(started.isAccepted());
+        waitUntil(destroyAttempted::get);
+        waitUntil(() -> {
+            try {
+                return "failed".equals(readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")).get("status"));
+            } catch (IOException exception) {
+                return false;
+            }
+        });
+        waitUntil(() -> {
+            try {
+                Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+                List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+                return !items.isEmpty() && "failed".equals(items.get(0).get("status"));
+            } catch (IOException exception) {
+                return false;
+            }
+        });
+
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+        assertEquals("failed", items.get(0).get("status"));
+        Map<String, Object> latest = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("failed", latest.get("status"));
+        assertTrue(String.valueOf(latest.get("message")).contains("cleanup failed"));
+
+        process.complete(143);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldKeepDomainSmokeLockedWhenTimedOutProcessCleanupFails() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        AtomicBoolean destroyAttempted = new AtomicBoolean();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyAttempted.set(true);
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofMillis(100));
+
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorDomainSmoke();
+        assertTrue(started.isAccepted());
+        waitUntil(destroyAttempted::get);
+
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")));
+        Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+        assertEquals("running", items.get(0).get("status"));
+
+        process.complete(143);
+    }
+
+    @Test
     void shouldCalculateEffectiveDispatchTimeoutFromOriginalProcessStart() {
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
             new ObjectMapper(),
@@ -6739,6 +9746,18 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(Duration.ZERO, service.effectiveDispatchTimeout(now.minus(Duration.ofMinutes(200)), now));
         assertEquals(Duration.ofMinutes(90), service.effectiveDispatchTimeout(now.plus(Duration.ofMinutes(5)), now));
         assertEquals(Duration.ofMinutes(90), service.effectiveDispatchTimeout(null, now));
+    }
+
+    @Test
+    void persistedProcessOwnershipRejectsMalformedStartTimestamp() throws Exception {
+        Method method = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "processStartMatches",
+            ProcessHandle.class,
+            String.class
+        );
+        method.setAccessible(true);
+
+        assertFalse((boolean) method.invoke(null, ProcessHandle.current(), "not-an-instant"));
     }
 
     @Test
@@ -7149,21 +10168,23 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldRetainCleanupFailureStandardLockDuringStartupOrphanRecovery() throws Exception {
+    void shouldRetainCleanupFailureLockDuringStartupOrphanConvergence() throws Exception {
         Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        Path statePath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json");
         writeJson(lockPath, Map.of(
-            "dispatchId", "cleanup-failed-orphan",
+            "dispatchId", "orphan-cleanup-failed",
             "domain", "bosses",
             "actionId", "domain-source-bosses",
-            "lockedAt", "2026-06-14T01:00:00Z"
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:00:00Z"
         ));
-        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
-            "dispatchId", "cleanup-failed-orphan",
+        writeJson(statePath, Map.of(
+            "dispatchId", "orphan-cleanup-failed",
             "domain", "bosses",
             "actionId", "domain-source-bosses",
             "status", "failed",
-            "processCleanupFailed", true,
-            "completedAt", "2026-06-14T01:30:00Z"
+            "processCleanupFailed", true
         ));
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
             new ObjectMapper(),
@@ -7175,163 +10196,9 @@ class CrawlerMonitorServiceImplTest {
         service.reconcileActiveDispatchesOnStartup();
 
         assertTrue(Files.exists(lockPath));
-        Map<String, Object> state = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        Map<String, Object> state = readJsonMap(statePath);
         assertEquals("failed", state.get("status"));
         assertEquals(true, state.get("processCleanupFailed"));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void shouldRetainCleanupFailureMarkerAndLockWhenOverviewSeesDeadStandardProcess() throws Exception {
-        DeadLockValidationBarrierObjectMapper objectMapper = new DeadLockValidationBarrierObjectMapper();
-        CleanupFailureRaceProcess process = new CleanupFailureRaceProcess();
-        CleanupFailureRaceLauncher launcher = new CleanupFailureRaceLauncher(process);
-        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
-            objectMapper,
-            repoRoot,
-            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
-            launcher
-        );
-        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
-            dispatchRequest("bosses", "domain-source-bosses")
-        );
-        CrawlerMonitorDispatchResultDTO successor = service.dispatchWikiMonitorTask(
-            dispatchRequest("items", "wiki-items-refresh")
-        );
-        assertEquals("running", started.getStatus());
-        assertEquals("queued", successor.getStatus());
-        assertEquals(1, launcher.launchCount);
-
-        awaitLatch(process.watcherWaitStarted);
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<CrawlerMonitorOverviewDTO> overview = executor.submit(() -> {
-            Thread.currentThread().setName("dead-lock-reconciler");
-            return service.getOverview();
-        });
-        try {
-            objectMapper.awaitLockRead();
-            process.releaseWatcherTimeout.countDown();
-            waitUntil(() -> {
-                try {
-                    Map<String, Object> state = readJsonMap(
-                        repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")
-                    );
-                    return Boolean.TRUE.equals(state.get("processCleanupFailed"));
-                } catch (IOException exception) {
-                    return false;
-                }
-            });
-            waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
-                .noneMatch(thread -> ("wiki-monitor-dispatch-" + started.getDispatchId()).equals(thread.getName())));
-
-            objectMapper.releaseLockRead();
-            assertNotNull(overview.get(2, TimeUnit.SECONDS));
-            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
-            Map<String, Object> state = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
-            assertEquals(started.getDispatchId(), state.get("dispatchId"));
-            assertEquals("failed", state.get("status"));
-            assertEquals(true, state.get("processCleanupFailed"));
-            assertTrue(Files.exists(lockPath));
-            assertEquals(1, launcher.launchCount);
-
-            Map<String, Object> queueMirror = readJsonMap(
-                repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json")
-            );
-            List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
-            Map<String, Object> queuedSuccessor = queueItems.stream()
-                .filter(item -> successor.getQueueId().equals(item.get("queueId")))
-                .findFirst()
-                .orElseThrow();
-            assertEquals("queued", queuedSuccessor.get("status"));
-        } finally {
-            process.releaseWatcherTimeout.countDown();
-            objectMapper.releaseLockRead();
-            executor.shutdownNow();
-            executor.awaitTermination(2, TimeUnit.SECONDS);
-        }
-    }
-
-    @Test
-    void shouldRetainCleanupFailureLockWhenDeadItemReconciliationRacesTimeoutCleanup() throws Exception {
-        CleanupFailureRaceProcess process = new CleanupFailureRaceProcess();
-        BlockingCleanupFailureRaceLauncher launcher = new BlockingCleanupFailureRaceLauncher(process);
-        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
-            new ObjectMapper(),
-            repoRoot,
-            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
-            launcher
-        );
-        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
-            dispatchRequest("bosses", "domain-source-bosses")
-        );
-        assertEquals("running", started.getStatus());
-
-        awaitLatch(process.watcherWaitStarted);
-        process.releaseWatcherTimeout.countDown();
-        awaitLatch(launcher.cleanupDestroyEntered);
-
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<CrawlerMonitorOverviewDTO> overview = executor.submit(service::getOverview);
-        try {
-            waitUntilQueueStatus(started.getQueueId(), "timed_out");
-            launcher.releaseCleanupDestroy.countDown();
-
-            assertNotNull(overview.get(2, TimeUnit.SECONDS));
-            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
-            Map<String, Object> state = readJsonMap(repoRoot.resolve(
-                "reports/crawler-monitor/wiki-monitor-dispatch.latest.json"
-            ));
-            assertEquals(started.getDispatchId(), state.get("dispatchId"));
-            assertEquals("failed", state.get("status"));
-            assertEquals(true, state.get("processCleanupFailed"));
-            assertTrue(Files.exists(lockPath));
-        } finally {
-            process.releaseWatcherTimeout.countDown();
-            launcher.releaseCleanupDestroy.countDown();
-            executor.shutdownNow();
-            executor.awaitTermination(2, TimeUnit.SECONDS);
-        }
-    }
-
-    @Test
-    void shouldRetainCleanupFailureLockWhenDeadQueueItemOmitsDispatchId() throws Exception {
-        String queueId = "queue-missing-dispatch-id";
-        String dispatchId = "dispatch-missing-item-id";
-        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
-        writeJson(lockPath, Map.of(
-            "queueId", queueId,
-            "dispatchId", dispatchId,
-            "domain", "bosses",
-            "actionId", "domain-source-bosses",
-            "lockedAt", "2026-06-14T01:00:00Z"
-        ));
-        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
-            "queueId", queueId,
-            "dispatchId", dispatchId,
-            "domain", "bosses",
-            "actionId", "domain-source-bosses",
-            "status", "failed",
-            "processCleanupFailed", true
-        ));
-        WikiMonitorQueueItem item = new WikiMonitorQueueItem();
-        item.setQueueId(queueId);
-        item.setLane("standard");
-        item.setDomain("bosses");
-        item.setActionId("domain-source-bosses");
-        item.setStatus("running");
-        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
-            new ObjectMapper(),
-            repoRoot,
-            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC)
-        );
-        Method releaseDeadItemLock = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
-            "releaseLaneLockForDeadItem", Path.class, WikiMonitorQueueItem.class
-        );
-        releaseDeadItemLock.setAccessible(true);
-
-        releaseDeadItemLock.invoke(service, repoRoot, item);
-
-        assertTrue(Files.exists(lockPath));
     }
 
     private Path createArtifact(Object relativePath) throws IOException {
@@ -7377,6 +10244,17 @@ class CrawlerMonitorServiceImplTest {
         });
     }
 
+    private CrawlerMonitorServiceImpl.SourceUpdateCheckResult invokeSourceUpdateMonitorCheck(
+        CrawlerMonitorServiceImpl service
+    ) throws Exception {
+        Method method = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "runSourceUpdateMonitorCheck",
+            Path.class
+        );
+        method.setAccessible(true);
+        return (CrawlerMonitorServiceImpl.SourceUpdateCheckResult) method.invoke(service, repoRoot);
+    }
+
     @SuppressWarnings("unchecked")
     private java.util.Set<String> cancellingDispatches(CrawlerMonitorServiceImpl service) {
         try {
@@ -7385,6 +10263,53 @@ class CrawlerMonitorServiceImplTest {
             return (java.util.Set<String>) field.get(service);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError("Unable to inspect V1 watcher cancellation fence", exception);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, ?> activeDispatchProcesses(CrawlerMonitorServiceImpl service) {
+        try {
+            Field field = CrawlerMonitorServiceImpl.class.getDeclaredField("activeDispatchProcesses");
+            field.setAccessible(true);
+            return (Map<String, ?>) field.get(service);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Unable to inspect active dispatch process registry", exception);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerActiveDispatchProcess(
+        CrawlerMonitorServiceImpl service,
+        String dispatchId,
+        String domain,
+        String actionId,
+        Process process,
+        CrawlerMonitorServiceImpl.DispatchPaths paths
+    ) {
+        try {
+            Field field = CrawlerMonitorServiceImpl.class.getDeclaredField("activeDispatchProcesses");
+            field.setAccessible(true);
+            Map<String, CrawlerMonitorServiceImpl.ActiveDispatchProcess> active =
+                (Map<String, CrawlerMonitorServiceImpl.ActiveDispatchProcess>) field.get(service);
+            active.put(dispatchId, new CrawlerMonitorServiceImpl.ActiveDispatchProcess(
+                dispatchId,
+                domain,
+                actionId,
+                process,
+                paths
+            ));
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Unable to register active V1 dispatch process", exception);
+        }
+    }
+
+    private Object standardDispatchLifecycleMonitor(CrawlerMonitorServiceImpl service) {
+        try {
+            Field field = CrawlerMonitorServiceImpl.class.getDeclaredField("standardDispatchLifecycleMonitor");
+            field.setAccessible(true);
+            return field.get(service);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Unable to inspect V1 standard dispatch lifecycle monitor", exception);
         }
     }
 
@@ -7609,15 +10534,352 @@ class CrawlerMonitorServiceImplTest {
         }
     }
 
+    private Map<String, Object> completeEligibleSourceState(String checkedAt) {
+        return sourceState(
+            checkedAt,
+            true,
+            AUTO_ELIGIBLE_SOURCE_KEYS.stream().map(key -> sourceEntry(key, checkedAt)).toList()
+        );
+    }
+
+    private Map<String, Object> completeEligibleSourceStateWithNestedMetadata(String checkedAt, boolean itemChanged) {
+        List<Map<String, Object>> sources = new ArrayList<>();
+        for (String sourceKey : AUTO_ELIGIBLE_SOURCE_KEYS) {
+            Map<String, Object> source = new java.util.LinkedHashMap<>(sourceEntry(sourceKey, checkedAt));
+            source.put("changed", itemChanged && "wiki.module.iteminfo".equals(sourceKey));
+            source.put("meta", new java.util.LinkedHashMap<>(Map.of(
+                "compareField", "contentHash",
+                "rawContentHash", "original-source-hash",
+                "latestVersionHint", "1.4.4"
+            )));
+            sources.add(source);
+        }
+        return sourceState(checkedAt, true, sources);
+    }
+
+    private Map<String, Object> sourceState(
+        String checkedAt,
+        boolean probeHealthy,
+        List<Map<String, Object>> sources
+    ) {
+        Map<String, Object> summary = new java.util.LinkedHashMap<>();
+        summary.put("checkedSources", sources.size());
+        summary.put("okSources", sources.stream().filter(source -> "ok".equals(source.get("status"))).count());
+        summary.put("errorSources", probeHealthy ? 0 : 1);
+        summary.put("probeHealthy", probeHealthy);
+        return Map.of(
+            "checkedAt", checkedAt,
+            "summary", summary,
+            "sources", sources
+        );
+    }
+
+    private Map<String, Object> sourceEntry(String key, String checkedAt) {
+        return Map.of(
+            "key", key,
+            "status", "ok",
+            "checkedAt", checkedAt,
+            "changed", false,
+            "currentValue", testContentHash(key),
+            "previousValue", testContentHash(key)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> sourceEntries(Map<String, Object> payload) {
+        return (List<Map<String, Object>>) payload.get("sources");
+    }
+
+    private Map<String, Object> completeSourceStateForCurrentRun(
+        Map<String, Object> sourceState,
+        String checkedAt
+    ) {
+        Map<String, Object> payload = new java.util.LinkedHashMap<>(sourceState);
+        Map<String, Map<String, Object>> sourcesByKey = new java.util.LinkedHashMap<>();
+        Object rawSources = sourceState.get("sources");
+        if (rawSources instanceof List<?> sources) {
+            for (Object rawSource : sources) {
+                if (!(rawSource instanceof Map<?, ?> raw)) {
+                    continue;
+                }
+                Map<String, Object> source = new java.util.LinkedHashMap<>();
+                raw.forEach((key, value) -> source.put(String.valueOf(key), value));
+                String sourceKey = (String) source.get("key");
+                if (sourceKey == null || sourceKey.isBlank()) {
+                    continue;
+                }
+                source.put("checkedAt", checkedAt);
+                if (source.containsKey("currentValue")) {
+                    source.put("currentValue", normalizeTestContentHash(source.get("currentValue")));
+                } else if (AUTO_ELIGIBLE_SOURCE_KEYS.contains(sourceKey)) {
+                    source.put("currentValue", testContentHash(sourceKey));
+                }
+                if (source.containsKey("previousValue")) {
+                    source.put("previousValue", normalizeTestContentHash(source.get("previousValue")));
+                } else if (source.containsKey("currentValue")) {
+                    source.put("previousValue", source.get("currentValue"));
+                }
+                sourcesByKey.put(sourceKey, source);
+            }
+        }
+        for (String sourceKey : AUTO_ELIGIBLE_SOURCE_KEYS) {
+            sourcesByKey.putIfAbsent(sourceKey, new java.util.LinkedHashMap<>(sourceEntry(sourceKey, checkedAt)));
+        }
+        List<Map<String, Object>> sources = new ArrayList<>(sourcesByKey.values());
+        long errorSources = sources.stream().filter(source -> !"ok".equals(source.get("status"))).count();
+        payload.put("checkedAt", checkedAt);
+        payload.put("summary", Map.of(
+            "checkedSources", sources.size(),
+            "okSources", sources.size() - errorSources,
+            "errorSources", errorSources,
+            "probeHealthy", errorSources == 0
+        ));
+        payload.put("sources", sources);
+        return payload;
+    }
+
+    private static String normalizeTestContentHash(Object value) {
+        String text = value == null ? null : String.valueOf(value);
+        if (text != null) {
+            String hex = text.startsWith("sha256:") ? text.substring("sha256:".length()) : text;
+            if (hex.matches("[0-9A-Fa-f]{64}")) {
+                return hex.toLowerCase(Locale.ROOT);
+            }
+        }
+        return testContentHash(text == null ? "missing" : text);
+    }
+
+    private static String testContentHash(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(String.valueOf(value).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String testSourceFingerprint(String value) {
+        return "sha256:" + testContentHash(value);
+    }
+
+    private String sourceCheckTimestamp(CrawlerMonitorServiceImpl.LaunchRequest request) {
+        String filename = request.logFile().getName();
+        String prefix = "source-update-monitor-check-";
+        String compact = filename.substring(prefix.length(), filename.length() - ".log".length());
+        return compact.substring(0, 13)
+            + ":"
+            + compact.substring(14, 16)
+            + ":"
+            + compact.substring(17, 19)
+            + "Z";
+    }
+
+    private class SwappingSourceStateObjectMapper extends ObjectMapper {
+        private final Path sourceStatePath;
+        private final Map<String, Object> replacementState;
+        private boolean stateWasSwapped;
+
+        SwappingSourceStateObjectMapper(Path sourceStatePath, Map<String, Object> replacementState) {
+            this.sourceStatePath = sourceStatePath.toAbsolutePath().normalize();
+            this.replacementState = replacementState;
+        }
+
+        @Override
+        public <T> T readValue(File source, TypeReference<T> valueType) throws IOException {
+            Path candidate = source.toPath().toAbsolutePath().normalize();
+            if (!sourceStatePath.equals(candidate)) {
+                return super.readValue(source, valueType);
+            }
+            if (!stateWasSwapped) {
+                T validatedSnapshot = super.readValue(source, valueType);
+                writeJson(sourceStatePath, replacementState);
+                stateWasSwapped = true;
+                return validatedSnapshot;
+            }
+            return super.readValue(source, valueType);
+        }
+
+        boolean stateWasSwapped() {
+            return stateWasSwapped;
+        }
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public ObjectMapper copyWith(com.fasterxml.jackson.core.JsonFactory factory) {
+            return new ObjectMapper(factory);
+        }
+
+    }
+
+    private class NestedMetadataMutationObjectMapper extends ObjectMapper {
+        private boolean nestedMetadataMutationAttempted;
+        private boolean nestedMetadataMutationSucceeded;
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public String writeValueAsString(Object value) throws com.fasterxml.jackson.core.JsonProcessingException {
+            if (value instanceof Map<?, ?> payload
+                && payload.get("sources") instanceof List<?> sources
+                && !sources.isEmpty()
+                && sources.get(0) instanceof Map<?, ?> source
+                && source.get("meta") instanceof Map<?, ?> metadata) {
+                nestedMetadataMutationAttempted = true;
+                try {
+                    ((Map<Object, Object>) metadata).put("rawContentHash", "mutated-after-validation");
+                    nestedMetadataMutationSucceeded = true;
+                } catch (UnsupportedOperationException ignored) {
+                    // A validated snapshot must not expose a mutable nested JSON collection.
+                }
+            }
+            return super.writeValueAsString(value);
+        }
+
+        boolean nestedMetadataMutationAttempted() {
+            return nestedMetadataMutationAttempted;
+        }
+
+        boolean nestedMetadataMutationSucceeded() {
+            return nestedMetadataMutationSucceeded;
+        }
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public ObjectMapper copyWith(com.fasterxml.jackson.core.JsonFactory factory) {
+            return new ObjectMapper(factory);
+        }
+    }
+
+    private class BlockingFirstRetryOutboxReadObjectMapper extends ObjectMapper {
+        private final Path retryOutboxPath;
+        private final CountDownLatch firstReadEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseFirstRead = new CountDownLatch(1);
+        private final CountDownLatch secondReadEntered = new CountDownLatch(1);
+        private final AtomicInteger retryOutboxReadCount = new AtomicInteger();
+
+        BlockingFirstRetryOutboxReadObjectMapper(Path retryOutboxPath) {
+            this.retryOutboxPath = retryOutboxPath.toAbsolutePath().normalize();
+        }
+
+        @Override
+        public <T> T readValue(File source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            if (!retryOutboxPath.equals(source.toPath().toAbsolutePath().normalize())) {
+                return value;
+            }
+            if (retryOutboxReadCount.incrementAndGet() == 1) {
+                firstReadEntered.countDown();
+                awaitLatch(releaseFirstRead);
+            } else {
+                secondReadEntered.countDown();
+            }
+            return value;
+        }
+
+        CountDownLatch firstReadEntered() {
+            return firstReadEntered;
+        }
+
+        void releaseFirstRead() {
+            releaseFirstRead.countDown();
+        }
+
+        void awaitSecondReadOrSerializedWriter() {
+            try {
+                // A correct outbox lock holds the second reader until the first write commits.
+                secondReadEntered.await(200, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(exception);
+            }
+        }
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public ObjectMapper copyWith(com.fasterxml.jackson.core.JsonFactory factory) {
+            return new ObjectMapper(factory);
+        }
+    }
+
+    private class SwappingRetryOutboxParentObjectMapper extends ObjectMapper {
+        private final Path retryOutboxPath;
+        private final Path relocatedDirectory;
+        private boolean parentWasSwapped;
+
+        SwappingRetryOutboxParentObjectMapper(Path retryOutboxPath, Path relocatedDirectory) {
+            this.retryOutboxPath = retryOutboxPath.toAbsolutePath().normalize();
+            this.relocatedDirectory = relocatedDirectory.toAbsolutePath().normalize();
+        }
+
+        @Override
+        public <T> T readValue(File source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            swapParentIfNeeded();
+            return value;
+        }
+
+        @Override
+        public <T> T readValue(InputStream source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            swapParentIfNeeded();
+            return value;
+        }
+
+        private void swapParentIfNeeded() throws IOException {
+            if (parentWasSwapped) {
+                return;
+            }
+            Path parent = retryOutboxPath.getParent();
+            Files.move(parent, relocatedDirectory);
+            Files.createSymbolicLink(parent, relocatedDirectory);
+            parentWasSwapped = true;
+        }
+
+        boolean parentWasSwapped() {
+            return parentWasSwapped;
+        }
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public ObjectMapper copyWith(com.fasterxml.jackson.core.JsonFactory factory) {
+            return new ObjectMapper(factory);
+        }
+    }
+
     private class SourceUpdateThenDispatchLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
         private final Path repoRoot;
         private final Map<String, Object> sourceState;
+        private final boolean normalizeSourceStateForCurrentRun;
         private final List<CrawlerMonitorServiceImpl.LaunchRequest> requests = new ArrayList<>();
         private int launchCount;
 
         SourceUpdateThenDispatchLauncher(Path repoRoot, Map<String, Object> sourceState) {
+            this(repoRoot, sourceState, true);
+        }
+
+        SourceUpdateThenDispatchLauncher(
+            Path repoRoot,
+            Map<String, Object> sourceState,
+            boolean normalizeSourceStateForCurrentRun
+        ) {
             this.repoRoot = repoRoot;
             this.sourceState = sourceState;
+            this.normalizeSourceStateForCurrentRun = normalizeSourceStateForCurrentRun;
         }
 
         @Override
@@ -7625,12 +10887,18 @@ class CrawlerMonitorServiceImplTest {
             requests.add(request);
             launchCount++;
             if (launchCount == 1) {
-                writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), sourceState);
+                String checkedAt = normalizeSourceStateForCurrentRun
+                    ? sourceCheckTimestamp(request)
+                    : (String) sourceState.get("checkedAt");
+                Map<String, Object> state = normalizeSourceStateForCurrentRun
+                    ? completeSourceStateForCurrentRun(sourceState, checkedAt)
+                    : sourceState;
+                writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), state);
                 writeJson(repoRoot.resolve("data/generated/source-update-monitor-progress.latest.json"), Map.of(
                     "actionId", "source-update-monitor-check",
                     "status", "completed",
-                    "generatedAt", "2026-06-20T03:00:00Z",
-                    "lastHeartbeatAt", "2026-06-20T03:00:00Z",
+                    "generatedAt", checkedAt,
+                    "lastHeartbeatAt", checkedAt,
                     "phase", "done",
                     "message", "source update check completed",
                     "current", 1,
@@ -7672,6 +10940,11 @@ class CrawlerMonitorServiceImplTest {
         }
 
         @Override
+        public ProcessHandle toHandle() {
+            return ProcessHandle.current();
+        }
+
+        @Override
         public int waitFor() {
             return exitCode;
         }
@@ -7703,6 +10976,17 @@ class CrawlerMonitorServiceImplTest {
         @Override
         public java.io.InputStream getErrorStream() {
             return java.io.InputStream.nullInputStream();
+        }
+    }
+
+    private static class UninspectableCompletedProcess extends CompletedProcess {
+        UninspectableCompletedProcess(int exitCode) {
+            super(exitCode);
+        }
+
+        @Override
+        public ProcessHandle toHandle() {
+            throw new UnsupportedOperationException("process descendant inspection unavailable");
         }
     }
 
@@ -8042,6 +11326,11 @@ class CrawlerMonitorServiceImplTest {
         private int exitCode;
 
         @Override
+        public ProcessHandle toHandle() {
+            return ProcessHandle.current();
+        }
+
+        @Override
         public int waitFor() throws InterruptedException {
             completed.await();
             return exitCode;
@@ -8087,149 +11376,6 @@ class CrawlerMonitorServiceImplTest {
         }
     }
 
-    private static class CleanupFailureRaceProcess extends Process {
-        private final CountDownLatch watcherWaitStarted = new CountDownLatch(1);
-        private final CountDownLatch releaseWatcherTimeout = new CountDownLatch(1);
-
-        @Override
-        public int waitFor() throws InterruptedException {
-            watcherWaitStarted.countDown();
-            releaseWatcherTimeout.await();
-            return 1;
-        }
-
-        @Override
-        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
-            watcherWaitStarted.countDown();
-            releaseWatcherTimeout.await();
-            return false;
-        }
-
-        @Override
-        public int exitValue() {
-            return 1;
-        }
-
-        @Override
-        public boolean isAlive() {
-            return false;
-        }
-
-        @Override
-        public long pid() {
-            return -1L;
-        }
-
-        @Override
-        public void destroy() {
-        }
-
-        @Override
-        public java.io.OutputStream getOutputStream() {
-            return java.io.OutputStream.nullOutputStream();
-        }
-
-        @Override
-        public java.io.InputStream getInputStream() {
-            return java.io.InputStream.nullInputStream();
-        }
-
-        @Override
-        public java.io.InputStream getErrorStream() {
-            return java.io.InputStream.nullInputStream();
-        }
-    }
-
-    private static class CleanupFailureRaceLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
-        private final CleanupFailureRaceProcess process;
-        private int launchCount;
-
-        CleanupFailureRaceLauncher(CleanupFailureRaceProcess process) {
-            this.process = process;
-        }
-
-        @Override
-        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
-            launchCount++;
-            return process;
-        }
-
-        @Override
-        public boolean destroy(Process ignored) {
-            return false;
-        }
-    }
-
-    private static class BlockingCleanupFailureRaceLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
-        private final CleanupFailureRaceProcess process;
-        private final CountDownLatch cleanupDestroyEntered = new CountDownLatch(1);
-        private final CountDownLatch releaseCleanupDestroy = new CountDownLatch(1);
-        private final AtomicInteger destroyCalls = new AtomicInteger();
-        private int launchCount;
-
-        BlockingCleanupFailureRaceLauncher(CleanupFailureRaceProcess process) {
-            this.process = process;
-        }
-
-        @Override
-        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
-            launchCount++;
-            return process;
-        }
-
-        @Override
-        public boolean destroy(Process ignored) {
-            if (destroyCalls.incrementAndGet() == 1) {
-                cleanupDestroyEntered.countDown();
-                try {
-                    if (!releaseCleanupDestroy.await(5, TimeUnit.SECONDS)) {
-                        throw new AssertionError("timeout cleanup destroy was not released");
-                    }
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    throw new AssertionError("timeout cleanup destroy was interrupted", exception);
-                }
-            }
-            return false;
-        }
-    }
-
-    private static class DeadLockValidationBarrierObjectMapper extends ObjectMapper {
-        private final CountDownLatch lockReadEntered = new CountDownLatch(1);
-        private final CountDownLatch releaseLockRead = new CountDownLatch(1);
-
-        @Override
-        public ObjectMapper copy() {
-            return new ObjectMapper();
-        }
-
-        @Override
-        public <T> T readValue(java.io.File source, TypeReference<T> valueType) throws IOException {
-            T value = super.readValue(source, valueType);
-            if ("wiki-monitor-dispatch.lock.json".equals(source.getName())
-                && "dead-lock-reconciler".equals(Thread.currentThread().getName())) {
-                lockReadEntered.countDown();
-                try {
-                    if (!releaseLockRead.await(5, TimeUnit.SECONDS)) {
-                        throw new IOException("dead-lock validation was not released");
-                    }
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("dead-lock validation was interrupted", exception);
-                }
-            }
-            return value;
-        }
-
-        void awaitLockRead() {
-            awaitLatch(lockReadEntered);
-        }
-
-        void releaseLockRead() {
-            releaseLockRead.countDown();
-        }
-    }
-
     private static class InterruptingProcess extends BlockingProcess {
         private final CountDownLatch waitCalled = new CountDownLatch(1);
 
@@ -8247,13 +11393,632 @@ class CrawlerMonitorServiceImplTest {
         private List<ControllableBlockingProcess> children = List.of();
     }
 
+    private static class WatcherSnapshotBarrierObjectMapper extends ObjectMapper {
+        private final CountDownLatch watcherReadDispatch = new CountDownLatch(1);
+        private final CountDownLatch releaseWatcherMutation = new CountDownLatch(1);
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public <T> T readValue(File source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            if ("wiki-monitor-dispatch.latest.json".equals(source.getName())
+                && Thread.currentThread().getName().startsWith("wiki-monitor-dispatch-")) {
+                watcherReadDispatch.countDown();
+                try {
+                    if (!releaseWatcherMutation.await(5, TimeUnit.SECONDS)) {
+                        throw new IOException("watcher terminal mutation was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("watcher terminal mutation was interrupted", exception);
+                }
+            }
+            return value;
+        }
+
+        void awaitWatcherDispatchRead() {
+            try {
+                if (!watcherReadDispatch.await(5, TimeUnit.SECONDS)) {
+                    throw new AssertionError("watcher did not read the running dispatch state");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("watcher dispatch read was interrupted", exception);
+            }
+        }
+
+        void releaseWatcherMutation() {
+            releaseWatcherMutation.countDown();
+        }
+
+    }
+
+    private static class DeadLockValidationBarrierObjectMapper extends ObjectMapper {
+        private final CountDownLatch lockReadEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseLockRead = new CountDownLatch(1);
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public <T> T readValue(File source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            if ("wiki-monitor-dispatch.lock.json".equals(source.getName())
+                && "dead-lock-reconciler".equals(Thread.currentThread().getName())) {
+                lockReadEntered.countDown();
+                try {
+                    if (!releaseLockRead.await(5, TimeUnit.SECONDS)) {
+                        throw new IOException("dead-lock validation was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("dead-lock validation was interrupted", exception);
+                }
+            }
+            return value;
+        }
+
+        void awaitLockRead() {
+            try {
+                if (!lockReadEntered.await(5, TimeUnit.SECONDS)) {
+                    throw new AssertionError("dead-lock reconciliation did not begin lock validation");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("dead-lock validation wait was interrupted", exception);
+            }
+        }
+
+        void releaseLockRead() {
+            releaseLockRead.countDown();
+        }
+    }
+
+    private static class CancellationCheckBarrierQueueItem extends WikiMonitorQueueItem {
+        private final AtomicInteger reconcilerDispatchIdReads = new AtomicInteger();
+        private final CountDownLatch reconcilerPassedCancellationCheck = new CountDownLatch(1);
+        private final CountDownLatch releaseReconcilerAfterCancellationCheck = new CountDownLatch(1);
+
+        @Override
+        public String getDispatchId() {
+            if ("deletion-before-marker-reconciler".equals(Thread.currentThread().getName())
+                && reconcilerDispatchIdReads.incrementAndGet() == 2) {
+                reconcilerPassedCancellationCheck.countDown();
+                try {
+                    if (!releaseReconcilerAfterCancellationCheck.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("reconciler was not released after cancellation check");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("reconciler cancellation check was interrupted", exception);
+                }
+            }
+            return super.getDispatchId();
+        }
+
+        void awaitReconcilerPastCancellationCheck() {
+            try {
+                if (!reconcilerPassedCancellationCheck.await(5, TimeUnit.SECONDS)) {
+                    throw new AssertionError("reconciler did not pass the cancellation fence check");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("reconciler cancellation fence wait was interrupted", exception);
+            }
+        }
+
+        void releaseReconcilerAfterCancellationCheck() {
+            releaseReconcilerAfterCancellationCheck.countDown();
+        }
+    }
+
+    private static class SingleItemQueueRepository extends WikiMonitorDispatchQueueRepository {
+        private final WikiMonitorQueueItem item;
+
+        SingleItemQueueRepository(ObjectMapper objectMapper, Path repoRoot, Clock clock, WikiMonitorQueueItem item) {
+            super(objectMapper, repoRoot, null, clock);
+            this.item = item;
+        }
+
+        @Override
+        List<WikiMonitorQueueItem> listItems() {
+            return List.of(item);
+        }
+
+        @Override
+        TransitionResult markTerminal(String queueId, String status, Instant completedAt, String message) {
+            if (!item.getQueueId().equals(queueId) || item.isTerminal()) {
+                return new TransitionResult(false, item.getStatus(), item);
+            }
+            item.setStatus(status);
+            item.setCompletedAt(completedAt);
+            item.setMessage(message);
+            return new TransitionResult(true, status, item);
+        }
+    }
+
+    private static class CleanupFailureBlockingProcess extends Process {
+        private final AtomicBoolean alive = new AtomicBoolean(true);
+
+        void markDead() {
+            alive.set(false);
+        }
+
+        @Override
+        public boolean isAlive() {
+            return alive.get();
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) {
+            return !alive.get();
+        }
+
+        @Override
+        public int waitFor() {
+            alive.set(false);
+            return 143;
+        }
+
+        @Override
+        public int exitValue() {
+            if (alive.get()) {
+                throw new IllegalThreadStateException("process still running");
+            }
+            return 143;
+        }
+
+        @Override
+        public void destroy() {
+            markDead();
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public long pid() {
+            return 2_000_000_000L;
+        }
+
+        @Override
+        public ProcessHandle toHandle() {
+            return ProcessHandle.current();
+        }
+    }
+
+    private static class CleanupFailureSnapshotBarrierObjectMapper extends ObjectMapper {
+        private final CountDownLatch snapshotCaptured = new CountDownLatch(1);
+        private final CountDownLatch releaseCleanupFailure = new CountDownLatch(1);
+        private final AtomicInteger watcherDispatchReads = new AtomicInteger();
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public <T> T readValue(File source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            if ("wiki-monitor-dispatch.latest.json".equals(source.getName())
+                && "cleanup-failure-watcher".equals(Thread.currentThread().getName())
+                && watcherDispatchReads.incrementAndGet() == 1) {
+                snapshotCaptured.countDown();
+                try {
+                    if (!releaseCleanupFailure.await(5, TimeUnit.SECONDS)) {
+                        throw new IOException("cleanup failure publication was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("cleanup failure publication was interrupted", exception);
+                }
+            }
+            return value;
+        }
+
+        void awaitSnapshotCaptured() {
+            try {
+                if (!snapshotCaptured.await(5, TimeUnit.SECONDS)) {
+                    throw new AssertionError("cleanup failure watcher did not capture the old dispatch snapshot");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("cleanup failure watcher snapshot wait was interrupted", exception);
+            }
+        }
+
+        void releaseCleanupFailure() {
+            releaseCleanupFailure.countDown();
+        }
+    }
+
+    private static class WatcherTerminalMutationBarrierObjectMapper extends ObjectMapper {
+        private final AtomicInteger watcherDispatchReads = new AtomicInteger();
+        private final CountDownLatch watcherSecondDispatchRead = new CountDownLatch(1);
+        private final CountDownLatch releaseWatcherTerminalMutation = new CountDownLatch(1);
+
+        @Override
+        public ObjectMapper copy() {
+            return new ObjectMapper();
+        }
+
+        @Override
+        public <T> T readValue(File source, TypeReference<T> valueType) throws IOException {
+            T value = super.readValue(source, valueType);
+            if ("wiki-monitor-dispatch.latest.json".equals(source.getName())
+                && Thread.currentThread().getName().startsWith("wiki-monitor-dispatch-")
+                && watcherDispatchReads.incrementAndGet() == 2) {
+                watcherSecondDispatchRead.countDown();
+                try {
+                    if (!releaseWatcherTerminalMutation.await(5, TimeUnit.SECONDS)) {
+                        throw new IOException("watcher terminal mutation was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("watcher terminal mutation was interrupted", exception);
+                }
+            }
+            return value;
+        }
+
+        void awaitWatcherSecondDispatchRead() {
+            try {
+                if (!watcherSecondDispatchRead.await(5, TimeUnit.SECONDS)) {
+                    throw new AssertionError("watcher did not reach its terminal mutation");
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("watcher terminal mutation wait was interrupted", exception);
+            }
+        }
+
+        void releaseWatcherTerminalMutation() {
+            releaseWatcherTerminalMutation.countDown();
+        }
+    }
+
+    private static class WatcherTerminalMutationBarrierProcess extends Process {
+        private final CountDownLatch allowWatcherExit = new CountDownLatch(1);
+        private final CountDownLatch watchdogLivenessCheck = new CountDownLatch(1);
+        private final AtomicBoolean exited = new AtomicBoolean();
+        private final AtomicBoolean watchdogLivenessArmed = new AtomicBoolean();
+
+        void releaseWatcherExit() {
+            allowWatcherExit.countDown();
+        }
+
+        void armWatchdogLivenessCheck() {
+            watchdogLivenessArmed.set(true);
+        }
+
+        boolean awaitWatchdogLivenessCheck(long timeout, TimeUnit unit) throws InterruptedException {
+            return watchdogLivenessCheck.await(timeout, unit);
+        }
+
+        @Override
+        public boolean isAlive() {
+            if (watchdogLivenessArmed.get()) {
+                watchdogLivenessCheck.countDown();
+            }
+            return true;
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            if (!allowWatcherExit.await(timeout, unit)) {
+                return false;
+            }
+            exited.set(true);
+            return true;
+        }
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            allowWatcherExit.await();
+            exited.set(true);
+            return 143;
+        }
+
+        @Override
+        public int exitValue() {
+            if (!exited.get()) {
+                throw new IllegalThreadStateException("process still running");
+            }
+            return 143;
+        }
+
+        @Override
+        public void destroy() {
+            // The launcher reports cleanup failure without confirming process termination.
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public long pid() {
+            return ProcessHandle.current().pid();
+        }
+
+        @Override
+        public ProcessHandle toHandle() {
+            return ProcessHandle.current();
+        }
+    }
+
+    private static class WatcherCleanupFailureAfterDeadLockValidationProcess extends Process {
+        private final CountDownLatch allowWatcherTimeout = new CountDownLatch(1);
+
+        void allowWatcherTimeout() {
+            allowWatcherTimeout.countDown();
+        }
+
+        @Override
+        public boolean isAlive() {
+            return false;
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            allowWatcherTimeout.await(timeout, unit);
+            return false;
+        }
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            allowWatcherTimeout.await();
+            return 143;
+        }
+
+        @Override
+        public int exitValue() {
+            return 143;
+        }
+
+        @Override
+        public void destroy() {
+            // The launcher reports cleanup failure without releasing the watcher timeout gate.
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public long pid() {
+            return 2_000_000_000L;
+        }
+
+        @Override
+        public ProcessHandle toHandle() {
+            return ProcessHandle.current();
+        }
+    }
+
+    private static class LifecycleDrainOrderProcess extends WatcherTerminalMutationBarrierProcess {
+        private final AtomicBoolean blockOverviewLiveness = new AtomicBoolean();
+        private final CountDownLatch overviewLivenessCheck = new CountDownLatch(1);
+        private final CountDownLatch releaseOverviewLiveness = new CountDownLatch(1);
+
+        void armOverviewLivenessBlock() {
+            blockOverviewLiveness.set(true);
+        }
+
+        boolean awaitOverviewLivenessCheck(long timeout, TimeUnit unit) throws InterruptedException {
+            return overviewLivenessCheck.await(timeout, unit);
+        }
+
+        void releaseOverviewLivenessBlock() {
+            releaseOverviewLiveness.countDown();
+        }
+
+        @Override
+        public boolean isAlive() {
+            if (blockOverviewLiveness.get()) {
+                overviewLivenessCheck.countDown();
+                try {
+                    if (!releaseOverviewLiveness.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("overview liveness check was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("overview liveness check was interrupted", exception);
+                }
+            }
+            return super.isAlive();
+        }
+    }
+
+    private static class LifecycleDrainOrderQueueRepository extends WikiMonitorDispatchQueueRepository {
+        private final CountDownLatch overviewDrainEntered = new CountDownLatch(1);
+        private final CountDownLatch terminalDrainAttempted = new CountDownLatch(1);
+        private final AtomicBoolean terminalDrainHeldLifecycleMonitor = new AtomicBoolean();
+        private volatile Object lifecycleMonitor;
+
+        LifecycleDrainOrderQueueRepository(ObjectMapper objectMapper, Path repoRoot, Clock clock) {
+            super(objectMapper, repoRoot, null, clock);
+        }
+
+        void setLifecycleMonitor(Object lifecycleMonitor) {
+            this.lifecycleMonitor = lifecycleMonitor;
+        }
+
+        @Override
+        boolean withDrainLock(String reason, String lane, boolean waitIfBusy, Runnable body) {
+            if ("overview-reconcile".equals(reason)) {
+                return super.withDrainLock(reason, lane, waitIfBusy, () -> {
+                    overviewDrainEntered.countDown();
+                    body.run();
+                });
+            }
+            if ("standard-terminal".equals(reason)) {
+                Object monitor = lifecycleMonitor;
+                terminalDrainHeldLifecycleMonitor.set(monitor != null && Thread.holdsLock(monitor));
+                terminalDrainAttempted.countDown();
+            }
+            return super.withDrainLock(reason, lane, waitIfBusy, body);
+        }
+
+        void awaitOverviewDrainEntered() {
+            awaitLatch(overviewDrainEntered);
+        }
+
+        void awaitTerminalDrainAttempt() {
+            awaitLatch(terminalDrainAttempted);
+        }
+
+        boolean terminalDrainHeldLifecycleMonitor() {
+            return terminalDrainHeldLifecycleMonitor.get();
+        }
+    }
+
+    private static class StaleHeartbeatWatcherRaceProcess extends Process {
+        private final WatcherSnapshotBarrierObjectMapper objectMapper;
+        private final CountDownLatch allowWatcherExit = new CountDownLatch(1);
+        private final AtomicBoolean watcherRaceArmed = new AtomicBoolean();
+        private final AtomicBoolean livenessSnapshotTaken = new AtomicBoolean();
+        private final AtomicBoolean exited = new AtomicBoolean();
+        private int terminateCount;
+
+        StaleHeartbeatWatcherRaceProcess(WatcherSnapshotBarrierObjectMapper objectMapper) {
+            this.objectMapper = objectMapper;
+        }
+
+        void armWatcherRace() {
+            watcherRaceArmed.set(true);
+        }
+
+        @Override
+        public boolean isAlive() {
+            if (watcherRaceArmed.get() && livenessSnapshotTaken.compareAndSet(false, true)) {
+                allowWatcherExit.countDown();
+                return true;
+            }
+            return !exited.get();
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            if (!allowWatcherExit.await(timeout, unit)) {
+                return false;
+            }
+            exited.set(true);
+            return true;
+        }
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            allowWatcherExit.await();
+            exited.set(true);
+            return 143;
+        }
+
+        @Override
+        public int exitValue() {
+            if (!exited.get()) {
+                throw new IllegalThreadStateException("process still running");
+            }
+            return 143;
+        }
+
+        @Override
+        public void destroy() {
+            terminateCount++;
+            exited.set(true);
+            objectMapper.releaseWatcherMutation();
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public long pid() {
+            return ProcessHandle.current().pid();
+        }
+
+        @Override
+        public ProcessHandle toHandle() {
+            return ProcessHandle.current();
+        }
+    }
+
     private static class TimeoutRecordingProcess extends ControllableBlockingProcess {
         private volatile long observedTimeoutMillis = -1L;
+
+        @Override
+        public int waitFor() {
+            throw new AssertionError("source probe must use bounded waitFor");
+        }
 
         @Override
         public boolean waitFor(long timeout, TimeUnit unit) {
             observedTimeoutMillis = unit.toMillis(timeout);
             return false;
+        }
+    }
+
+    private static class InterruptingSourceProbeProcess extends ControllableBlockingProcess {
+        @Override
+        public int waitFor() {
+            throw new AssertionError("source probe must use bounded waitFor");
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            throw new InterruptedException("test source probe interruption");
         }
     }
 
@@ -8267,6 +12032,262 @@ class CrawlerMonitorServiceImplTest {
         @Override
         public long pid() {
             return pid;
+        }
+    }
+
+    private static class LateForkingProcessLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
+        private final FakeProcessHandle root = new FakeProcessHandle(81001L);
+        private final FakeProcessHandle lateChild = new FakeProcessHandle(81002L);
+        private final FakeProcess process = new FakeProcess(root);
+        private final java.util.Set<Long> destroyedPids = new java.util.HashSet<>();
+        private int snapshotCount;
+
+        @Override
+        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+            return process;
+        }
+
+        @Override
+        public boolean supportsIsolatedProcessGroup(Process process) {
+            return true;
+        }
+
+        @Override
+        public List<ProcessHandle> snapshotProcessGroup(Process process) {
+            return snapshotProcessGroup(process == null ? -1L : process.pid());
+        }
+
+        @Override
+        public List<ProcessHandle> snapshotProcessGroup(long processGroupId) {
+            snapshotCount++;
+            return switch (snapshotCount) {
+                case 1, 2 -> List.of(root);
+                case 3 -> List.of(lateChild);
+                default -> List.of();
+            };
+        }
+
+        @Override
+        public boolean destroyProcessGroup(List<ProcessHandle> members) {
+            if (members == null) {
+                return false;
+            }
+            for (ProcessHandle member : members) {
+                destroyedPids.add(member.pid());
+                if (member instanceof FakeProcessHandle fake) {
+                    fake.alive = false;
+                }
+            }
+            return true;
+        }
+    }
+
+    private static class LiveGroupCleanupVerificationFailureLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
+        private final FakeProcessHandle root = new FakeProcessHandle(82001L);
+        private final FakeProcessHandle member = new FakeProcessHandle(82002L);
+        private final FakeProcess process = new GroupExitProcess(root);
+        private int destroyCalls;
+
+        @Override
+        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+            return process;
+        }
+
+        @Override
+        public boolean supportsIsolatedProcessGroup(Process ignored) {
+            return true;
+        }
+
+        @Override
+        public List<ProcessHandle> snapshotProcessGroup(Process ignored) {
+            return List.of(member);
+        }
+
+        @Override
+        public boolean destroy(Process ignored) {
+            destroyCalls++;
+            if (destroyCalls >= 2) {
+                member.alive = false;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean awaitProcessGroupEmpty(Process ignored, long timeoutMillis) {
+            return false;
+        }
+    }
+
+    private static class GroupExitProcess extends FakeProcess {
+        GroupExitProcess(FakeProcessHandle handle) {
+            super(handle);
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) {
+            markExited();
+            return true;
+        }
+    }
+
+    private static class FakeProcess extends Process {
+        private final FakeProcessHandle handle;
+
+        FakeProcess(FakeProcessHandle handle) {
+            this.handle = handle;
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public int waitFor() {
+            if (handle.isAlive()) {
+                throw new IllegalStateException("fake process remains alive");
+            }
+            return 143;
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) {
+            return false;
+        }
+
+        @Override
+        public int exitValue() {
+            return handle.isAlive() ? 0 : 143;
+        }
+
+        @Override
+        public void destroy() {
+            handle.alive = false;
+        }
+
+        @Override
+        public boolean isAlive() {
+            return handle.isAlive();
+        }
+
+        @Override
+        public long pid() {
+            return handle.pid();
+        }
+
+        @Override
+        public ProcessHandle toHandle() {
+            return handle;
+        }
+
+        void markExited() {
+            handle.alive = false;
+        }
+    }
+
+    private static class FakeProcessHandle implements ProcessHandle {
+        private final long pid;
+        private volatile boolean alive = true;
+
+        FakeProcessHandle(long pid) {
+            this.pid = pid;
+        }
+
+        @Override
+        public long pid() {
+            return pid;
+        }
+
+        @Override
+        public java.util.Optional<ProcessHandle> parent() {
+            return java.util.Optional.empty();
+        }
+
+        @Override
+        public java.util.stream.Stream<ProcessHandle> children() {
+            return java.util.stream.Stream.empty();
+        }
+
+        @Override
+        public java.util.stream.Stream<ProcessHandle> descendants() {
+            return java.util.stream.Stream.empty();
+        }
+
+        @Override
+        public Info info() {
+            return new Info() {
+                @Override
+                public java.util.Optional<String> command() { return java.util.Optional.empty(); }
+
+                @Override
+                public java.util.Optional<String> commandLine() { return java.util.Optional.empty(); }
+
+                @Override
+                public java.util.Optional<String[]> arguments() { return java.util.Optional.empty(); }
+
+                @Override
+                public java.util.Optional<Instant> startInstant() { return java.util.Optional.empty(); }
+
+                @Override
+                public java.util.Optional<Duration> totalCpuDuration() { return java.util.Optional.empty(); }
+
+                @Override
+                public java.util.Optional<String> user() { return java.util.Optional.empty(); }
+            };
+        }
+
+        @Override
+        public java.util.concurrent.CompletableFuture<ProcessHandle> onExit() {
+            return alive
+                ? new java.util.concurrent.CompletableFuture<>()
+                : java.util.concurrent.CompletableFuture.completedFuture(this);
+        }
+
+        @Override
+        public boolean supportsNormalTermination() {
+            return true;
+        }
+
+        @Override
+        public boolean destroy() {
+            alive = false;
+            return true;
+        }
+
+        @Override
+        public boolean destroyForcibly() {
+            alive = false;
+            return true;
+        }
+
+        @Override
+        public boolean isAlive() {
+            return alive;
+        }
+
+        @Override
+        public int hashCode() {
+            return Long.hashCode(pid);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof ProcessHandle handle && handle.pid() == pid;
+        }
+
+        @Override
+        public int compareTo(ProcessHandle other) {
+            return Long.compare(pid, other.pid());
         }
     }
 
@@ -8790,10 +12811,22 @@ class CrawlerMonitorServiceImplTest {
     @Test
     @SuppressWarnings("unchecked")
     void shouldConvergeTrackedActiveRunningItemWhenHeartbeatIsStale() throws Exception {
-        ControllableBlockingProcess process = new ControllableBlockingProcess();
-        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        WatcherSnapshotBarrierObjectMapper objectMapper = new WatcherSnapshotBarrierObjectMapper();
+        StaleHeartbeatWatcherRaceProcess process = new StaleHeartbeatWatcherRaceProcess(objectMapper);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                process.destroy();
+                return true;
+            }
+        };
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
-            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
+            objectMapper, repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
         CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
             dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
         writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
@@ -8806,16 +12839,489 @@ class CrawlerMonitorServiceImplTest {
             "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
         ));
 
+        process.armWatcherRace();
         service.getOverview();
-        waitUntilDispatchStatus(started.getDispatchId(), "failed");
+        waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
+            .noneMatch(thread -> ("wiki-monitor-dispatch-" + started.getDispatchId()).equals(thread.getName())));
 
         Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
         List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
         assertEquals(started.getQueueId(), queueItems.get(0).get("queueId"));
         assertEquals("timed_out", queueItems.get(0).get("status"));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("timed_out", latest.get("status"));
         assertEquals(1, process.terminateCount);
         assertFalse(process.isAlive());
         assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldKeepTrackedActiveStaleHeartbeatDispatchFailedAndLockedWhenCleanupFailsAfterWatcherSnapshotsRunningState() throws Exception {
+        WatcherSnapshotBarrierObjectMapper objectMapper = new WatcherSnapshotBarrierObjectMapper();
+        StaleHeartbeatWatcherRaceProcess process = new StaleHeartbeatWatcherRaceProcess(objectMapper);
+        AtomicBoolean destroyAttempted = new AtomicBoolean();
+        AtomicInteger launchCount = new AtomicInteger();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                launchCount.incrementAndGet();
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyAttempted.set(true);
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper, repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        CrawlerMonitorDispatchResultDTO queued = service.dispatchWikiMonitorTask(
+            dispatchRequest("armor_sets", "domain-source-armor-sets"));
+        writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
+        ));
+
+        process.armWatcherRace();
+        try {
+            service.getOverview();
+
+            assertTrue(destroyAttempted.get());
+            Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+            List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+            Map<String, Object> failedItem = queueItems.stream()
+                .filter(item -> started.getQueueId().equals(item.get("queueId")))
+                .findFirst()
+                .orElseThrow();
+            assertEquals("failed", failedItem.get("status"));
+            Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+            assertEquals(started.getDispatchId(), latest.get("dispatchId"));
+            assertEquals("failed", latest.get("status"));
+            assertEquals(true, latest.get("processCleanupFailed"));
+            assertTrue(String.valueOf(latest.get("message")).contains("cleanup failed"));
+            assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+
+            objectMapper.releaseWatcherMutation();
+            waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
+                .noneMatch(thread -> ("wiki-monitor-dispatch-" + started.getDispatchId()).equals(thread.getName())));
+            queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+            queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+            failedItem = queueItems.stream()
+                .filter(item -> started.getQueueId().equals(item.get("queueId")))
+                .findFirst()
+                .orElseThrow();
+            Map<String, Object> queuedItem = queueItems.stream()
+                .filter(item -> queued.getQueueId().equals(item.get("queueId")))
+                .findFirst()
+                .orElseThrow();
+            latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+
+            assertEquals("failed", failedItem.get("status"));
+            assertNotEquals("running", queuedItem.get("status"));
+            assertEquals(1, launchCount.get());
+            assertEquals(started.getDispatchId(), latest.get("dispatchId"));
+            assertEquals(true, latest.get("processCleanupFailed"));
+            assertTrue(Files.exists(lockPath));
+            Map<String, Object> lock = readJsonMap(lockPath);
+            assertEquals(started.getDispatchId(), lock.get("dispatchId"));
+        } finally {
+            objectMapper.releaseWatcherMutation();
+        }
+    }
+
+    @Test
+    void shouldRetainCleanupFailureLockWhenWatcherObservesCancellationBeforeDestroyReturns() throws Exception {
+        WatcherSnapshotBarrierObjectMapper objectMapper = new WatcherSnapshotBarrierObjectMapper();
+        StaleHeartbeatWatcherRaceProcess process = new StaleHeartbeatWatcherRaceProcess(objectMapper);
+        AtomicBoolean destroyAttempted = new AtomicBoolean();
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyAttempted.set(true);
+                process.destroy();
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+                while (Files.exists(lockPath) && System.nanoTime() < deadline) {
+                    try {
+                        Thread.sleep(5L);
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper, repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
+        ));
+
+        process.armWatcherRace();
+        try {
+            service.getOverview();
+            waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
+                .noneMatch(thread -> ("wiki-monitor-dispatch-" + started.getDispatchId()).equals(thread.getName())));
+
+            assertTrue(destroyAttempted.get());
+            Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+            assertEquals("failed", latest.get("status"));
+            assertEquals(true, latest.get("processCleanupFailed"));
+            assertTrue(Files.exists(lockPath));
+        } finally {
+            objectMapper.releaseWatcherMutation();
+        }
+    }
+
+    @Test
+    void shouldKeepCleanupFailureFenceUntilWatcherReturnsAndFailureMarkerPublishes() throws Exception {
+        WatcherSnapshotBarrierObjectMapper objectMapper = new WatcherSnapshotBarrierObjectMapper();
+        StaleHeartbeatWatcherRaceProcess process = new StaleHeartbeatWatcherRaceProcess(objectMapper);
+        AtomicBoolean destroyAttempted = new AtomicBoolean();
+        AtomicReference<String> dispatchIdRef = new AtomicReference<>();
+        CountDownLatch watcherExited = new CountDownLatch(1);
+        CountDownLatch allowDestroyReturn = new CountDownLatch(1);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyAttempted.set(true);
+                process.destroy();
+                String dispatchId = dispatchIdRef.get();
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (dispatchId != null
+                    && Thread.getAllStackTraces().keySet().stream()
+                        .anyMatch(thread -> ("wiki-monitor-dispatch-" + dispatchId).equals(thread.getName()))
+                    && System.nanoTime() < deadline) {
+                    try {
+                        Thread.sleep(5L);
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
+                }
+                watcherExited.countDown();
+                try {
+                    if (!allowDestroyReturn.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("destroy return was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("destroy return was interrupted", exception);
+                }
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper, repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        dispatchIdRef.set(started.getDispatchId());
+        writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
+        ));
+
+        process.armWatcherRace();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> overview = null;
+        try {
+            overview = executor.submit(service::getOverview);
+            assertTrue(watcherExited.await(5, TimeUnit.SECONDS), "watcher did not exit before destroy returned");
+            assertTrue(destroyAttempted.get());
+            assertTrue(cancellingDispatches(service).contains(started.getDispatchId()));
+
+            allowDestroyReturn.countDown();
+            overview.get(5, TimeUnit.SECONDS);
+
+            Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+            assertEquals("failed", latest.get("status"));
+            assertEquals(true, latest.get("processCleanupFailed"));
+            assertFalse(cancellingDispatches(service).contains(started.getDispatchId()));
+        } finally {
+            allowDestroyReturn.countDown();
+            objectMapper.releaseWatcherMutation();
+            if (overview != null) {
+                try {
+                    overview.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion failure while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldClearSuccessfulStaleHeartbeatFenceAfterWatcherRetiresBeforeDestroyReturns() throws Exception {
+        WatcherSnapshotBarrierObjectMapper objectMapper = new WatcherSnapshotBarrierObjectMapper();
+        StaleHeartbeatWatcherRaceProcess process = new StaleHeartbeatWatcherRaceProcess(objectMapper);
+        AtomicBoolean destroyAttempted = new AtomicBoolean();
+        AtomicReference<String> dispatchIdRef = new AtomicReference<>();
+        CountDownLatch watcherExited = new CountDownLatch(1);
+        CountDownLatch allowDestroyReturn = new CountDownLatch(1);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyAttempted.set(true);
+                process.destroy();
+                String dispatchId = dispatchIdRef.get();
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (dispatchId != null
+                    && Thread.getAllStackTraces().keySet().stream()
+                        .anyMatch(thread -> ("wiki-monitor-dispatch-" + dispatchId).equals(thread.getName()))
+                    && System.nanoTime() < deadline) {
+                    try {
+                        Thread.sleep(5L);
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("watcher exit wait was interrupted", exception);
+                    }
+                }
+                watcherExited.countDown();
+                try {
+                    if (!allowDestroyReturn.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("destroy return was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("destroy return was interrupted", exception);
+                }
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper, repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        dispatchIdRef.set(started.getDispatchId());
+        writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
+        ));
+
+        process.armWatcherRace();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> overview = null;
+        try {
+            overview = executor.submit(service::getOverview);
+            assertTrue(watcherExited.await(5, TimeUnit.SECONDS), "watcher did not retire before destroy returned");
+            assertTrue(destroyAttempted.get());
+            assertTrue(cancellingDispatches(service).contains(started.getDispatchId()));
+
+            allowDestroyReturn.countDown();
+            overview.get(5, TimeUnit.SECONDS);
+
+            Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+            assertEquals("timed_out", latest.get("status"));
+            assertFalse(cancellingDispatches(service).contains(started.getDispatchId()));
+            assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        } finally {
+            allowDestroyReturn.countDown();
+            objectMapper.releaseWatcherMutation();
+            if (overview != null) {
+                try {
+                    overview.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion failure while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldSerializeStaleHeartbeatCleanupAfterWatcherStartsTerminalMutation() throws Exception {
+        WatcherTerminalMutationBarrierObjectMapper objectMapper = new WatcherTerminalMutationBarrierObjectMapper();
+        WatcherTerminalMutationBarrierProcess process = new WatcherTerminalMutationBarrierProcess();
+        AtomicBoolean destroyAttempted = new AtomicBoolean();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                destroyAttempted.set(true);
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper, repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
+        ));
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> overview = null;
+        try {
+            process.releaseWatcherExit();
+            objectMapper.awaitWatcherSecondDispatchRead();
+            process.armWatchdogLivenessCheck();
+            overview = executor.submit(service::getOverview);
+
+            assertFalse(
+                process.awaitWatchdogLivenessCheck(250L, TimeUnit.MILLISECONDS),
+                "watchdog must wait until the watcher terminal transaction finishes"
+            );
+            assertFalse(destroyAttempted.get());
+
+            objectMapper.releaseWatcherTerminalMutation();
+            overview.get(5, TimeUnit.SECONDS);
+
+            assertFalse(destroyAttempted.get());
+            Map<String, Object> latest = readJsonMap(
+                repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")
+            );
+            assertEquals("failed", latest.get("status"));
+            assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        } finally {
+            objectMapper.releaseWatcherTerminalMutation();
+            process.releaseWatcherExit();
+            if (overview != null) {
+                try {
+                    overview.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion failure while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldDrainAfterReleasingLifecycleMonitorWhenOverviewReconciles() throws Exception {
+        WatcherTerminalMutationBarrierObjectMapper objectMapper = new WatcherTerminalMutationBarrierObjectMapper();
+        LifecycleDrainOrderProcess process = new LifecycleDrainOrderProcess();
+        LifecycleDrainOrderQueueRepository queueRepository = new LifecycleDrainOrderQueueRepository(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC)
+        );
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC),
+            null,
+            launcher,
+            CrawlerQueueEngineRouter.v1Only(),
+            null,
+            queueRepository
+        );
+        queueRepository.setLifecycleMonitor(standardDispatchLifecycleMonitor(service));
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance")
+        );
+        writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.toString()
+        ));
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> overview = null;
+        try {
+            process.releaseWatcherExit();
+            objectMapper.awaitWatcherSecondDispatchRead();
+            process.armOverviewLivenessBlock();
+            overview = executor.submit(service::getOverview);
+            queueRepository.awaitOverviewDrainEntered();
+
+            assertFalse(
+                process.awaitOverviewLivenessCheck(250L, TimeUnit.MILLISECONDS),
+                "overview reconciliation must wait for the active watcher lifecycle mutation"
+            );
+
+            objectMapper.releaseWatcherTerminalMutation();
+            queueRepository.awaitTerminalDrainAttempt();
+
+            assertFalse(
+                queueRepository.terminalDrainHeldLifecycleMonitor(),
+                "watcher terminal drain must run after releasing standardDispatchLifecycleMonitor"
+            );
+
+            process.releaseOverviewLivenessBlock();
+            overview.get(5, TimeUnit.SECONDS);
+            Map<String, Object> latest = readJsonMap(
+                repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")
+            );
+            assertEquals("failed", latest.get("status"));
+            assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        } finally {
+            objectMapper.releaseWatcherTerminalMutation();
+            process.releaseWatcherExit();
+            process.releaseOverviewLivenessBlock();
+            if (overview != null) {
+                try {
+                    overview.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion failure while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
     }
 
     @Test
@@ -8856,6 +13362,696 @@ class CrawlerMonitorServiceImplTest {
 
         assertEquals("timed_out", firstQueueItemMirror().get("status"));
         assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldRetainDeadLockWithCleanupFailureWhenQueueItemDispatchIdIsMissing() throws Exception {
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(lockPath, Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "wiki-monitor-dispatch-town-npc",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "wiki-monitor-dispatch-town-npc",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "status", "failed",
+            "processCleanupFailed", true
+        ));
+        WikiMonitorQueueItem item = new WikiMonitorQueueItem();
+        item.setQueueId("wiki-monitor-queue-town-npc");
+        item.setLane("standard");
+        item.setDomain("town_npc_maintenance");
+        item.setActionId("domain-source-town-npc-maintenance");
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+        Method releaseDeadItemLock = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "releaseLaneLockForDeadItem", Path.class, WikiMonitorQueueItem.class
+        );
+        releaseDeadItemLock.setAccessible(true);
+
+        releaseDeadItemLock.invoke(service, repoRoot, item);
+
+        assertTrue(
+            Files.exists(lockPath),
+            "a verified lock dispatch must retain its durable cleanup-failure fence even when the queue mirror lost dispatchId"
+        );
+    }
+
+    @Test
+    void shouldRetainDeadLockWhenDispatchHasDurableCleanupFailure() throws Exception {
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(lockPath, Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "wiki-monitor-dispatch-town-npc",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "wiki-monitor-dispatch-town-npc",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "status", "failed",
+            "processCleanupFailed", true
+        ));
+        WikiMonitorQueueItem item = new WikiMonitorQueueItem();
+        item.setQueueId("wiki-monitor-queue-town-npc");
+        item.setDispatchId("wiki-monitor-dispatch-town-npc");
+        item.setLane("standard");
+        item.setDomain("town_npc_maintenance");
+        item.setActionId("domain-source-town-npc-maintenance");
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+        Method releaseDeadItemLock = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "releaseLaneLockForDeadItem", Path.class, WikiMonitorQueueItem.class
+        );
+        releaseDeadItemLock.setAccessible(true);
+
+        releaseDeadItemLock.invoke(service, repoRoot, item);
+
+        assertTrue(Files.exists(lockPath));
+    }
+
+    @Test
+    void shouldNotDeleteSuccessorLockReplacedDuringDeadLockValidation() throws Exception {
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(lockPath, Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "wiki-monitor-dispatch-town-npc",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        DeadLockValidationBarrierObjectMapper objectMapper = new DeadLockValidationBarrierObjectMapper();
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper, repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+        WikiMonitorQueueItem item = new WikiMonitorQueueItem();
+        item.setQueueId("wiki-monitor-queue-town-npc");
+        item.setDispatchId("wiki-monitor-dispatch-town-npc");
+        item.setLane("standard");
+        item.setDomain("town_npc_maintenance");
+        item.setActionId("domain-source-town-npc-maintenance");
+        Method releaseDeadItemLock = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "releaseLaneLockForDeadItem", Path.class, WikiMonitorQueueItem.class
+        );
+        releaseDeadItemLock.setAccessible(true);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> reconciliation = null;
+        try {
+            reconciliation = executor.submit(() -> {
+                Thread.currentThread().setName("dead-lock-reconciler");
+                try {
+                    releaseDeadItemLock.invoke(service, repoRoot, item);
+                } catch (Exception exception) {
+                    throw new AssertionError("dead-lock reconciliation failed", exception);
+                }
+            });
+            objectMapper.awaitLockRead();
+
+            writeJson(lockPath, Map.of(
+                "queueId", "wiki-monitor-queue-town-npc",
+                "dispatchId", "wiki-monitor-dispatch-successor",
+                "domain", "armor_sets",
+                "actionId", "domain-source-armor-sets",
+                "pid", 2_000_000_000L,
+                "startedAt", "2026-06-14T01:05:00Z"
+            ));
+            objectMapper.releaseLockRead();
+            reconciliation.get(5, TimeUnit.SECONDS);
+
+            assertTrue(Files.exists(lockPath));
+            Map<String, Object> successor = readJsonMap(lockPath);
+            assertEquals("wiki-monitor-queue-town-npc", successor.get("queueId"));
+            assertEquals("wiki-monitor-dispatch-successor", successor.get("dispatchId"));
+        } finally {
+            objectMapper.releaseLockRead();
+            if (reconciliation != null) {
+                try {
+                    reconciliation.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldNotOverwriteSuccessorDispatchWhenCleanupFailurePublishesFromStaleSnapshot() throws Exception {
+        String staleDispatchId = "wiki-monitor-dispatch-stale";
+        String successorDispatchId = "wiki-monitor-dispatch-successor";
+        Path latestPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json");
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        writeJson(latestPath, Map.ofEntries(
+            Map.entry("queueId", "wiki-monitor-queue-stale"),
+            Map.entry("dispatchId", staleDispatchId),
+            Map.entry("domain", "town_npc_maintenance"),
+            Map.entry("actionId", "domain-source-town-npc-maintenance"),
+            Map.entry("status", "running"),
+            Map.entry("startedAt", "2026-06-14T01:04:00Z")
+        ));
+        writeJson(lockPath, Map.of(
+            "queueId", "wiki-monitor-queue-stale",
+            "dispatchId", staleDispatchId,
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+
+        CleanupFailureSnapshotBarrierObjectMapper objectMapper = new CleanupFailureSnapshotBarrierObjectMapper();
+        WatcherCleanupFailureAfterDeadLockValidationProcess process =
+            new WatcherCleanupFailureAfterDeadLockValidationProcess();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                throw new AssertionError("launch is not expected in cleanup-failure snapshot test");
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC),
+            launcher
+        );
+        JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
+        service.setJdbcTemplate(jdbcTemplate);
+        Method completeWatchedDispatch = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "completeWatchedStandardDispatch",
+            Path.class,
+            String.class,
+            String.class,
+            CrawlerMonitorActionDefinition.class,
+            CrawlerMonitorServiceImpl.DispatchPaths.class,
+            Process.class,
+            Duration.class,
+            boolean.class,
+            int.class
+        );
+        completeWatchedDispatch.setAccessible(true);
+        Method findRule = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "findWikiMonitorRule", String.class, String.class
+        );
+        findRule.setAccessible(true);
+        CrawlerMonitorActionDefinition rule = (CrawlerMonitorActionDefinition) findRule.invoke(
+            service,
+            "town_npc_maintenance",
+            "domain-source-town-npc-maintenance"
+        );
+        assertNotNull(rule);
+        CrawlerMonitorServiceImpl.DispatchPaths paths = new CrawlerMonitorServiceImpl.DispatchPaths(
+            "reports/backend-refresh/history/dispatch-stale.json",
+            "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
+            "reports/crawler-monitor/wiki-monitor-dispatch.lock.json",
+            null,
+            "reports/crawler-monitor/wiki-monitor-dispatch-stale.log"
+        );
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> watcher = null;
+        try {
+            watcher = executor.submit(() -> {
+                Thread.currentThread().setName("cleanup-failure-watcher");
+                try {
+                    completeWatchedDispatch.invoke(
+                        service,
+                        repoRoot,
+                        null,
+                        staleDispatchId,
+                        rule,
+                        paths,
+                        process,
+                        Duration.ofMinutes(10),
+                        true,
+                        143
+                    );
+                } catch (Exception exception) {
+                    throw new AssertionError("cleanup failure watcher failed", exception);
+                }
+            });
+            objectMapper.awaitSnapshotCaptured();
+
+            writeJson(lockPath, Map.of(
+                "queueId", "wiki-monitor-queue-successor",
+                "dispatchId", successorDispatchId,
+                "domain", "armor_sets",
+                "actionId", "domain-source-armor-sets",
+                "pid", 2_000_000_000L,
+                "startedAt", "2026-06-14T01:05:00Z"
+            ));
+            writeJson(latestPath, Map.ofEntries(
+                Map.entry("queueId", "wiki-monitor-queue-successor"),
+                Map.entry("dispatchId", successorDispatchId),
+                Map.entry("domain", "armor_sets"),
+                Map.entry("actionId", "domain-source-armor-sets"),
+                Map.entry("status", "running"),
+                Map.entry("startedAt", "2026-06-14T01:05:00Z")
+            ));
+            objectMapper.releaseCleanupFailure();
+            watcher.get(5, TimeUnit.SECONDS);
+
+            Map<String, Object> latest = readJsonMap(latestPath);
+            assertEquals(successorDispatchId, latest.get("dispatchId"));
+            assertEquals("running", latest.get("status"));
+            Map<String, Object> lock = readJsonMap(lockPath);
+            assertEquals(successorDispatchId, lock.get("dispatchId"));
+            ArgumentCaptor<Object[]> alertArguments = ArgumentCaptor.forClass(Object[].class);
+            verify(jdbcTemplate).update(
+                org.mockito.ArgumentMatchers.argThat(sql -> sql.contains("crawler_automation_alert")),
+                alertArguments.capture()
+            );
+            assertEquals(staleDispatchId, alertArguments.getValue()[0]);
+            assertEquals("CRITICAL", alertArguments.getValue()[1]);
+            assertEquals("scheduler:v1-dispatch-cleanup:" + staleDispatchId, alertArguments.getValue()[2]);
+        } finally {
+            objectMapper.releaseCleanupFailure();
+            if (watcher != null) {
+                try {
+                    watcher.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldRestoreCleanupFailureFenceWhenReconcilerPassedCancellationCheckBeforeFailurePublication() throws Exception {
+        String dispatchId = "wiki-monitor-dispatch-deletion-race";
+        String queueId = "wiki-monitor-queue-deletion-race";
+        String progressPath = "data/generated/domain-source-town-npc-maintenance-progress.latest.json";
+        Path latestPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json");
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        CancellationCheckBarrierQueueItem item = new CancellationCheckBarrierQueueItem();
+        item.setQueueId(queueId);
+        item.setDispatchId(dispatchId);
+        item.setLane("standard");
+        item.setDomain("town_npc_maintenance");
+        item.setActionId("domain-source-town-npc-maintenance");
+        item.setStatus("running");
+        item.setPid(2_000_000_000L);
+        item.setProgressPath(progressPath);
+        SingleItemQueueRepository queueRepository = new SingleItemQueueRepository(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC),
+            item
+        );
+        CleanupFailureBlockingProcess process = new CleanupFailureBlockingProcess();
+        CountDownLatch cleanupStarted = new CountDownLatch(1);
+        CountDownLatch allowCleanupFailurePublication = new CountDownLatch(1);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                throw new AssertionError("launch is not expected in cleanup-failure deletion race test");
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                process.markDead();
+                cleanupStarted.countDown();
+                try {
+                    if (!allowCleanupFailurePublication.await(5, TimeUnit.SECONDS)) {
+                        throw new AssertionError("cleanup failure publication was not released");
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError("cleanup failure publication was interrupted", exception);
+                }
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC),
+            null,
+            launcher,
+            CrawlerQueueEngineRouter.v1Only(),
+            null,
+            queueRepository
+        );
+        registerActiveDispatchProcess(
+            service,
+            dispatchId,
+            "town_npc_maintenance",
+            "domain-source-town-npc-maintenance",
+            process,
+            new CrawlerMonitorServiceImpl.DispatchPaths(
+                null,
+                progressPath,
+                "reports/crawler-monitor/wiki-monitor-dispatch.lock.json",
+                null,
+                null
+            )
+        );
+        writeJson(repoRoot.resolve(progressPath), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
+        ));
+        writeJson(latestPath, Map.ofEntries(
+            Map.entry("queueId", queueId),
+            Map.entry("dispatchId", dispatchId),
+            Map.entry("domain", "town_npc_maintenance"),
+            Map.entry("actionId", "domain-source-town-npc-maintenance"),
+            Map.entry("status", "running"),
+            Map.entry("startedAt", "2026-06-14T01:04:00Z")
+        ));
+        writeJson(lockPath, Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        Method reconcileQueueRuntimeState = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "reconcileQueueRuntimeState", Path.class
+        );
+        reconcileQueueRuntimeState.setAccessible(true);
+        Method hasHealthyTrackedActiveQueueProcess = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "hasHealthyTrackedActiveQueueProcess", Path.class, WikiMonitorQueueItem.class
+        );
+        hasHealthyTrackedActiveQueueProcess.setAccessible(true);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<?> reconciliation = null;
+        Future<?> cleanup = null;
+        try {
+            reconciliation = executor.submit(() -> {
+                Thread.currentThread().setName("deletion-before-marker-reconciler");
+                try {
+                    reconcileQueueRuntimeState.invoke(service, repoRoot);
+                } catch (Exception exception) {
+                    throw new AssertionError("dead-lock reconciliation failed", exception);
+                }
+            });
+            item.awaitReconcilerPastCancellationCheck();
+
+            cleanup = executor.submit(() -> {
+                Thread.currentThread().setName("stale-heartbeat-cleanup");
+                try {
+                    hasHealthyTrackedActiveQueueProcess.invoke(service, repoRoot, item);
+                } catch (Exception exception) {
+                    throw new AssertionError("stale-heartbeat cleanup failed", exception);
+                }
+            });
+            awaitLatch(cleanupStarted);
+            assertTrue(cancellingDispatches(service).contains(dispatchId));
+
+            item.releaseReconcilerAfterCancellationCheck();
+            reconciliation.get(5, TimeUnit.SECONDS);
+            allowCleanupFailurePublication.countDown();
+            cleanup.get(5, TimeUnit.SECONDS);
+
+            Map<String, Object> latest = readJsonMap(latestPath);
+            assertEquals(dispatchId, latest.get("dispatchId"));
+            assertEquals("failed", latest.get("status"));
+            assertEquals(true, latest.get("processCleanupFailed"));
+            assertTrue(
+                Files.exists(lockPath),
+                "a cleanup failure must restore or preserve its lock even when reconciliation passed the cancellation fence first"
+            );
+            assertEquals(dispatchId, readJsonMap(lockPath).get("dispatchId"));
+        } finally {
+            item.releaseReconcilerAfterCancellationCheck();
+            allowCleanupFailurePublication.countDown();
+            if (reconciliation != null) {
+                try {
+                    reconciliation.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion while allowing the executor to shut down.
+                }
+            }
+            if (cleanup != null) {
+                try {
+                    cleanup.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldRetainDeadLockWhenCleanupFailureMarkerPublishesAfterValidationBegins() throws Exception {
+        String dispatchId = "wiki-monitor-dispatch-race";
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        Path latestPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json");
+        writeJson(latestPath, Map.ofEntries(
+            Map.entry("queueId", "wiki-monitor-queue-town-npc"),
+            Map.entry("dispatchId", dispatchId),
+            Map.entry("domain", "town_npc_maintenance"),
+            Map.entry("actionId", "domain-source-town-npc-maintenance"),
+            Map.entry("status", "running"),
+            Map.entry("startedAt", "2026-06-14T01:04:00Z"),
+            Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json")
+        ));
+        writeJson(lockPath, Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", dispatchId,
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+
+        DeadLockValidationBarrierObjectMapper objectMapper = new DeadLockValidationBarrierObjectMapper();
+        WatcherTerminalMutationBarrierProcess process = new WatcherTerminalMutationBarrierProcess();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC),
+            launcher
+        );
+        WikiMonitorQueueItem item = new WikiMonitorQueueItem();
+        item.setQueueId("wiki-monitor-queue-town-npc");
+        item.setDispatchId(dispatchId);
+        item.setLane("standard");
+        item.setDomain("town_npc_maintenance");
+        item.setActionId("domain-source-town-npc-maintenance");
+
+        Method releaseDeadItemLock = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "releaseLaneLockForDeadItem", Path.class, WikiMonitorQueueItem.class
+        );
+        releaseDeadItemLock.setAccessible(true);
+        Method completeWatchedDispatch = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "completeWatchedStandardDispatchAndRetire",
+            Path.class,
+            String.class,
+            String.class,
+            CrawlerMonitorActionDefinition.class,
+            CrawlerMonitorServiceImpl.DispatchPaths.class,
+            Process.class,
+            Duration.class,
+            boolean.class,
+            int.class
+        );
+        completeWatchedDispatch.setAccessible(true);
+        Method findRule = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "findWikiMonitorRule", String.class, String.class
+        );
+        findRule.setAccessible(true);
+        CrawlerMonitorActionDefinition rule = (CrawlerMonitorActionDefinition) findRule.invoke(
+            service,
+            "town_npc_maintenance",
+            "domain-source-town-npc-maintenance"
+        );
+        assertNotNull(rule);
+        CrawlerMonitorServiceImpl.DispatchPaths paths = new CrawlerMonitorServiceImpl.DispatchPaths(
+            "reports/backend-refresh/history/dispatch-race.json",
+            "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
+            "reports/crawler-monitor/wiki-monitor-dispatch.lock.json",
+            null,
+            "reports/crawler-monitor/wiki-monitor-dispatch-race.log"
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<?> reconciliation = null;
+        Future<?> watcher = null;
+        try {
+            reconciliation = executor.submit(() -> {
+                Thread.currentThread().setName("dead-lock-reconciler");
+                try {
+                    releaseDeadItemLock.invoke(service, repoRoot, item);
+                } catch (Exception exception) {
+                    throw new AssertionError("dead-lock reconciliation failed", exception);
+                }
+            });
+            objectMapper.awaitLockRead();
+
+            watcher = executor.submit(() -> {
+                Thread.currentThread().setName("wiki-monitor-dispatch-" + dispatchId);
+                try {
+                    completeWatchedDispatch.invoke(
+                        service,
+                        repoRoot,
+                        null,
+                        dispatchId,
+                        rule,
+                        paths,
+                        process,
+                        Duration.ofMinutes(10),
+                        true,
+                        143
+                    );
+                } catch (Exception exception) {
+                    throw new AssertionError("watcher terminal mutation failed", exception);
+                }
+            });
+
+            watcher.get(5, TimeUnit.SECONDS);
+            Map<String, Object> published = readJsonMap(latestPath);
+            assertEquals("failed", published.get("status"));
+            assertEquals(true, published.get("processCleanupFailed"));
+
+            objectMapper.releaseLockRead();
+            reconciliation.get(5, TimeUnit.SECONDS);
+
+            assertTrue(
+                Files.exists(lockPath),
+                "a cleanup-failure marker published during dead-lock validation must retain the lock"
+            );
+        } finally {
+            objectMapper.releaseLockRead();
+            if (watcher != null) {
+                try {
+                    watcher.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion while allowing the executor to shut down.
+                }
+            }
+            if (reconciliation != null) {
+                try {
+                    reconciliation.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldRetainCleanupFailureLockWhenWatcherPublishesAfterOverviewDeadLockValidationStarts() throws Exception {
+        DeadLockValidationBarrierObjectMapper objectMapper = new DeadLockValidationBarrierObjectMapper();
+        WatcherCleanupFailureAfterDeadLockValidationProcess process =
+            new WatcherCleanupFailureAfterDeadLockValidationProcess();
+        AtomicInteger launchCount = new AtomicInteger();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                launchCount.incrementAndGet();
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            objectMapper,
+            repoRoot,
+            Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofSeconds(5));
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance")
+        );
+        CrawlerMonitorDispatchResultDTO queued = service.dispatchWikiMonitorTask(
+            dispatchRequest("armor_sets", "domain-source-armor-sets")
+        );
+        assertTrue(started.isAccepted());
+        assertTrue(queued.isAccepted());
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> overview = null;
+        try {
+            overview = executor.submit(() -> {
+                Thread.currentThread().setName("dead-lock-reconciler");
+                service.getOverview();
+            });
+            objectMapper.awaitLockRead();
+
+            process.allowWatcherTimeout();
+            waitUntil(() -> {
+                try {
+                    Map<String, Object> latest = readJsonMap(
+                        repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")
+                    );
+                    return "failed".equals(latest.get("status"))
+                        && Boolean.TRUE.equals(latest.get("processCleanupFailed"));
+                } catch (IOException exception) {
+                    return false;
+                }
+            });
+
+            objectMapper.releaseLockRead();
+            overview.get(5, TimeUnit.SECONDS);
+
+            Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+            assertTrue(Files.exists(lockPath));
+            Map<String, Object> latest = readJsonMap(
+                repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")
+            );
+            assertEquals(started.getDispatchId(), latest.get("dispatchId"));
+            assertEquals("failed", latest.get("status"));
+            assertEquals(true, latest.get("processCleanupFailed"));
+            Map<String, Object> queueMirror = readJsonMap(
+                repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json")
+            );
+            List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+            Map<String, Object> queuedItem = queueItems.stream()
+                .filter(item -> queued.getQueueId().equals(item.get("queueId")))
+                .findFirst()
+                .orElseThrow();
+            assertNotEquals("running", queuedItem.get("status"));
+            assertEquals(1, launchCount.get());
+        } finally {
+            objectMapper.releaseLockRead();
+            if (overview != null) {
+                try {
+                    overview.get(5, TimeUnit.SECONDS);
+                } catch (Exception ignored) {
+                    // Preserve the primary assertion while allowing the executor to shut down.
+                }
+            }
+            executor.shutdownNow();
+        }
     }
 
     @Test

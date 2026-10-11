@@ -17,4 +17,8 @@ public class CrawlerMonitorDispatchRequestDTO {
     private String legacyQueueId;
     private String resumeMode;
     private String failureMode;
+    /** Scheduler-owned Armor binding reference; never populated by manual dispatch. */
+    private String automaticBindingPath;
+    private String automaticBindingSha256;
+    private String automaticBindingAttemptId;
 }

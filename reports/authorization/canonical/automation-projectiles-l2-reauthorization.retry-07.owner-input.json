@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized append-only L2 reauthorization for projectiles; retain current L2/ACTIVE policy, no policy update, no crawler or import.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-reauthorization/retry-07/projectiles",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20260918-owner-02",
+  "authorizedAt": "2026-09-18T05:05:18.638Z"
+}

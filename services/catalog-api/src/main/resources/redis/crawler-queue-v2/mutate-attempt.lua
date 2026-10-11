@@ -45,13 +45,13 @@ local knownStatuses = {
   interrupted = true
 }
 local allowedTransitions = {
-  queued = {starting = true, cancelled = true, timed_out = true},
-  retry_wait = {starting = true, cancelled = true, timed_out = true},
+  queued = {starting = true, cancelled = true, timed_out = true, stalled = true},
+  retry_wait = {starting = true, cancelled = true, timed_out = true, stalled = true},
   starting = {running = true, cancel_requested = true, stalled = true, completed = true, failed = true},
   running = {pause_requested = true, cancel_requested = true, completed = true, failed = true, stalled = true},
   pause_requested = {paused = true, cancel_requested = true, stalled = true, failed = true},
   paused = {running = true, cancel_requested = true, stalled = true, failed = true},
-  cancel_requested = {cancelled = true, failed = true},
+  cancel_requested = {cancelled = true, failed = true, stalled = true},
   stalled = {starting = true, running = true, paused = true, cancel_requested = true, timed_out = true, failed = true},
   completed = {},
   failed = {},

@@ -27,14 +27,26 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
-    void allFiveBaseAutoDomainsUseTheActivationGatedAutomaticRunner() {
+    void baseAutoDomainsUseTheActivationGatedAutomaticRunnerAndArmorUsesItsCompositeRunner() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
-        for (String domain : List.of("items", "npcs", "projectiles", "armor_sets", "buffs")) {
+        for (String domain : List.of("items", "npcs", "projectiles", "buffs")) {
             CrawlerMonitorActionDefinition action = registry.requireDefaultOperation(domain);
             assertEquals("pipelines/automation/run-base-domain-automatic-operation.mjs", action.command().get(1));
             assertTrue(action.command().contains("--domain=" + domain));
             assertTrue(action.command().contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
         }
+        CrawlerMonitorActionDefinition armor = registry.requireDefaultOperation("armor_sets");
+        assertEquals("domain-source-armor-sets", armor.actionId());
+        assertEquals("canonical-armor-ingestion", armor.operationId());
+        assertEquals("wiki.module.armorsetbonuses", armor.sourceKey());
+        assertEquals("data/generated/domain-source-armor-sets-progress.latest.json", armor.progressPath());
+        assertFalse(armor.resumeSupported());
+        assertEquals(List.of(
+            "node",
+            "pipelines/automation/run-armor-automatic-operation.mjs",
+            "--domain=armor_sets",
+            "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json"
+        ), armor.command());
         for (String domain : List.of("audio", "bosses", "shimmer")) {
             assertTrue(registry.requireDefaultOperation(domain).command()
                 .contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
@@ -64,11 +76,10 @@ class CrawlerMonitorActionRegistryTest {
             registry.requireOperation("npc_loot", "apply").databaseAccess()
         );
         assertTrue(registry.requireOperation("bosses", "fresh").resumeSupported());
-        assertFalse(registry.requireOperation("armor_sets", "fresh").resumeSupported());
+        assertFalse(registry.requireOperation("armor_sets", "canonical-armor-ingestion").resumeSupported());
         assertTrue(registry.requireOperation("buffs", "fresh").command()
             .contains("pipelines/automation/run-base-domain-automatic-operation.mjs"));
-        assertTrue(registry.requireOperation("armor_sets", "fresh").command()
-            .contains("pipelines/automation/run-base-domain-automatic-operation.mjs"));
+        assertEquals("canonical-armor-ingestion", registry.requireOperation("armor_sets", "canonical-armor-ingestion").operationId());
         assertEquals(
             List.of("buffs", "bosses", "town_npc_maintenance"),
             registry.all().stream()

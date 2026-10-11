@@ -9,6 +9,7 @@ public class CrawlerV2AutomationDTO {
     private boolean enabled;
     private String mode = "changed-only";
     private int sweepIntervalMinutes = 60;
+    private String canaryActionId;
     private Boolean configPresent;
     private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO lastSweep;
 }

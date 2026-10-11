@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized fresh append-only Shimmer L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and fresh historical disposition, no policy update, no crawler/import.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-reauthorization/retry-14/shimmer",
+  "decisionIdentity": "automation-shimmer-l2-reauthorization-20260918-owner-04",
+  "authorizedAt": "2026-09-18T09:56:49.444Z"
+}

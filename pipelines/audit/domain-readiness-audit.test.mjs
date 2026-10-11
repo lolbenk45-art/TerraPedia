@@ -1698,6 +1698,109 @@ test('items image readiness consumes the latest governed projection result and r
   assert.match(drifted.blockingReasons.join('\n'), /input contract bytes do not match/i);
 });
 
+test('items image readiness orders projection results by intrinsic completion time, not copied mtime', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/items.standardized.json', {
+    totalRecords: 1,
+    records: [{ id: 1, internalName: 'CopperShortsword', imageUrl: '/terrapedia-images/items/copper.png' }],
+  });
+  writeText(
+    repoRoot,
+    'services/catalog-api/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java',
+    'class PublicItemRelationController {};',
+  );
+  writeText(repoRoot, 'pipelines/relation/managed-image-url-policy.mjs', 'export const MANAGED_IMAGE_POLICY = true;\n');
+  const originRepairResultPath = 'reports/runtime/item-image-origin-repair.result.json';
+  writeJson(repoRoot, originRepairResultPath, {
+    operationId: 'canonical-item-image-origin-repair',
+    status: 'COMPLETED',
+    scopeHash: `sha256:${'d'.repeat(64)}`,
+    externalRequests: false,
+  }, { mode: 0o600 });
+
+  const writeProjection = (attempt, completedAt) => {
+    const attemptRoot = `reports/authorization/canonical/item-image-projection-apply/${attempt}`;
+    const inputPath = `${attemptRoot}/input.json`;
+    const proposalPath = `${attemptRoot}/proposal.json`;
+    const snapshotPath = `${attemptRoot}/snapshot.json`;
+    writeJson(repoRoot, inputPath, { operationId: 'canonical-item-image-projection-apply', attempt }, { mode: 0o600 });
+    writeJson(repoRoot, proposalPath, { targetRowCount: 1, attempt }, { mode: 0o600 });
+    writeJson(repoRoot, snapshotPath, { targetRowCount: 1, attempt }, { mode: 0o600 });
+    writeJson(repoRoot, `${attemptRoot}/result.json`, {
+      resultKind: 'canonical_item_image_projection_apply_result',
+      operationId: 'canonical-item-image-projection-apply',
+      contractVersion: 'item-image-projection-apply-v1',
+      status: 'completed',
+      apply: true,
+      inputContractPath: inputPath,
+      inputContractSha256: `sha256:${sha256Path(repoRoot, inputPath)}`,
+      proposalPath,
+      proposalSha256: `sha256:${sha256Path(repoRoot, proposalPath)}`,
+      snapshotPath,
+      snapshotSha256: `sha256:${sha256Path(repoRoot, snapshotPath)}`,
+      managedUrlPolicy: {
+        sourcePath: 'pipelines/relation/managed-image-url-policy.mjs',
+        sourceSha256: `sha256:${sha256Path(repoRoot, 'pipelines/relation/managed-image-url-policy.mjs')}`,
+        resolvedPrefixesSha256: `sha256:${'b'.repeat(64)}`,
+      },
+      lineage: {
+        kind: 'origin-repair-bound',
+        originRepairResultPath,
+        originRepairResultSha256: `sha256:${sha256Path(repoRoot, originRepairResultPath)}`,
+        originRepairScopeHash: `sha256:${'d'.repeat(64)}`,
+        originRepairOperationId: 'canonical-item-image-origin-repair',
+        originRepairStatus: 'COMPLETED',
+        externalRequests: false,
+        freshnessUpdates: false,
+        completedRowCount: 1,
+      },
+      target: {
+        host: '127.0.0.1',
+        port: 13306,
+        serverUuid: 'item-image-ordering-test',
+        databases: {
+          local: 'terria_v1_local',
+          maint: 'terria_v1_maint',
+          relation: 'terria_v1_relation',
+        },
+        ownedDatabase: 'terria_v1_relation',
+        ownedTable: 'projection_items',
+        ownedColumn: 'image',
+        fingerprintSha256: `sha256:${'e'.repeat(64)}`,
+      },
+      keySetSha256: `sha256:${'1'.repeat(64)}`,
+      relationRowsSha256: `sha256:${'2'.repeat(64)}`,
+      projectionBeforeSha256: `sha256:${'3'.repeat(64)}`,
+      projectionAfterSha256: `sha256:${'3'.repeat(64)}`,
+      targetRowCount: 1,
+      changedRowCount: 0,
+      completedAt,
+    }, { mode: 0o600 });
+    return path.join(repoRoot, `${attemptRoot}/result.json`);
+  };
+
+  const olderAttempt = 'a'.repeat(64);
+  const newerAttempt = 'b'.repeat(64);
+  const olderResult = writeProjection(olderAttempt, '2026-08-20T00:00:00.000Z');
+  const newerResult = writeProjection(newerAttempt, '2026-08-21T00:00:00.000Z');
+  const now = Date.now() / 1000;
+  fs.utimesSync(olderResult, now, now);
+  fs.utimesSync(newerResult, now - 60, now - 60);
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'items',
+    panel: 'image',
+    generatedAt: '2026-08-22T00:00:00.000Z',
+  });
+
+  assert.equal(report.status, 'pass', JSON.stringify(report, null, 2));
+  assert.equal(
+    report.checks[1].latestReportPath,
+    `reports/authorization/canonical/item-image-projection-apply/${newerAttempt}/result.json`,
+  );
+});
+
 test('boss source readiness is independent of historical boss import reports', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/generated/wiki-bosses.latest.json', {

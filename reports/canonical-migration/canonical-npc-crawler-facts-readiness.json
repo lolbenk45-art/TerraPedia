@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "reportKind": "canonical_npc_crawler_facts_readiness",
-  "generatedAt": "2026-08-27T19:09:37.642Z",
+  "generatedAt": "2026-08-29T22:31:03.984Z",
   "readinessLevel": "T2_CUTOVER_VERIFIED",
   "evidenceScope": "formal-t2",
   "writesDatabase": false,

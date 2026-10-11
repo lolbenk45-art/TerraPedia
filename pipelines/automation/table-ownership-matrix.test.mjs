@@ -128,6 +128,62 @@ test('ownership predicates resolve representative rows through a versioned resol
   assert.equal(matchesOwnershipPredicate(town, {}), false);
 });
 
+test('Armor landing datasets have separate versioned owners outside the catch-all partition', () => {
+  const rows = findOwnershipRows('source_dataset_landings', 'local');
+  assert.deepEqual(rows.map(row => row.logicalPredicate.partition).sort(),
+    ['armor_set_images', 'armor_sets', 'npc_crawler_facts', 'npcs_base', 'other']);
+  for (const row of rows) {
+    assert.equal(row.logicalPredicate.resolverVersion, 2);
+    assert.equal(row.logicalPredicate.resolver, 'resolveLandingDataset');
+  }
+  const cases = [
+    ['npcs_base_raw', 'npcs_base'], ['npc_crawler_facts_raw', 'npc_crawler_facts'],
+    ['armor_sets_raw', 'armor_sets'], ['armor_set_images_raw', 'armor_set_images'],
+    ['items_raw', 'other'],
+  ];
+  for (const [dataset, partition] of cases) {
+    for (const field of ['datasetType', 'dataset_type']) {
+      for (const artifactRole of ['source_evidence', 'legacy_compat']) {
+        assert.deepEqual(rows.filter(row => matchesOwnershipPredicate(row, {
+          [field]: dataset, artifact_role: artifactRole,
+        })).map(row => row.logicalPredicate.partition), [partition]);
+      }
+    }
+  }
+  for (const partition of ['armor_sets', 'armor_set_images']) {
+    assert.equal(rows.find(row => row.logicalPredicate.partition === partition).capability, 'armor_sets');
+  }
+  assert.doesNotThrow(() => assertNoOwnershipOverlap(rows));
+});
+
+test('landing ownership refuses stale resolver versions and contradictory dataset aliases', () => {
+  const rows = findOwnershipRows('source_dataset_landings', 'local');
+  const other = rows.find(row => row.logicalPredicate.partition === 'other');
+  const stale = { ...other, logicalPredicate: { ...other.logicalPredicate, resolverVersion: 1 } };
+  assert.throws(() => validateOwnershipMatrix([stale]), /predicate partition|resolver/i);
+  assert.equal(matchesOwnershipPredicate(stale, { dataset_type: 'items_raw' }), false);
+  for (const candidate of [
+    {}, { dataset_type: '' }, { dataset_type: ' armor_sets_raw' },
+    { dataset_type: true }, { dataset_type: [] }, { dataset_type: {} },
+    { datasetType: 'items_raw', dataset_type: 'armor_sets_raw' },
+    { datasetType: 'armor_sets_raw', dataset_type: 'armor_set_images_raw' },
+    { datasetType: null, dataset_type: 'armor_sets_raw' },
+    { datasetType: 'items_raw', dataset_type: null },
+    { datasetType: undefined, dataset_type: 'armor_sets_raw' },
+    { datasetType: 'items_raw', dataset_type: undefined },
+  ]) assert.deepEqual(rows.filter(row => matchesOwnershipPredicate(row, candidate)), []);
+});
+
+test('a stale landing resolver cannot certify disjointness from the new Armor partition', () => {
+  const rows = findOwnershipRows('source_dataset_landings', 'local');
+  const other = rows.find(row => row.logicalPredicate.partition === 'other');
+  const armor = rows.find(row => row.logicalPredicate.partition === 'armor_sets');
+  assert.ok(armor);
+  assert.throws(() => assertNoOwnershipOverlap([
+    { ...other, logicalPredicate: { ...other.logicalPredicate, resolverVersion: 1 } }, armor,
+  ]), /overlap/i);
+});
+
 test('physical column overlap is rejected even when fieldGroup labels differ', () => {
   const base = TABLE_OWNERSHIP_MATRIX.find((row) => row.key === 'local.npcs');
   assert.throws(() => validateOwnershipMatrix([

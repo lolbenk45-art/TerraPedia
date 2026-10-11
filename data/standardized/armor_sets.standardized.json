@@ -1,7 +1,37 @@
 {
   "entity": "armor_sets",
-  "generatedAt": "2026-08-13T17:58:14.721Z",
+  "generatedAt": "2026-10-09T05:35:33.394Z",
   "records": [
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Shroomite",
+      "primaryPart": null,
+      "setCount": 3,
+      "sets": [
+        [
+          1548,
+          1549,
+          1550
+        ],
+        [
+          1546,
+          1549,
+          1550
+        ],
+        [
+          1547,
+          1549,
+          1550
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Shroomite",
+      "uniqueItemIds": [
+        1548,
+        1549,
+        1550,
+        1546,
+        1547
+      ]
+    },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
       "primaryPart": null,
@@ -290,38 +320,38 @@
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDamage",
-      "primaryPart": null,
+      "primaryPart": "Body",
       "setCount": 1,
       "sets": [
         [
-          0,
           2199,
-          2200
+          2200,
+          2202
         ]
       ],
       "textKey": "ArmorSetBonus.BeetleDamage",
       "uniqueItemIds": [
-        0,
         2199,
-        2200
+        2200,
+        2202
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDefense",
-      "primaryPart": null,
+      "primaryPart": "Body",
       "setCount": 1,
       "sets": [
         [
-          0,
           2199,
-          2201
+          2201,
+          2202
         ]
       ],
       "textKey": "ArmorSetBonus.BeetleDefense",
       "uniqueItemIds": [
-        0,
         2199,
-        2201
+        2201,
+        2202
       ]
     },
     {
@@ -520,38 +550,38 @@
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.SpectreHealing",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           1503,
-          1504
+          1504,
+          1505
         ]
       ],
       "textKey": "ArmorSetBonus.SpectreHealing",
       "uniqueItemIds": [
-        0,
         1503,
-        1504
+        1504,
+        1505
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.SpectreDamage",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           2189,
-          1504
+          1504,
+          1505
         ]
       ],
       "textKey": "ArmorSetBonus.SpectreDamage",
       "uniqueItemIds": [
-        0,
         2189,
-        1504
+        1504,
+        1505
       ]
     },
     {
@@ -799,38 +829,38 @@
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteMelee",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           1001,
-          1004
+          1004,
+          1005
         ]
       ],
       "textKey": "ArmorSetBonus.ChlorophyteMelee",
       "uniqueItemIds": [
-        0,
         1001,
-        1004
+        1004,
+        1005
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteSummon",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           5524,
-          1004
+          1004,
+          1005
         ]
       ],
       "textKey": "ArmorSetBonus.ChlorophyteSummon",
       "uniqueItemIds": [
-        0,
         5524,
-        1004
+        1004,
+        1005
       ]
     },
     {
@@ -951,164 +981,164 @@
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.CobaltCaster",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           371,
-          374
+          374,
+          375
         ]
       ],
       "textKey": "ArmorSetBonus.CobaltCaster",
       "uniqueItemIds": [
-        0,
         371,
-        374
+        374,
+        375
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.CobaltMelee",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           372,
-          374
+          374,
+          375
         ]
       ],
       "textKey": "ArmorSetBonus.CobaltMelee",
       "uniqueItemIds": [
-        0,
         372,
-        374
+        374,
+        375
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.CobaltRanged",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           373,
-          374
+          374,
+          375
         ]
       ],
       "textKey": "ArmorSetBonus.CobaltRanged",
       "uniqueItemIds": [
-        0,
         373,
-        374
+        374,
+        375
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.MythrilCaster",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           376,
-          379
+          379,
+          380
         ]
       ],
       "textKey": "ArmorSetBonus.MythrilCaster",
       "uniqueItemIds": [
-        0,
         376,
-        379
+        379,
+        380
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.MythrilMelee",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           377,
-          379
+          379,
+          380
         ]
       ],
       "textKey": "ArmorSetBonus.MythrilMelee",
       "uniqueItemIds": [
-        0,
         377,
-        379
+        379,
+        380
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.MythrilRanged",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           378,
-          379
+          379,
+          380
         ]
       ],
       "textKey": "ArmorSetBonus.MythrilRanged",
       "uniqueItemIds": [
-        0,
         378,
-        379
+        379,
+        380
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteCaster",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           400,
-          403
+          403,
+          404
         ]
       ],
       "textKey": "ArmorSetBonus.AdamantiteCaster",
       "uniqueItemIds": [
-        0,
         400,
-        403
+        403,
+        404
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteMelee",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           401,
-          403
+          403,
+          404
         ]
       ],
       "textKey": "ArmorSetBonus.AdamantiteMelee",
       "uniqueItemIds": [
-        0,
         401,
-        403
+        403,
+        404
       ]
     },
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteRanged",
-      "primaryPart": null,
+      "primaryPart": "Head",
       "setCount": 1,
       "sets": [
         [
-          0,
           402,
-          403
+          403,
+          404
         ]
       ],
       "textKey": "ArmorSetBonus.AdamantiteRanged",
       "uniqueItemIds": [
-        0,
         402,
-        403
+        403,
+        404
       ]
     },
     {
@@ -1741,13 +1771,14 @@
     }
   ],
   "schemaVersion": "1.0.0",
-  "sourceFile": "terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content",
-  "totalRecords": 63,
+  "sourceFile": "terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content|timestamp|ids",
+  "totalRecords": 64,
   "upstreamMeta": {
-    "fetchedAt": "2026-08-13T17:58:14.721Z",
+    "fetchedAt": "2026-10-09T05:35:33.394Z",
     "source": "terraria.wiki.gg:Module:ArmorSetBonuses",
     "sourceApi": "https://terraria.wiki.gg/api.php",
     "sourcePageTitle": "Module:ArmorSetBonuses",
+    "sourceRevisionId": 964993,
     "sourceRevisionTimestamp": "2026-01-31T20:21:00Z"
   }
 }

@@ -22,6 +22,10 @@ const HASH_C = `sha256:${'c'.repeat(64)}`;
 const HASH_D = `sha256:${'d'.repeat(64)}`;
 const HASH_E = `sha256:${'e'.repeat(64)}`;
 
+const SERIAL_L2_ORDER = Object.freeze([
+  'items', 'npcs', 'projectiles', 'armor_sets', 'buffs', 'audio', 'bosses', 'shimmer',
+]);
+
 const currentRows = [
   { domainId: 'items', policyVersion: 1, policyHash: HASH_A },
   { domainId: 'npcs', policyVersion: 1, policyHash: HASH_B },
@@ -139,6 +143,10 @@ async function setup() {
   const readiness = {
     domainId: 'items', verdict: 'READY_FOR_L2', blockingGates: [], proposalInput: true,
     currentPolicy: { level: 'L1', operationalState: 'ACTIVE', policyVersion: 1, policyHash: HASH_A, policySetHash: CURRENT_POLICY_SET_HASH },
+    l1EvidencePolicySetHash: CURRENT_POLICY_SET_HASH,
+    serialTransition: {
+      schemaVersion: 1, order: SERIAL_L2_ORDER, sequenceIndex: 0, predecessor: null,
+    },
     successfulCommittedL1Runs: 3,
     l1Runs,
     fullReconciliation: { status: 'verified', evidence: l1Runs[2].evidencePath, evidenceSha256: l1Runs[2].evidenceSha256 },
@@ -146,6 +154,69 @@ async function setup() {
   };
   return { repoRoot, readiness, approved, policyArtifactFile, policyRegistration };
 }
+
+function makeLinkedProposalRoots(primaryRoot) {
+  const linkedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-l2-proposal-linked-'));
+  const commonGitDir = path.join(primaryRoot, '.git');
+  const worktreeGitDir = path.join(commonGitDir, 'worktrees', path.basename(linkedRoot));
+  fs.mkdirSync(path.join(commonGitDir, 'objects'), { recursive: true });
+  fs.mkdirSync(worktreeGitDir, { recursive: true });
+  fs.writeFileSync(path.join(commonGitDir, 'HEAD'), 'ref: refs/heads/test\n');
+  fs.writeFileSync(path.join(commonGitDir, 'config'), '[core]\n\trepositoryformatversion = 0\n');
+  fs.writeFileSync(path.join(worktreeGitDir, 'commondir'), '../..\n');
+  fs.writeFileSync(path.join(worktreeGitDir, 'gitdir'), `${path.join(linkedRoot, '.git')}\n`);
+  fs.writeFileSync(path.join(linkedRoot, '.git'), `gitdir: ${worktreeGitDir}\n`);
+
+  const copy = (relativePath) => {
+    const source = path.join(primaryRoot, relativePath);
+    const target = path.join(linkedRoot, relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+  };
+  copy('reports/authorization/canonical/l2-policy-ceiling/items'
+    + `/${fs.readdirSync(path.join(primaryRoot, 'reports/authorization/canonical/l2-policy-ceiling/items'))[0]}/artifact.json`);
+  copy('reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json');
+  copy('reports/authorization/canonical/automation-items-l2-policy-ceiling-registration.result.json.commit.json');
+  return linkedRoot;
+}
+
+test('proposal builder requires an explicit corresponding primary evidence root for linked worktrees', async () => {
+  const fixture = await setup();
+  const linkedRoot = makeLinkedProposalRoots(fixture.repoRoot);
+  assert.throws(() => buildL2PromotionProposal({
+    repoRoot: linkedRoot,
+    readiness: fixture.readiness,
+    policyArtifact: fixture.approved,
+    policyArtifactPath: fixture.policyArtifactFile.path,
+    policyArtifactFileSha256: fixture.policyArtifactFile.sha256,
+    policyRegistration: fixture.policyRegistration,
+    serverFingerprint: {
+      host: '127.0.0.1',
+      port: 13306,
+      serverUuid: 'uuid',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    },
+    generatedAt: '2026-08-26T06:00:00.000Z',
+  }), /evidence root|primary worktree|hash drift|bundle/i);
+
+  const proposal = buildL2PromotionProposal({
+    repoRoot: linkedRoot,
+    evidenceRoot: fixture.repoRoot,
+    readiness: fixture.readiness,
+    policyArtifact: fixture.approved,
+    policyArtifactPath: fixture.policyArtifactFile.path,
+    policyArtifactFileSha256: fixture.policyArtifactFile.sha256,
+    policyRegistration: fixture.policyRegistration,
+    serverFingerprint: {
+      host: '127.0.0.1',
+      port: 13306,
+      serverUuid: 'uuid',
+      databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    },
+    generatedAt: '2026-08-26T06:00:00.000Z',
+  });
+  assert.equal(proposal.l1Runs.length, 3);
+});
 
 test('builds a deterministic exact-domain L2 proposal from approved readiness evidence', async () => {
   const fixture = await setup();
@@ -172,6 +243,51 @@ test('builds a deterministic exact-domain L2 proposal from approved readiness ev
     serverFingerprint: { host: '127.0.0.1', port: 13306, serverUuid: 'uuid', databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'] },
     generatedAt: '2026-08-26T06:00:00.000Z',
   }));
+});
+
+test('proposal binds separate live and L1 evidence policy sets and preserves static registration provenance', async () => {
+  const fixture = await setup();
+  const liveRows = currentRows.map((row) => (
+    row.domainId === 'npcs' ? { ...row, policyHash: HASH_C } : row
+  ));
+  const livePolicySetHash = computePolicySetHash(liveRows);
+  const readiness = {
+    ...fixture.readiness,
+    currentPolicy: { ...fixture.readiness.currentPolicy, policySetHash: livePolicySetHash },
+    l1EvidencePolicySetHash: CURRENT_POLICY_SET_HASH,
+  };
+  const proposal = buildL2PromotionProposal({
+    repoRoot: fixture.repoRoot,
+    readiness,
+    promotionCurrentPolicyRows: liveRows,
+    policyArtifact: fixture.approved,
+    policyArtifactPath: fixture.policyArtifactFile.path,
+    policyArtifactFileSha256: fixture.policyArtifactFile.sha256,
+    policyRegistration: fixture.policyRegistration,
+    serverFingerprint: { host: '127.0.0.1', port: 13306, serverUuid: 'uuid', databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'] },
+    generatedAt: '2026-08-26T06:00:00.000Z',
+  });
+  assert.equal(proposal.currentPolicySetHash, livePolicySetHash);
+  assert.equal(proposal.l1EvidencePolicySetHash, CURRENT_POLICY_SET_HASH);
+  assert.equal(proposal.policyArtifactCurrentPolicySetHash, fixture.approved.currentPolicySetHash);
+  assert.equal(proposal.policyArtifactTargetPolicySetHash, fixture.approved.targetPolicySetHash);
+  assert.notEqual(proposal.targetPolicySetHash, fixture.approved.targetPolicySetHash);
+});
+
+test('proposal generation rejects a readiness record without the serial transition contract', async () => {
+  const fixture = await setup();
+  const readiness = { ...fixture.readiness };
+  delete readiness.serialTransition;
+  assert.throws(() => buildL2PromotionProposal({
+    repoRoot: fixture.repoRoot,
+    readiness,
+    policyArtifact: fixture.approved,
+    policyArtifactPath: fixture.policyArtifactFile.path,
+    policyArtifactFileSha256: fixture.policyArtifactFile.sha256,
+    policyRegistration: fixture.policyRegistration,
+    serverFingerprint: { host: '127.0.0.1', port: 13306, serverUuid: 'uuid', databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'] },
+    generatedAt: '2026-08-26T06:00:00.000Z',
+  }), /serial|transition/i);
 });
 
 test('accepts the complete policy set while keeping the ceiling owned by one target domain', () => {

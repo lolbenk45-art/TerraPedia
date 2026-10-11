@@ -53,6 +53,7 @@ function validPreflight(overrides = {}) {
       { domain: 'items', actionId: 'wiki-items-refresh', readinessStatus: 'eligible', sourceHash: `sha256:${'c'.repeat(64)}`, observedAt: '2026-08-10T00:59:00.000Z', evidencePath: 'reports/domain-readiness/items.json', stateStoreEpoch: 'epoch-current' },
       { domain: 'npcs', actionId: 'wiki-npcs-refresh', readinessStatus: 'eligible', sourceHash: `sha256:${'d'.repeat(64)}`, observedAt: '2026-08-10T00:59:00.000Z', evidencePath: 'reports/domain-readiness/npcs.json', stateStoreEpoch: 'epoch-current' },
     ],
+    canary: { actionId: 'wiki-items-refresh', domainId: 'items' },
     policyRows: POLICY_ROWS,
     policySetHash: computePolicySetHash(POLICY_ROWS),
     t1Report,
@@ -66,7 +67,7 @@ function validPreflight(overrides = {}) {
 }
 
 test('proposal is disabled, proposal-only, and derives all current values from preflight', () => {
-  const preflight = validPreflight();
+  const preflight = validPreflight({ canary: { actionId: 'wiki-items-refresh', domainId: 'items' } });
   const proposal = buildCrawlerV2SchedulerActivationProposal({
     t1Report,
     preflight,
@@ -90,8 +91,29 @@ test('proposal is disabled, proposal-only, and derives all current values from p
     { domainId: 'npcs', actionId: 'wiki-npcs-refresh', readinessStatus: 'eligible' },
   ]);
   assert.deepEqual(proposal.rollback.body, { enabled: false, mode: 'changed-only' });
+  assert.deepEqual(proposal.canary, { actionId: 'wiki-items-refresh', domainId: 'items' });
+  assert.equal(proposal.requested.canaryActionId, 'wiki-items-refresh');
   assert.match(proposal.proposalHash, /^sha256:[a-f0-9]{64}$/);
   assert.equal(proposal.packetHash, undefined);
+});
+
+test('proposal rejects a missing or mismatched canary scope', () => {
+  const base = validPreflight({ canary: { actionId: 'wiki-items-refresh', domainId: 'items' } });
+  for (const candidate of [
+    validPreflight({ canary: undefined }),
+    validPreflight({ canary: { actionId: 'wiki-items-refresh', domainId: 'npcs' } }),
+    validPreflight({ canary: { actionId: 'unknown-action', domainId: 'items' } }),
+  ]) {
+    assert.throws(
+      () => buildCrawlerV2SchedulerActivationProposal({
+        t1Report,
+        preflight: candidate,
+        codeBundle: base.codeBundle,
+        now: '2026-08-10T01:05:00.000Z',
+      }),
+      /canary/i,
+    );
+  }
 });
 
 test('scheduler action bindings stay aligned with the backend action registry source', () => {

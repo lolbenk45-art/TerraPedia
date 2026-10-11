@@ -457,7 +457,7 @@ function loadSourcePayload({ domainId, repoRoot }) {
   };
 }
 
-function sourceCommandArgs(domainId, progressPath, runId) {
+export function sourceCommandArgs(domainId, progressPath, runId) {
   if (domainId === 'audio') {
     return [
       '--mode=all',
@@ -469,7 +469,7 @@ function sourceCommandArgs(domainId, progressPath, runId) {
   }
   if (domainId === 'bosses') return [`--resume-mode=fresh`, `--progress-path=${progressPath}`];
   if (domainId === 'armor_sets') return [`--progress-path=${progressPath}`];
-  if (domainId === 'buffs') return [`--progress-path=${progressPath}`, '--skip-buff-page-immunities=true'];
+  if (domainId === 'buffs') return [`--progress-path=${progressPath}`];
   if (domainId === 'shimmer') return [`--run-id=${runId}`, `--progress-path=${progressPath}`];
   return [];
 }

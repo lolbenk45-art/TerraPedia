@@ -16,7 +16,11 @@ import {
   CANONICAL_CUTOVER_OPERATION_IDS,
   CANONICAL_OPERATION_DATA_PATHS,
   CANONICAL_OPERATION_ENTRYPOINTS,
+  resolveCanonicalOperationTechnicalInput,
 } from './build-canonical-cutover-authorization.mjs';
+import { buildBaseDomainSourceCommand } from './run-base-domain-automatic-operation.mjs';
+import { buildDomainSourceCommand } from './prepare-supplementary-domain-l1-preview.mjs';
+import { getGovernedL1DomainConfig } from './run-governed-l1-operation.mjs';
 import {
   SHIMMER_IMPORT_PROVIDER_SCOPE,
   shimmerImportBindingFromInputContract,
@@ -32,6 +36,7 @@ import {
   buildItemSourceLocalNpcAdmissionAttemptPaths,
   buildItemSourceLocalNpcAdmissionInputContract,
 } from '../relation/item-source-local-npc-admission-contract.mjs';
+import { buildArmorCanonicalIntentArtifactBinding } from '../relation/armor-canonical-operation-binding.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 const npcT1ConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-config-'));
@@ -77,6 +82,39 @@ function governedL1ManifestOptions(operationId) {
 }
 
 function manifestOptions(operationId) {
+  if (operationId === 'canonical-armor-set-projection-incremental'
+      || operationId === 'canonical-armor-item-effect-source'
+      || operationId === 'canonical-armor-item-lineage-refresh'
+      || operationId === 'canonical-armor-shroomite-relation-item-refresh'
+      || operationId === 'canonical-armor-relation-item-normalization'
+      || operationId === 'canonical-armor-missing-attribute-source'
+      || operationId === 'canonical-armor-attribute-relation-publication'
+      || operationId === 'canonical-armor-source-effect-publication'
+      || operationId === 'canonical-armor-secondary-projection'
+      || operationId === 'canonical-armor-typed-effect-publication'
+      || operationId === 'canonical-buff-full-chain') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-image-cache') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-semantic-repair') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-historical-tuple-repair') return { resultLabel: 'test-01' };
+  if (operationId === 'canonical-armor-ingestion') return {
+    resultLabel: 'test-01',
+    armorCanonicalIntentBinding: buildArmorCanonicalIntentArtifactBinding({
+      resultLabel: 'test-01',
+      intent: {
+        schemaVersion: 'armor-canonical-full-chain-intent/v1',
+        operationId: 'canonical-armor-ingestion',
+        executable: false,
+        executionBlocker: 'registered-full-chain-executor-required',
+        fullChainSha256: `sha256:${'a'.repeat(64)}`,
+      },
+      intentFileSha256: `sha256:${'b'.repeat(64)}`,
+      serverFingerprint: `sha256:${'c'.repeat(64)}`,
+      policySetHash: `sha256:${'d'.repeat(64)}`,
+      runId: 'armor-run-test-01',
+      fenceToken: 'armor-fence-test-01',
+      fenceCommit: { generation: 1, marker: 'armor-commit-test-01' },
+    }),
+  };
   const governed = governedL1ManifestOptions(operationId);
   if (governed.l1RunRoot) return governed;
   if (['canonical-npc-t1-acceptance', 'canonical-recipe-t1-acceptance', 'canonical-boss-t1-acceptance', 'canonical-projectile-t1-acceptance', 'canonical-buff-t1-acceptance', 'canonical-biome-t1-acceptance', 'canonical-crawler-v2-scheduler-t1-acceptance', 'canonical-crawler-v2-items-t1-acceptance'].includes(operationId)) {
@@ -340,14 +378,15 @@ test('image-origin and Armor restoration lanes are separate governed operations'
 
 test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 110);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 109);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 134);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 132);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
+  assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['automation-l1-historical-source-hash-disposition'], null);
   assert.deepEqual(
     Object.entries(CANONICAL_OPERATION_ENTRYPOINTS)
       .filter(([, entrypoint]) => entrypoint === null)
       .map(([operationId]) => operationId),
-    ['canonical-npc-apply'],
+    ['canonical-npc-apply', 'automation-l1-historical-source-hash-disposition'],
   );
   assert.deepEqual(
     CANONICAL_EXECUTABLE_OPERATION_IDS,
@@ -699,6 +738,14 @@ test('shimmer import manifest passes only the private exact input contract to th
     assert.equal(manifest.databaseWrites, true);
     assert.equal(manifest.networkAccess, false);
     assert.deepEqual(manifest.shimmerImport, fixture.binding);
+    assert.deepEqual(manifest.ownershipKeys, [
+      'local.world_contexts.shimmer_context',
+      'local.entity_source_snapshots.shimmer_source_lineage',
+      'local.shimmer_item_transforms.shimmer_source_page',
+      'local.shimmer_decraft_rules.shimmer_source_page',
+      'local.shimmer_entity_transforms.shimmer_source_page',
+      'local.shimmer_npc_transforms.shimmer_source_page',
+    ]);
     assert.ok(manifest.command.every((token) => !String(token).includes('latest')));
     assert.ok(manifest.command.every((token) => !String(token).startsWith('--raw=')));
     assert.ok(manifest.command.every((token) => !String(token).startsWith('--input=')));
@@ -723,6 +770,7 @@ test('shimmer import manifest passes only the private exact input contract to th
     const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
     for (const expectedPath of [
       'pipelines/import/import-wiki-shimmer-to-db.mjs',
+      'pipelines/automation/shimmer-partition-contract.mjs',
       'pipelines/automation/canonical-shimmer-import-input-contract.mjs',
       'pipelines/automation/authorized-operation-context.mjs',
       'pipelines/automation/build-canonical-cutover-authorization.mjs',
@@ -1399,6 +1447,11 @@ test('formal cutover and activation manifests freeze exact safety-critical argum
     operationId: 'canonical-npc-apply',
     artifactDate: '2026-07-28',
   }), /no governed executor.*canonical-npc-apply/i);
+  assert.throws(() => buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'automation-l1-historical-source-hash-disposition',
+    artifactDate: '2026-07-28',
+  }), /no governed executor.*automation-l1-historical-source-hash-disposition/i);
 });
 
 test('L2 policy ceiling registration manifests include an immutable post-commit marker output', () => {
@@ -1465,6 +1518,78 @@ test('L2 policy decision manifests expose the pending result and immutable commi
   }
 });
 
+test('L2 policy decision retry labels bind paired input and publication paths', () => {
+  const operationId = 'automation-armor-sets-l2-promotion';
+  const suffix = '.retry-02';
+  const inputPath = `reports/authorization/canonical/${operationId}${suffix}.input.json`;
+  const resultPath = `reports/authorization/canonical/${operationId}${suffix}.result.json`;
+  const markerPath = `${resultPath}.commit.json`;
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    artifactDate: '2026-08-30',
+    resultLabel: 'retry-02',
+  });
+  assert.deepEqual(manifest.command, [
+    'node', 'pipelines/automation/run-automation-policy-decision.mjs',
+    `--operation-id=${operationId}`,
+    `--input=${inputPath}`,
+    `--output=${resultPath}`,
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [inputPath]);
+  assert.deepEqual(manifest.outputPaths, [resultPath, markerPath]);
+  assert.deepEqual(manifest.policyDecisionPublication, {
+    pendingResultPath: resultPath,
+    commitMarkerPath: markerPath,
+  });
+  assert.equal(
+    assertCanonicalOperationExecutionManifestContract({ repoRoot, operationId, manifest }),
+    true,
+  );
+});
+
+test('L2 manifests freeze the explicit evidence root and complete historical disposition paths', () => {
+  const operationId = 'automation-items-l2-promotion';
+  const databaseEvidenceRoot = repoRoot;
+  const historicalDispositionPaths = [
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/items/'
+      + `${'a'.repeat(64)}/disposition.json`,
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/'
+      + `${'b'.repeat(64)}/disposition.json`,
+    'reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/'
+      + `${'c'.repeat(64)}/disposition.json`,
+  ];
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId,
+    databaseEvidenceRoot,
+    historicalSourceHashDispositionPaths: historicalDispositionPaths,
+  });
+  assert.ok(manifest.command.includes(`--database-evidence-root=${databaseEvidenceRoot}`));
+  assert.ok(manifest.command.includes(
+    `--historical-source-hash-disposition=${historicalDispositionPaths.join(',')}`,
+  ));
+  assert.deepEqual(manifest.policyDecisionEvidence, {
+    databaseEvidenceRoot,
+    historicalSourceHashDispositionPaths: historicalDispositionPaths,
+  });
+  assert.equal(
+    historicalDispositionPaths.every((value) => manifest.inputPaths.includes(value)),
+    true,
+  );
+});
+
+test('L2 manifests reject historical disposition paths without an explicit evidence root', () => {
+  assert.throws(() => buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'automation-items-l2-promotion',
+    historicalSourceHashDispositionPaths: [
+      `reports/authorization/canonical/l1-historical-source-hash-disposition/items/${'a'.repeat(64)}/disposition.json`,
+    ],
+  }), /database evidence root|evidence root/i);
+});
+
 test('scheduler activation manifest consumes explicit preflight and T1 paths without writes', () => {
   const manifest = buildCanonicalOperationExecutionManifest({
     repoRoot,
@@ -1489,7 +1614,134 @@ test('scheduler activation manifest consumes explicit preflight and T1 paths wit
   assert.equal(manifest.databaseWrites, false);
   assert.equal(manifest.isolatedResourceWrites, false);
   assert.equal(manifest.networkAccess, false);
-  assert.ok(manifest.codeBundleEntries.some((entry) => entry.path.endsWith('crawler-v2-scheduler-activation-preflight.mjs')));
+  const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+  for (const requiredPath of [
+    'pipelines/automation/crawler-v2-scheduler-activation-preflight.mjs',
+    'pipelines/automation/build-canonical-scheduler-activation-request.mjs',
+    'pipelines/automation/capture-crawler-v2-scheduler-activation-input.mjs',
+    'pipelines/automation/run-automation-policy-decision.mjs',
+    'platform/local/start-local-stack.sh',
+    'platform/local/lib/runtime-config.sh',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/dto/CrawlerV2AutomationDTO.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/CrawlerAutomationPolicyService.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisor.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerAutomationPolicyServiceImpl.java',
+    'services/catalog-api/src/main/java/com/terraria/skills/mapper/CrawlerAutomationActivationDecisionMapper.java',
+    'services/catalog-api/src/main/resources/db/migration/V61__bind_scheduler_activation_canary_scope.sql',
+  ]) {
+    assert.ok(codePaths.has(requiredPath), `${requiredPath} must be pinned by the scheduler activation bundle`);
+  }
+});
+
+const SCHEDULER_RUNTIME_REQUIRED_PATHS = [
+  'pipelines/automation/run-base-domain-automatic-operation.mjs',
+  'pipelines/automation/run-armor-automatic-operation.mjs',
+  'pipelines/automation/armor-automatic-dispatch-binding.mjs',
+  'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
+  'pipelines/automation/automatic-execution-artifacts.mjs',
+  'pipelines/automation/run-supplementary-domain-l1-operation.mjs',
+  'pipelines/automation/build-l1-reconciliation-evidence.mjs',
+  'pipelines/automation/source-dispatch-identity.mjs',
+  'pipelines/import/import-standardized-to-db.mjs',
+  'pipelines/import/import-independent-entities-to-db.mjs',
+  'pipelines/import/import-wiki-audio-assets-to-db.mjs',
+  'pipelines/import/import-wiki-bosses-to-db.mjs',
+  'pipelines/import/import-wiki-shimmer-to-db.mjs',
+  'pipelines/monitor/check-source-updates.mjs',
+  'pipelines/workflow/seed-wiki-source-manifest.mjs',
+  'pipelines/normalize/normalize-wiki-items.mjs',
+  'services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java',
+  ...['items', 'npcs', 'projectiles', 'armor_sets', 'buffs'].map((domain) => buildBaseDomainSourceCommand(domain, '/tmp/progress.json')[0]),
+  ...['audio', 'bosses', 'shimmer'].map((domainId) => buildDomainSourceCommand({ domainId, progressPath: '/tmp/progress.json', runId: 'test', resumeMode: 'fresh' })[0]),
+  ...GOVERNED_L1_OPERATION_CASES.map(({ domainId }) => getGovernedL1DomainConfig(domainId).fetchScript),
+];
+
+for (const operationId of ['canonical-crawler-v2-scheduler-activation', 'automation-crawler-v2-scheduler-activation', 'automation-crawler-v2-scheduler-reactivation']) {
+  test(`${operationId} pins the existing eight-action child runtime and transitive importers`, () => {
+    const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+    const codePaths = new Set(manifest.codeBundleEntries.map((entry) => entry.path));
+    for (const requiredPath of SCHEDULER_RUNTIME_REQUIRED_PATHS) {
+      assert.ok(codePaths.has(requiredPath), `${requiredPath} must be pinned by ${operationId}`);
+    }
+  });
+
+  for (const targetPath of [
+    'pipelines/automation/automatic-execution-artifacts.mjs',
+    'pipelines/automation/run-base-domain-automatic-operation.mjs',
+    'pipelines/automation/run-armor-automatic-operation.mjs',
+    'pipelines/automation/armor-automatic-dispatch-binding.mjs',
+    'pipelines/import/import-independent-entities-to-db.mjs',
+    'pipelines/fetch/fetch-wiki-projectileinfo.mjs',
+  ]) {
+    test(`${operationId} detects frozen runtime byte drift in ${targetPath}`, (t) => {
+      const frozen = buildCanonicalOperationExecutionManifest({ repoRoot, operationId });
+      assert.ok(frozen.codeBundleEntries.some((entry) => entry.path === targetPath), 'runtime file must be bound before byte verification');
+      const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'scheduler-manifest-runtime-'));
+      t.after(() => fs.rmSync(temporaryRoot, { recursive: true, force: true }));
+      for (const entry of frozen.codeBundleEntries) {
+        const target = path.join(temporaryRoot, entry.path);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.copyFileSync(path.join(repoRoot, entry.path), target);
+      }
+      fs.appendFileSync(path.join(temporaryRoot, targetPath), '\n// deliberate runtime byte drift\n');
+      assert.throws(() => resolveCanonicalOperationTechnicalInput({
+        repoRoot: temporaryRoot, operationId, executionManifest: frozen,
+      }), new RegExp(`code bundle hash mismatch: ${targetPath.replaceAll('.', '\\.')}`));
+    });
+  }
+}
+
+test('scheduler activation manifest binds retry-labelled proposal inputs and output', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-crawler-v2-scheduler-activation',
+    artifactDate: '2026-09-07',
+    resultLabel: 'retry-02',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node',
+    'pipelines/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs',
+    '--preflight=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.preflight.json',
+    '--t1-report=reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+    '--output=reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.proposal.json',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/canonical-migration/canonical-crawler-v2-scheduler-t1-acceptance-npc-t1-crawler-v2-auto-ingestion-20260809-04.json',
+    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.preflight.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-02.proposal.json',
+  ]);
+  assert.equal(manifest.resultLabel, 'retry-02');
+});
+
+test('scheduler policy decision manifest binds retry-labelled input and result', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'automation-crawler-v2-scheduler-activation',
+    artifactDate: '2026-09-07',
+    resultLabel: 'retry-04',
+  });
+
+  assert.deepEqual(manifest.command, [
+    'node',
+    'pipelines/automation/run-automation-policy-decision.mjs',
+    '--operation-id=automation-crawler-v2-scheduler-activation',
+    '--input=reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.input.json',
+    '--output=reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.result.json',
+    '--apply=true',
+  ]);
+  assert.deepEqual(manifest.inputPaths, [
+    'reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.input.json',
+  ]);
+  assert.deepEqual(manifest.outputPaths, [
+    'reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-04.result.json',
+  ]);
+  assert.equal(manifest.resultLabel, 'retry-04');
+  assert.equal(manifest.databaseWrites, true);
 });
 
 test('image and boss manifests require and freeze the active backend API base', () => {
@@ -1654,6 +1906,7 @@ test('item image projection manifest binds one decision-derived attempt root', (
       'pipelines/maint/maint-schema.mjs',
       'pipelines/npc-canonical/npc-apply-ownership-preparation.mjs',
       'pipelines/relation/apply-item-image-projection.mjs',
+      'pipelines/relation/armor-source-effect-owner-decision.mjs',
       'pipelines/relation/build-item-image-projection-proposal.mjs',
       'pipelines/relation/item-image-lineage-db.mjs',
       'pipelines/relation/item-image-origin-repair-evidence-adapter.mjs',
@@ -1663,6 +1916,7 @@ test('item image projection manifest binds one decision-derived attempt root', (
       'pipelines/relation/projection-schema.mjs',
       'pipelines/relation/relation-schema.mjs',
       'pipelines/transform/shimmer-generation-contract.mjs',
+      'pipelines/workflow/armor-image-cache.mjs',
       'scripts/lib/local-runtime-config.mjs',
     ].sort());
   } finally {

@@ -68,6 +68,85 @@ restore, own, or report V2 live work. See
 `docs/runbooks/crawler-monitor-queue-v2-cutover.md` for the authenticated
 cutover, first-mutation, reset, and restart procedure.
 
+Scheduler-owned automatic V2 attempts additionally carry one immutable source
+dispatch identity: a canonical content fingerprint, the validated probe run
+identity, and the validated probe-content identity. Redis attempt state,
+attempt manifest/operation plan, worker environment, automatic bundle,
+reconciliation evidence, and final V2 readback must agree exactly. Missing or
+mismatched identity fails before the worker can apply data or acknowledge the
+source. Retries retain the original identity; a changed fingerprint creates a
+new attempt identity rather than relying on mutable last-sweep output.
+Automatic runner source-monitor verification binds the configured monitor state
+to a repository-confined ordinary file through no-follow descriptor access and
+rechecks its object identity after reading; a symbolic link, replacement race,
+or malformed state fails before publication, mutation, or acknowledgement.
+
+Scheduler-owned automatic artifacts are attempt-isolated without changing
+content-level database deduplication. The logical database run ID remains
+content-derived; immutable artifact paths additionally bind the exact source
+dispatch triple and `(stateStoreEpoch, queueId, attemptId)` carried in the hashed
+`importPlan.automaticAttemptIdentity`. Canonical consumers recompute those paths
+and reject sibling-attempt progress/evidence. Committed-run recovery verifies
+and reuses the persisted original bundle/source identities rather than importing
+again from a new empty attempt directory. Historical artifacts remain immutable;
+external runner result output cannot overlap automatic or reconciliation
+evidence namespaces. Legacy no-dispatch invocation retains its existing paths.
+
+The scheduler authorization code bundle pins the automatic runners, their
+spawned source entrypoints and transitive runtime helpers. In dual-root local
+operation, automatic and wiki-sync child scripts resolve from the executing
+code root; `WORKTREE_ROOT`, working directory and data/progress/manifest paths
+continue to identify the durable data root. Importing wiki-sync as a library
+does not start its CLI, a monitor, or a request-gate reset.
+
+Canonical ownership repair uses registered executors and fresh exact packets;
+draft metadata, caller booleans and partition mode strings are never authority.
+The bounded Armor incremental operation updates existing projection identities
+only and preserves unmatched rows; it is distinct from historical empty-table
+restoration and does not implement upstream ingestion. Buff general sync is
+read-only until a registered executor binds page-immunity and managed-image
+evidence without schema preparation. Shimmer cross-owner execution remains
+blocked until real enforced partitions for `world_contexts` and
+`entity_source_snapshots` join its four transform scopes. These contracts do not
+widen H8 or authorize runtime writes by themselves; see devlog for current
+scope approval, review and runtime validation state.
+
+The separate `canonical-armor-secondary-projection` operation publishes existing
+Armor-member attributes and item-owned `armor_attribute_cell` effects into the
+two relation secondary projection tables. It binds an explicit member subset,
+current source/baseline snapshots, collision-checked relation-row insert IDs,
+locked rederivation and immutable PREPARED/result evidence. It preserves other
+rows and existing IDs; it does not own upstream attribute/effect facts, local
+items or new set effects. Historical lineage equality and DB/API parity alone
+do not establish source semantic correctness or automatic ingestion acceptance.
+
+The separate `canonical-armor-item-effect-source` operation binds a versioned
+Shroomite proposal to append-only `armor_item_effects_raw` landing copies in
+local/maint and three typed maint attribute-source rows. It requires a fresh
+exact packet, one-use dispatch permit, locked rederivation, runtime writer
+fences and immutable PREPARED/result evidence. Landing reads bind both provider
+and content-derived source key using the existing index. Read-only preparation
+grants no execution authority. This source-only operation does not publish
+relation/projection rows or establish complete item/set coverage; typed-source
+dispatch and consumer/automation acceptance remain separate admission gates.
+
+The separate `canonical-armor-missing-attribute-source` operation owns only the
+revision-bound missing-owner Armor attribute landing and maint rows. It binds a
+result-label-specific proposal, owner decision, one-use dispatch permit,
+locked rederivation and immutable PREPARED/result evidence; it does not publish
+relation/projection rows or clear the complete-coverage, typed set-effect or
+recovery gates. Its preparation path is read-only and its runner fails closed
+until the pre-apply owner decision is independently resolved.
+
+Armor dry-run dispatch distinguishes typed item-page effects from complete
+table-derived attribute rows. It rederives typed facts from maint landing
+bytes and verifies maint/item identities before producing relation/projection
+expectations. The independent projection candidate hashes optional typed
+source snapshots and reconstructs their expectations separately. Both retain
+the complete-version-coverage blocker. General sync apply still rejects typed
+sources, and the existing secondary-projection operation's ownership is not
+widened by this read-only dispatch.
+
 Canonical item-group runtime reads use the published formal
 `terria_v1_local` projection backed by maint and relation lineage. The admin
 item-group, admin recipe-group, and recipe-tree consumers have no production
@@ -153,3 +232,9 @@ in the same task:
 Do not update this spec for ordinary bug fixes, temporary investigation notes,
 command logs, or one-off task progress. Record those in devlog, plans, audits,
 or project-management files.
+
+Armor source-image acquisition and governed cache uploads expose independent
+read-only monitor evidence at `data/generated/armor-image-cache-progress.latest.json`
+under the configured crawler data root. The registered `armor-set-images` task
+reads that file even when generic Wiki progress uses Redis. This progress is
+observability only; it grants no scheduler, queue or ingestion authority.

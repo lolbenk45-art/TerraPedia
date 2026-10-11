@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l2-reauthorization",
+  "artifactDate": "2026-09-18",
+  "resultLabel": "retry-03",
+  "executionClass": "formal_policy_decision",
+  "command": [
+    "node",
+    "pipelines/automation/run-automation-policy-decision.mjs",
+    "--operation-id=automation-items-l2-reauthorization",
+    "--input=reports/authorization/canonical/automation-items-l2-reauthorization.retry-03.input.json",
+    "--output=reports/authorization/canonical/automation-items-l2-reauthorization.retry-03.result.json",
+    "--apply=true"
+  ],
+  "inputPaths": [
+    "reports/authorization/canonical/automation-items-l2-reauthorization.retry-03.input.json"
+  ],
+  "outputPaths": [
+    "reports/authorization/canonical/automation-items-l2-reauthorization.retry-03.result.json",
+    "reports/authorization/canonical/automation-items-l2-reauthorization.retry-03.result.json.commit.json"
+  ],
+  "reportPaths": [],
+  "progressPaths": [],
+  "policyDecisionPublication": {
+    "pendingResultPath": "reports/authorization/canonical/automation-items-l2-reauthorization.retry-03.result.json",
+    "commitMarkerPath": "reports/authorization/canonical/automation-items-l2-reauthorization.retry-03.result.json.commit.json"
+  },
+  "policyDecisionReauthorization": true,
+  "databaseWrites": true,
+  "networkAccess": false,
+  "codeBundleEntries": [
+    {
+      "path": "pipelines/automation/run-automation-policy-decision.mjs",
+      "contentHash": "sha256:fd7ec27c3766b8b4f926f525b49c0f3ea5b2bde01f8881a13574840266f9128b"
+    },
+    {
+      "path": "pipelines/automation/capture-l2-policy-stable-reauthorization-input.mjs",
+      "contentHash": "sha256:9b18da89e58110a8976bc4fde7ea7af3b513423746cdd4610a0c5ce25f25ce15"
+    },
+    {
+      "path": "pipelines/automation/build-l2-policy-stable-reauthorization-proposal.mjs",
+      "contentHash": "sha256:4e0f243eb27f88c94d4da2ed12e21592dde72fe571fe6cb842254023281090e6"
+    },
+    {
+      "path": "pipelines/automation/l2-policy-stable-reauthorization.mjs",
+      "contentHash": "sha256:7cbffeb3d0302c842e9f972938f5afbc0cb2bbd2beaad734da169fd99e01db64"
+    },
+    {
+      "path": "pipelines/automation/reconciliation-evidence-contract.mjs",
+      "contentHash": "sha256:5738044fd388a5c22afe3ae56b0aed6162a68cb610501f76e8ec687e45f5208b"
+    },
+    {
+      "path": "pipelines/automation/authorized-operation-context.mjs",
+      "contentHash": "sha256:7255ec9cfd93763ec35da9e59d9e8bf3821ee51aeccbc436ff8c44fa2e4ff0b7"
+    },
+    {
+      "path": "pipelines/automation/build-canonical-cutover-authorization.mjs",
+      "contentHash": "sha256:3087c840aa340675439eb0d690efd191e94214f3018fc2af5700e7d70041a9c4"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-catalog.mjs",
+      "contentHash": "sha256:008322eccc19b1611e03085e6ee2d7f090e2ad235c53f5de158eb7470aa15eb0"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-execution-manifest.mjs",
+      "contentHash": "sha256:5f5eb4c8eea6ddeb317e8cd3a409f2eccc7b052c1d6ea8a7059575a7bfde8570"
+    },
+    {
+      "path": "pipelines/automation/policy-set-hash.mjs",
+      "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681"
+    },
+    {
+      "path": "pipelines/lib/mysql-module.mjs",
+      "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0"
+    },
+    {
+      "path": "pipelines/automation/run-authorized-canonical-operation.mjs",
+      "contentHash": "sha256:8b40021ae3decd69eff8bae96c7c4653b283f50d8f69fddaef63b56baf5f191b"
+    },
+    {
+      "path": "pipelines/automation/automation-database-contract.mjs",
+      "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8"
+    },
+    {
+      "path": "pipelines/lib/private-repository-path.mjs",
+      "contentHash": "sha256:fd760bd9ea92d2a3c894bc2fc4d1a874aa82153a35c7b22cc63edc8138d3a0d0"
+    },
+    {
+      "path": "pipelines/automation/bootstrap-automation-policy.mjs",
+      "contentHash": "sha256:877d174ff9db0300600c36f54fb4618bd8d07ff4f7bd004de2461057749ce734"
+    },
+    {
+      "path": "pipelines/automation/build-l2-promotion-proposal.mjs",
+      "contentHash": "sha256:902b73eb64fb7a582c013c81bdd0207b50439549a5904e7bb4b53d4a4577f287"
+    },
+    {
+      "path": "pipelines/automation/l2-promotion-serial-contract.mjs",
+      "contentHash": "sha256:99766df41572124117ee4777ec46c36f9acf4d7a415ad4ad405b72394640b93d"
+    },
+    {
+      "path": "pipelines/automation/l2-policy-ceiling-artifact.mjs",
+      "contentHash": "sha256:03417f85184db1460ab260f30b222d1c90bc2df9442f7790e07243e6e3e07c76"
+    },
+    {
+      "path": "pipelines/automation/historical-source-hash-disposition.mjs",
+      "contentHash": "sha256:14e793ebc5a9b756392da521eb1526b8f42d4bea2d61d40e456ed96a30154f89"
+    },
+    {
+      "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs",
+      "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d"
+    },
+    {
+      "path": "pipelines/relation/item-image-projection-contract.mjs",
+      "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4"
+    },
+    {
+      "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs",
+      "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb"
+    },
+    {
+      "path": "pipelines/lib/project-root.mjs",
+      "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74"
+    },
+    {
+      "path": "pipelines/automation/register-l2-policy-ceiling.mjs",
+      "contentHash": "sha256:1c7935327827cc630a63b075174f838c6ccbf68b0143557102852de01f4b8ac3"
+    },
+    {
+      "path": "pipelines/transform/shimmer-generation-contract.mjs",
+      "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9"
+    },
+    {
+      "path": "pipelines/relation/managed-image-url-policy.mjs",
+      "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591"
+    },
+    {
+      "path": "pipelines/automation/table-ownership-matrix.mjs",
+      "contentHash": "sha256:696e414f16fec1f3529ea1bd6406f40cb70f773b609891a034c376e0cc387642"
+    },
+    {
+      "path": "pipelines/maint/maint-schema.mjs",
+      "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886"
+    },
+    {
+      "path": "pipelines/relation/relation-schema.mjs",
+      "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719"
+    },
+    {
+      "path": "pipelines/relation/projection-schema.mjs",
+      "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe"
+    }
+  ]
+}

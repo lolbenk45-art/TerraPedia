@@ -233,6 +233,11 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
 
     @Override
     public AutomationEligibility schedulerEligibility(String domainId) {
+        return schedulerEligibility(domainId, null);
+    }
+
+    @Override
+    public AutomationEligibility schedulerEligibility(String domainId, String actionId) {
         if (domainId == null || !domainId.matches("[a-z][a-z0-9_]{0,63}")) {
             return new AutomationEligibility(false, List.of("SCHEDULER_DOMAIN_INVALID"));
         }
@@ -287,7 +292,7 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
             }
             reasons.addAll(activationDecisionReasons(
                 "SCHEDULER_ACTIVATION", "SCHEDULER_ACTIVATION", schedulerPolicy, policySetHash,
-                false, true));
+                false, true, actionId));
         }
         return new AutomationEligibility(reasons.isEmpty(), List.copyOf(reasons));
     }
@@ -376,6 +381,20 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         boolean requireRepeatedL1Evidence,
         boolean requireCurrentPolicySet
     ) {
+        return activationDecisionReasons(
+            decisionKind, reasonPrefix, policy, policySetHash,
+            requireRepeatedL1Evidence, requireCurrentPolicySet, null);
+    }
+
+    private List<String> activationDecisionReasons(
+        String decisionKind,
+        String reasonPrefix,
+        PolicyRow policy,
+        String policySetHash,
+        boolean requireRepeatedL1Evidence,
+        boolean requireCurrentPolicySet,
+        String expectedAuthorizedActionId
+    ) {
         ActivationDecisionRecord record = activationDecisionMapper.findLatestActivationDecision(
             decisionKind, policy.domainId());
         if (record == null) return List.of(reasonPrefix + "_DECISION_REQUIRED");
@@ -391,6 +410,12 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         }
         if (requireCurrentPolicySet && !Objects.equals(policySetHash, record.policySetHash())) {
             return List.of(reasonPrefix + "_POLICY_SET_MISMATCH");
+        }
+        if (expectedAuthorizedActionId != null && !Objects.equals(
+            expectedAuthorizedActionId, record.authorizedActionId())) {
+            return List.of(record.authorizedActionId() == null
+                ? "SCHEDULER_CANARY_SCOPE_REQUIRED"
+                : "SCHEDULER_CANARY_ACTION_MISMATCH");
         }
         int minimumSuccessfulL1Runs = "L2_PROMOTION".equals(decisionKind) ? 3 : 2;
         if (record.minimumSuccessfulL1Runs() < minimumSuccessfulL1Runs

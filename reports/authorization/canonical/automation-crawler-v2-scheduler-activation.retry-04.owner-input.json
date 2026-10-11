@@ -1,0 +1,8 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized bounded V2 scheduler activation for the eight-domain H8 chain, followed by natural observation, permitted automatic ingestion, independent readback, and rollback on drift or failure.",
+  "authorizationReference": "user://conversation/2026-09-07/scheduler-activation",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20260907-retry-04",
+  "authorizedAt": "2026-09-07T14:04:19.000Z",
+  "expiresAt": "2026-09-08T14:03:40.746Z"
+}

@@ -13,11 +13,59 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { automaticArtifactRunId, automaticReconciliationRoot } from './automatic-execution-artifacts.mjs';
 
 const HASH_A = `sha256:${'a'.repeat(64)}`;
 const HASH_B = `sha256:${'b'.repeat(64)}`;
 const HASH_C = `sha256:${'c'.repeat(64)}`;
 const HASH_D = `sha256:${'d'.repeat(64)}`;
+
+test('attempt-bound reconciliation uses one execution namespace and rejects sibling attempt evidence', (t) => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'attempt-bound-reconciliation-'));
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const binding = {
+    domainId: 'items', runId: 'items_l1_auto_20260831_01',
+    sourceDispatchIdentity: { sourceFingerprint: HASH_C, sourceRunIdentity: '2026-08-31T12:00:00.000Z', sourceContentIdentity: HASH_D },
+    importPlan: { automaticAttemptIdentity: { stateStoreEpoch: 'epoch-1', queueId: 'queue-1', attemptId: 'attempt-1' } },
+  };
+  const artifactRoot = `reports/authorization/canonical/automatic/items/${automaticArtifactRunId(binding)}`;
+  const root = automaticReconciliationRoot(binding);
+  const write = (relative, value) => {
+    const absolute = path.join(repoRoot, relative);
+    fs.mkdirSync(path.dirname(absolute), { recursive: true });
+    fs.writeFileSync(absolute, `${JSON.stringify(value)}\n`, { mode: 0o600 });
+    return `sha256:${createHash('sha256').update(fs.readFileSync(absolute)).digest('hex')}`;
+  };
+  const source = { path: `${artifactRoot}/source.json`, sha256: write(`${artifactRoot}/source.json`, { records: [] }) };
+  const ownedTables = [{ databaseRole: 'local', table: 'items', fieldGroup: 'all_columns' }];
+  const bundle = {
+    ...binding, schemaVersion: 1, operationId: 'automation-items-l1', databaseName: 'terria_v1_local',
+    executionMode: 'ACTIVATION_GATED_AUTO', source, ownedTables,
+    policy: { level: 'L2', operationalState: 'ACTIVE', policyVersion: 2, policyHash: HASH_A, policySetHash: HASH_B, policyJson: { ownedTables } },
+  };
+  write(`${artifactRoot}/bundle.json`, { ...bundle, bundleHash: canonicalHash(bundle) });
+  const common = { schemaVersion: 1, domainId: binding.domainId, runId: binding.runId,
+    sourceDispatchIdentity: binding.sourceDispatchIdentity, automaticAttemptIdentity: binding.importPlan.automaticAttemptIdentity };
+  write(`${root}/source-coverage.json`, { ...common, artifactKind: 'l1-source-coverage', sourcePath: source.path,
+    sourceSha256: source.sha256, completeSourceCoverage: true, terminalProgress: true, unclassifiedCount: 0 });
+  write(`${root}/owned-table-readback.json`, { ...common, artifactKind: 'l1-owned-table-readback', ownedTables,
+    generationReadback: true, unauthorizedMutationCount: 0, unclassifiedMutationCount: 0 });
+  const attempt = { ...common, artifactKind: 'l1-attempt-state', activeAttemptCount: 0, overdueAttemptCount: 0 };
+  write(`${root}/attempt-state.json`, attempt);
+  const options = { repoRoot, bundlePath: `${artifactRoot}/bundle.json`, sourceCoveragePath: `${root}/source-coverage.json`,
+    ownedTableReadbackPath: `${root}/owned-table-readback.json`, attemptStatePath: `${root}/attempt-state.json` };
+  const result = buildL1ReconciliationEvidence(options);
+  assert.equal(result.sourceArtifactPath, options.sourceCoveragePath);
+  const outputPath = `${root}/reconciliation-evidence.json`;
+  assert.equal(writeL1ReconciliationEvidence({ repoRoot, evidence: result, outputPath }).path, outputPath);
+  assert.throws(() => writeL1ReconciliationEvidence({ repoRoot, evidence: result, outputPath }), /overwrite|exists/);
+  const siblingBinding = { ...binding, importPlan: { automaticAttemptIdentity: { ...common.automaticAttemptIdentity, attemptId: 'attempt-2' } } };
+  const siblingRoot = automaticReconciliationRoot(siblingBinding);
+  assert.throws(() => buildL1ReconciliationEvidence({ ...options, attemptStatePath: `${siblingRoot}/attempt-state.json` }), /exact L1 run root/);
+  write(`${root}/attempt-state.json`, { ...attempt, automaticAttemptIdentity: siblingBinding.importPlan.automaticAttemptIdentity });
+  assert.throws(() => buildL1ReconciliationEvidence(options), /attempt identity/);
+  assert.throws(() => writeL1ReconciliationEvidence({ repoRoot, evidence: result, outputPath: `${siblingRoot}/reconciliation-evidence.json` }), /exact L1 run root/);
+});
 
 function canonicalHash(value) {
   const canonical = (input) => {
@@ -128,6 +176,92 @@ test('read-only producer binds frozen source, table readback, attempt state, and
   assert.equal(verifyFullReconciliationEvidence(evidence, {
     domainId: 'items', runId: 'items_l1_20260826_01', policyVersion: 1, policyHash: HASH_A, policySetHash: HASH_B,
   }).evidenceHash, evidence.evidenceHash);
+});
+
+test('read-only producer accepts a bounded activation-gated L2 automatic bundle', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-automatic-reconciliation-'));
+  const runId = 'items_l1_auto_20260831_01';
+  const bundlePath = 'reports/authorization/canonical/automatic/items/bundle.json';
+  const sourcePath = 'reports/authorization/canonical/automatic/items/source.json';
+  const root = `reports/runtime/l1-reconciliation/items/${runId}`;
+  const sourceCoveragePath = `${root}/source-coverage.json`;
+  const tablePath = `${root}/owned-table-readback.json`;
+  const attemptPath = `${root}/attempt-state.json`;
+  const sourceDispatchIdentity = {
+    sourceFingerprint: HASH_C,
+    sourceRunIdentity: '2026-08-31T12:00:00.000Z',
+    sourceContentIdentity: HASH_D,
+  };
+  const write = (relativePath, value) => {
+    const absolute = path.join(repoRoot, relativePath);
+    fs.mkdirSync(path.dirname(absolute), { recursive: true });
+    fs.writeFileSync(absolute, `${JSON.stringify(value)}\n`, { mode: 0o600 });
+    return `sha256:${createHash('sha256').update(fs.readFileSync(absolute)).digest('hex')}`;
+  };
+  const sourceHash = write(sourcePath, { frozen: 'automatic-source' });
+  const ownedTables = [{ databaseRole: 'local', table: 'items', fieldGroup: 'all_columns' }];
+  const bundle = {
+    schemaVersion: 1,
+    operationId: 'automation-items-l1',
+    runId,
+    domainId: 'items',
+    databaseName: 'terria_v1_local',
+    executionMode: 'ACTIVATION_GATED_AUTO',
+    policy: {
+      level: 'L2', operationalState: 'ACTIVE', policyVersion: 2, policyHash: HASH_A, policySetHash: HASH_B,
+      policyJson: { ownedTables },
+    },
+    source: { path: sourcePath, sha256: sourceHash },
+    sourceDispatchIdentity,
+    ownedTables,
+  };
+  bundle.bundleHash = canonicalHash(bundle);
+  write(bundlePath, bundle);
+  write(sourceCoveragePath, {
+    schemaVersion: 1, artifactKind: 'l1-source-coverage', domainId: 'items', runId,
+    sourcePath, sourceSha256: sourceHash, completeSourceCoverage: true, terminalProgress: true, unclassifiedCount: 0,
+    sourceDispatchIdentity,
+  });
+  write(tablePath, {
+    schemaVersion: 1, artifactKind: 'l1-owned-table-readback', domainId: 'items', runId,
+    ownedTables, generationReadback: true, unauthorizedMutationCount: 0, unclassifiedMutationCount: 0,
+    sourceDispatchIdentity,
+  });
+  write(attemptPath, {
+    schemaVersion: 1, artifactKind: 'l1-attempt-state', domainId: 'items', runId,
+    activeAttemptCount: 0, overdueAttemptCount: 0,
+    sourceDispatchIdentity,
+  });
+
+  const result = buildL1ReconciliationEvidence({
+    repoRoot,
+    bundlePath,
+    sourceCoveragePath,
+    ownedTableReadbackPath: tablePath,
+    attemptStatePath: attemptPath,
+  });
+  assert.equal(result.fullReconciliation, true);
+  assert.equal(result.policyVersion, 2);
+  assert.deepEqual(result.sourceDispatchIdentity, sourceDispatchIdentity);
+
+  write(attemptPath, {
+    schemaVersion: 1, artifactKind: 'l1-attempt-state', domainId: 'items', runId,
+    activeAttemptCount: 0, overdueAttemptCount: 0,
+    sourceDispatchIdentity: {
+      ...sourceDispatchIdentity,
+      sourceContentIdentity: HASH_A,
+    },
+  });
+  assert.throws(
+    () => buildL1ReconciliationEvidence({
+      repoRoot,
+      bundlePath,
+      sourceCoveragePath,
+      ownedTableReadbackPath: tablePath,
+      attemptStatePath: attemptPath,
+    }),
+    /source dispatch identity/i,
+  );
 });
 
 test('reconciliation producer rejects incomplete source coverage and refuses overwrite', () => {

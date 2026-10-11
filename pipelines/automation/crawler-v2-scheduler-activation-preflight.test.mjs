@@ -13,6 +13,8 @@ import { computePolicySetHash } from './policy-set-hash.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
+import { buildCrawlerV2SchedulerActivationProposal } from './build-canonical-crawler-v2-scheduler-activation-proposal.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const T1_HASH = `sha256:${'b'.repeat(64)}`;
@@ -37,6 +39,7 @@ function validSnapshot(overrides = {}) {
       sweepIntervalMinutes: 60,
       configPresent: false,
     },
+    canaryActionId: 'wiki-items-refresh',
     v2: {
       stateStoreEpoch: 'epoch-current',
       namespace: 'terrapedia:crawler:wiki-monitor:v2:production:',
@@ -90,9 +93,42 @@ test('code bundle is derived from the operation manifest, not an operator-suppli
   assert.ok(paths.length >= 2, 'manifest must declare the governing code set');
   assert.ok(paths.includes('pipelines/automation/build-canonical-crawler-v2-scheduler-activation-proposal.mjs'));
   assert.ok(paths.includes('pipelines/automation/crawler-v2-scheduler-activation-preflight.mjs'));
+  for (const runtimePath of [
+    'pipelines/automation/run-base-domain-automatic-operation.mjs',
+    'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
+    'pipelines/automation/automatic-execution-artifacts.mjs',
+    'pipelines/monitor/check-source-updates.mjs',
+    'pipelines/workflow/run-wiki-sync.mjs',
+    'pipelines/fetch/fetch-wiki-projectileinfo.mjs',
+    'pipelines/import/import-independent-entities-to-db.mjs',
+  ]) assert.ok(paths.includes(runtimePath), `${runtimePath} must be in the observed scheduler code bundle`);
   // The set is transitively expanded, so it must be far larger than a hand-typed pair.
   assert.ok(paths.length > 5, 'manifest bundle must expand transitive imports');
 });
+
+for (const targetPath of ['pipelines/automation/automatic-execution-artifacts.mjs', 'pipelines/fetch/fetch-wiki-projectileinfo.mjs']) {
+  test(`preflight rejects proposal after child runtime byte drift in ${targetPath}`, (t) => {
+    const operationId = 'canonical-crawler-v2-scheduler-activation';
+    const frozen = buildCanonicalOperationExecutionManifest({ repoRoot: process.cwd(), operationId });
+    const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'scheduler-preflight-runtime-'));
+    t.after(() => fs.rmSync(temporaryRoot, { recursive: true, force: true }));
+    for (const relativePath of new Set([...frozen.codeBundleEntries.map((entry) => entry.path), targetPath])) {
+      const target = path.join(temporaryRoot, relativePath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(path.join(process.cwd(), relativePath), target);
+    }
+    const codeBundle = frozen.codeBundleEntries.map((entry) => ({ path: entry.path, sha256: entry.contentHash }));
+    const preflight = buildCrawlerV2SchedulerActivationPreflight({
+      snapshot: validSnapshot(), t1Report: validT1(), codeBundle, now: '2026-08-10T01:05:00.000Z',
+    });
+    fs.appendFileSync(path.join(temporaryRoot, targetPath), '\n// deliberate child runtime drift\n');
+    const observed = buildCanonicalOperationExecutionManifest({ repoRoot: temporaryRoot, operationId });
+    assert.throws(() => buildCrawlerV2SchedulerActivationProposal({
+      preflight, t1Report: validT1(), now: '2026-08-10T01:05:00.000Z',
+      codeBundle: observed.codeBundleEntries.map((entry) => ({ path: entry.path, sha256: entry.contentHash })),
+    }), /code bundle drifted from preflight/);
+  });
+}
 
 test('endpoint URL preserves the api-base context-path (does not drop /api)', () => {
   // The backend serves under a context-path (server.servlet.context-path: /api),
@@ -136,6 +172,28 @@ test('builds a disabled, no-write preflight bound to T1 and code hashes', () => 
   assert.deepEqual(preflight.policyRows, POLICY_ROWS);
   assert.equal(preflight.policySetHash, computePolicySetHash(POLICY_ROWS));
   assert.match(preflight.preflightHash, /^sha256:[a-f0-9]{64}$/);
+});
+
+test('binds one registered canary action to its eligible domain', () => {
+  const preflight = buildCrawlerV2SchedulerActivationPreflight({
+    snapshot: validSnapshot(),
+    t1Report: validT1(),
+    codeBundle: [{ path: 'pipelines/automation/preflight.mjs', sha256: CODE_HASH }],
+    canaryActionId: 'wiki-items-refresh',
+    now: '2026-08-10T01:05:00.000Z',
+  });
+
+  assert.deepEqual(preflight.canary, { actionId: 'wiki-items-refresh', domainId: 'items' });
+  assert.throws(
+    () => buildCrawlerV2SchedulerActivationPreflight({
+      snapshot: validSnapshot(),
+      t1Report: validT1(),
+      codeBundle: [{ path: 'pipelines/automation/preflight.mjs', sha256: CODE_HASH }],
+      canaryActionId: 'wiki-npcs-refresh',
+      now: '2026-08-10T01:05:00.000Z',
+    }),
+    /canary.*eligible|canary.*domain/i,
+  );
 });
 
 test('accepts a numeric queueContractVersion from the real backend DTO', () => {

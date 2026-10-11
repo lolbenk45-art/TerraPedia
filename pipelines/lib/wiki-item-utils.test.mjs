@@ -12,6 +12,8 @@ import {
   fetchWikiPageMetadataBatch,
   parseCliArgs,
   reportHeartbeat,
+  writeJson,
+  writeJsonNoOverwrite,
 } from './wiki-item-utils.mjs';
 
 test('buildWikiPageParseUrl enables redirect following for parse requests', () => {
@@ -30,6 +32,99 @@ test('buildWikiPageParseUrl enables redirect following for parse requests', () =
 
 test('reportHeartbeat is exposed from wiki item utilities for fetchers', () => {
   assert.equal(typeof reportHeartbeat, 'function');
+});
+
+test('revision-bound page capture parses the exact selected revision instead of mutable latest', async () => {
+  const calls = [];
+  const payload = await fetchWikiPagePayload({ pageTitle: 'Mining Pants', requireRevisionBinding: true,
+    fetchWikiApiJsonImpl: async ({ url }) => {
+      calls.push(url);
+      if (url.searchParams.get('action') === 'query') {
+        return { query: { pages: [{ pageid: 123, title: 'Mining armor', revisions: [{ revid: 456, timestamp: '2026-09-28T00:00:00Z' }] }] } };
+      }
+      return { parse: { pageid: 123, revid: 456, title: 'Mining armor', wikitext: 'old revision text', text: '<p>old</p>' } };
+    },
+  });
+  assert.equal(calls[0].searchParams.get('action'), 'query');
+  assert.equal(calls[1].searchParams.get('page'), 'Mining Pants');
+  assert.equal(calls[1].searchParams.has('oldid'), false);
+  assert.equal(payload.revisionId, 456);
+  assert.equal(payload.revisionTimestamp, '2026-09-28T00:00:00Z');
+  assert.equal(payload.requestedPageTitle, 'Mining Pants');
+});
+
+test('revision-bound page capture rejects a parse result for a different revision', async () => {
+  await assert.rejects(fetchWikiPagePayload({ pageTitle: 'Armor', requireRevisionBinding: true,
+    fetchWikiApiJsonImpl: async ({ url }) => url.searchParams.get('action') === 'query'
+      ? { query: { pages: [{ pageid: 123, title: 'Armor', revisions: [{ revid: 456, timestamp: '2026-09-28T00:00:00Z' }] }] } }
+      : { parse: { pageid: 123, revid: 457, title: 'Armor', wikitext: 'new text', text: '<p>new</p>' } },
+  }), /revision.*(match|drift)/i);
+});
+
+test('immutable JSON writer rejects a symbolic-link ancestor before publication', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-symlink-'));
+  const outside = path.join(root, 'outside');
+  const linked = path.join(root, 'linked');
+  fs.mkdirSync(outside);
+  fs.symlinkSync(outside, linked, 'dir');
+
+  assert.throws(
+    () => writeJsonNoOverwrite(path.join(linked, 'report.json'), { status: 'new' }),
+    /symbolic|symlink|ancestor|unsafe/i,
+  );
+  assert.equal(fs.existsSync(path.join(outside, 'report.json')), false);
+});
+
+test('JSON writer rejects a group-or-other-writable ancestor', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-mode-'));
+  const unsafe = path.join(root, 'unsafe');
+  fs.mkdirSync(unsafe);
+  fs.chmodSync(unsafe, 0o777);
+
+  assert.throws(
+    () => writeJson(path.join(unsafe, 'report.json'), { status: 'new' }),
+    /writable|unsafe|private/i,
+  );
+  assert.equal(fs.existsSync(path.join(unsafe, 'report.json')), false);
+});
+
+test('immutable JSON writer refuses to overwrite an existing report', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-collision-'));
+  const reportPath = path.join(root, 'source-update-check-2026-09-02.json');
+  fs.writeFileSync(reportPath, '{"status":"original"}\n', 'utf8');
+
+  assert.throws(
+    () => writeJsonNoOverwrite(reportPath, { status: 'replacement' }),
+    /exists|overwrite/i,
+  );
+  assert.equal(fs.readFileSync(reportPath, 'utf8'), '{"status":"original"}\n');
+});
+
+test('JSON writer does not delete a pre-existing temporary collision', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-json-writer-temp-collision-'));
+  const reportPath = path.join(root, 'report.json');
+  const originalOpenSync = fs.openSync;
+  let injected = false;
+  fs.openSync = (filePath, flags, ...args) => {
+    if (!injected && String(filePath).includes('.report.json.') && String(filePath).endsWith('.tmp')) {
+      injected = true;
+      fs.writeFileSync(filePath, 'pre-existing temporary evidence', 'utf8');
+      const error = new Error('simulated temporary collision');
+      error.code = 'EEXIST';
+      throw error;
+    }
+    return originalOpenSync(filePath, flags, ...args);
+  };
+  let collisionPath;
+  try {
+    assert.throws(() => writeJson(reportPath, { status: 'new' }), /temporary collision/i);
+    collisionPath = fs.readdirSync(root).find((name) => name.endsWith('.tmp'));
+  } finally {
+    fs.openSync = originalOpenSync;
+  }
+
+  assert.ok(collisionPath);
+  assert.equal(fs.readFileSync(path.join(root, collisionPath), 'utf8'), 'pre-existing temporary evidence');
 });
 
 test('parseCliArgs accepts equals and separated option values', () => {
@@ -175,3 +270,26 @@ function runNodeModule(source, options = {}) {
     child.on('close', (code) => resolve({ code, stdout, stderr }));
   });
 }
+
+test('fetchWikiImageInfo requests and preserves the file revision, leaving absent evidence null', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-image-revision-'));
+  const moduleUrl = new URL('./wiki-item-utils.mjs', import.meta.url).href;
+  const result = await runNodeModule(`
+    const calls = [];
+    globalThis.fetch = async (url) => {
+      calls.push(new URL(url).searchParams.get('iiprop'));
+      const image = { url: 'https://terraria.wiki.gg/images/Wood_armor.png', width: 64, height: 64, mime: 'image/png' };
+      if (calls.length === 1) image.timestamp = '2026-06-01T12:34:56Z';
+      return new Response(JSON.stringify({ query: { pages: [{ title: 'File:Wood armor.png', imageinfo: [image] }] } }));
+    };
+    const { fetchWikiImageInfo } = await import(${JSON.stringify(moduleUrl)});
+    const present = await fetchWikiImageInfo({ fileTitle: 'Wood armor.png' });
+    const missing = await fetchWikiImageInfo({ fileTitle: 'Wood armor.png' });
+    console.log(JSON.stringify({ calls, present, missing }));
+  `, { env: { ...process.env, WORKTREE_ROOT: tempDir, TERRAPEDIA_SHARED_DATA_ROOT: tempDir } });
+  assert.equal(result.code, 0, result.stderr);
+  const actual = JSON.parse(result.stdout);
+  assert.ok(actual.calls.every(value => value.split('|').includes('timestamp')), 'request must ask for real file revision');
+  assert.equal(actual.present.revisionTimestamp, '2026-06-01T12:34:56Z');
+  assert.equal(actual.missing.revisionTimestamp, null);
+});

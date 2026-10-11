@@ -5,9 +5,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { loadLocalStackConfig } from '../../scripts/lib/local-runtime-config.mjs';
-import { assertRepositoryOrdinaryFile, assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
+import {
+  assertRepositoryOrdinaryFile,
+  assertRepositoryOrdinaryDirectory,
+  assertRepositoryPathConfinement,
+  resolveTrustedEvidenceRoot,
+} from '../lib/private-repository-path.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { createMysqlAutomationPolicyDecisionAdapter } from './run-automation-policy-decision.mjs';
+import { canonicalServerFingerprint } from './automation-database-contract.mjs';
+import { canonicalizePolicySet, computePolicySetHash } from './policy-set-hash.mjs';
 import { readL2PolicyCeilingArtifact } from './l2-policy-ceiling-artifact.mjs';
 import {
   buildL2PolicyCeilingRegistrationInput,
@@ -17,6 +24,16 @@ import {
 export const TARGET_DOMAINS = Object.freeze([
   'items', 'npcs', 'projectiles', 'armor_sets', 'buffs', 'audio', 'bosses', 'shimmer',
 ]);
+const DOMAIN_L1_OPERATION_IDS = Object.freeze({
+  items: 'automation-items-l1',
+  npcs: 'automation-npcs-l1',
+  projectiles: 'automation-projectiles-l1',
+  armor_sets: 'automation-armor-sets-l1',
+  buffs: 'automation-buffs-l1',
+  audio: 'automation-audio-first-l1',
+  bosses: 'automation-bosses-first-l1',
+  shimmer: 'automation-shimmer-first-l1',
+});
 
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const FORMAL_DATABASES = Object.freeze(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation']);
@@ -73,6 +90,10 @@ const FORBIDDEN_ACTIONS = Object.freeze([
 
 export function buildL2ReadinessArtifacts({
   repoRoot = process.cwd(),
+  databaseEvidenceRoot = null,
+  historicalEvidenceRoot = null,
+  evidenceRoot = null,
+  l1EvidencePolicySetHash,
   runId,
   generatedAt,
   runRoot,
@@ -93,6 +114,25 @@ export function buildL2ReadinessArtifacts({
   domains = TARGET_DOMAINS,
 } = {}) {
   const root = path.resolve(repoRoot);
+  const evidenceRootInputs = [databaseEvidenceRoot, historicalEvidenceRoot, evidenceRoot]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean);
+  for (const value of evidenceRootInputs) {
+    if (!path.isAbsolute(value) || path.resolve(value) !== value || value.endsWith(path.sep)) {
+      throw new Error('evidence root must be a canonical absolute directory path');
+    }
+  }
+  const normalizedEvidenceRoots = [...new Set(evidenceRootInputs.map((value) => path.resolve(value)))];
+  if (normalizedEvidenceRoots.length > 1) throw new Error('conflicting evidence root inputs');
+  const evidenceRootDescriptor = resolveTrustedEvidenceRoot({
+    repoRoot: root,
+    evidenceRoot: evidenceRootInputs[0] ?? null,
+  });
+  const evidenceRootPath = evidenceRootDescriptor.root;
+  const evidenceRootIdentity = Object.freeze({
+    kind: evidenceRootDescriptor.kind,
+    repositoryRelativeRoot: evidenceRootDescriptor.repositoryRelativeRoot,
+  });
   const normalizedRunId = requireRunId(runId);
   const timestamp = requireTimestamp(generatedAt);
   const absoluteRunRoot = assertRepositoryPathConfinement({
@@ -103,7 +143,29 @@ export function buildL2ReadinessArtifacts({
   const selectedDomains = normalizeDomains(domains);
   if (!adapterReadback || typeof adapterReadback !== 'object') throw new Error('adapter readback is required');
   if (!HASH_PATTERN.test(adapterReadback.policySetHash ?? '')) throw new Error('adapter policy-set hash is required');
+  const evidencePolicySetHash = requireHash(
+    l1EvidencePolicySetHash,
+    'l1 evidence policy-set hash',
+  );
+  if (adapterReadback.l1EvidencePolicySetHash != null
+      && adapterReadback.l1EvidencePolicySetHash !== evidencePolicySetHash) {
+    throw new Error('adapter L1 evidence policy-set hash does not match the explicit input');
+  }
+  const promotionCurrentPolicyRows = normalizePolicyRows(
+    adapterReadback.policyRows,
+    'adapter current policy rows',
+  );
+  if (computePolicySetHash(promotionCurrentPolicyRows) !== adapterReadback.policySetHash) {
+    throw new Error('adapter current policy rows do not match the policy-set hash');
+  }
+  for (const adapterRootIdentity of [adapterReadback.evidenceRoot, adapterReadback.databaseEvidenceRoot]) {
+    if (adapterRootIdentity
+        && JSON.stringify(adapterRootIdentity) !== JSON.stringify(evidenceRootIdentity)) {
+    throw new Error('adapter evidence root identity drifted from the readiness evidence root');
+    }
+  }
   if (!databaseBoundary || typeof databaseBoundary !== 'object') throw new Error('database boundary is required');
+  assertHistoricalDispositionServerFingerprintBinding(adapterReadback, databaseBoundary);
   if (!crossDb || !relation) throw new Error('shared read-only reports are required');
   assertBoundReport(root, sharedReports?.crossDbPath, crossDb, 'cross-db report', timestamp);
   assertBoundReport(root, sharedReports?.relationJsonPath, relation, 'relation-health report', timestamp);
@@ -136,23 +198,45 @@ export function buildL2ReadinessArtifacts({
   if (path.relative(absoluteRunRoot, panelDirectory) !== 'domain') {
     throw new Error('L2 readiness panel root must belong to the current readiness run root');
   }
-  const priorDirectory = path.resolve(root, priorRoot);
+  const priorRootDescriptor = resolvePriorReadRoot({
+    repoRoot: root,
+    evidenceRootPath,
+    priorRoot,
+  });
+  const priorDirectory = priorRootDescriptor.path;
+  const priorRepoRoot = priorRootDescriptor.root;
   const records = selectedDomains.map((domainId) => {
     const templatePath = assertRepositoryOrdinaryFile({
-      repoRoot: root,
+      repoRoot: priorRepoRoot,
       filePath: path.join(priorDirectory, 'domain', domainId, 'readiness.json'),
       label: `${domainId} readiness template`,
     });
     const template = readJson(templatePath, `${domainId} readiness template`);
     const adapterResult = adapterReadback.domains?.[domainId];
-    const sourceRuns = Array.isArray(template.l1Runs) ? template.l1Runs : [];
-    const l1Runs = sourceRuns.map((run) => ({
-      ...run,
-      qualifyingL1Evidence: false,
-      sourceValidity: auditBundleSource(root, run),
-    }));
+    const adapterEvidence = adapterResult?.evidence;
+    const alreadyL2 = adapterResult?.policy?.currentLevel === 'L2';
+    const adapterRunsBound = !alreadyL2 && adapterResult?.status === 'pass'
+      && Array.isArray(adapterEvidence?.qualifyingL1Runs);
+    // Once an adapter result is present, the prior display template is never
+    // an evidence source.  A failed or incomplete adapter read must produce an
+    // empty, fail-closed run set rather than stale qualifying-looking rows.
+    const sourceRuns = adapterRunsBound ? adapterEvidence.qualifyingL1Runs : [];
+    const l1Runs = sourceRuns.map((run) => {
+      const normalizedRun = adapterRunsBound
+        ? normalizeAdapterL1Run(evidenceRootPath, run, domainId, evidencePolicySetHash)
+        : run;
+      return {
+        ...normalizedRun,
+        qualifyingL1Evidence: adapterResult?.status === 'pass'
+          ? run.qualifyingL1Evidence !== false
+          : false,
+        sourceValidity: auditBundleSource(evidenceRootPath, normalizedRun),
+        evidenceValidity: auditL1Evidence(evidenceRootPath, normalizedRun),
+      };
+    });
     const currentPolicy = adapterResult?.policy
       ? {
+        domainId,
         level: adapterResult.policy.currentLevel,
         operationalState: adapterResult.policy.operationalState,
         policyVersion: Number(adapterResult.policy.policyVersion),
@@ -161,18 +245,65 @@ export function buildL2ReadinessArtifacts({
       }
       : {
         ...template.currentPolicy,
+        domainId,
         policySetHash: adapterReadback.policySetHash,
       };
     const adapterStatus = adapterResult?.status ?? 'error';
-    const adapterEvidence = adapterResult?.evidence;
+    const reconciliationFallback = {
+      status: 'missing',
+      reason: alreadyL2
+        ? 'domain_already_l2'
+        : adapterStatus !== 'pass'
+        ? 'adapter_readback_failed'
+        : !adapterRunsBound
+          ? 'adapter_qualifying_runs_missing'
+        : 'adapter_full_reconciliation_missing',
+    };
+    const fullReconciliation = adapterRunsBound
+      ? resolveAdapterFullReconciliation(adapterEvidence, l1Runs, reconciliationFallback)
+      : reconciliationFallback;
     const policyCeiling = adapterResult?.policyCeiling ?? template.policyCeiling;
+    const promotionTargetPolicyRows = policyCeiling?.status === 'verified'
+      ? buildPromotionTargetPolicyRows(
+        promotionCurrentPolicyRows,
+        domainId,
+        policyCeiling,
+      )
+      : null;
+    const policyArtifactProvenance = policyCeiling?.status === 'verified'
+      ? buildPolicyArtifactProvenance(policyCeiling)
+      : null;
     const blockingGates = new Set(template.blockingGates ?? []);
+    if (alreadyL2) {
+      blockingGates.delete('three_successful_l1_runs');
+      blockingGates.delete('full_reconciliation');
+      blockingGates.delete('l1_bundle_evidence_integrity');
+      blockingGates.add('domain_already_l2');
+    }
     if (policyCeiling?.status === 'verified') {
       blockingGates.delete('policy_ceiling');
     } else {
       blockingGates.add('policy_ceiling');
     }
-    if (adapterStatus !== 'pass' || l1Runs.some((run) => run.sourceValidity.status !== 'match')) {
+    const hasThreeQualifyingRuns = adapterRunsBound
+      && Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) >= 3
+      && l1Runs.length >= 3
+      && new Set(l1Runs.map((run) => run.runId)).size === l1Runs.length;
+    const hasVerifiedFullReconciliation = fullReconciliation.status === 'verified';
+    const hasBoundBundleEvidence = adapterRunsBound
+      && l1Runs.length > 0
+      && l1Runs.every((run) => (
+        run.sourceValidity.status === 'match'
+        && (run.evidenceValidity.status === 'match' || run.evidenceValidity.status === 'not_applicable')
+      ));
+    if (!alreadyL2 && hasThreeQualifyingRuns) blockingGates.delete('three_successful_l1_runs');
+    if (!alreadyL2 && hasVerifiedFullReconciliation) blockingGates.delete('full_reconciliation');
+    if (hasBoundBundleEvidence) {
+      blockingGates.delete('l1_bundle_evidence_integrity');
+    } else if (!alreadyL2 && (!adapterRunsBound || (l1Runs.length > 0 && l1Runs.some((run) => (
+      run.sourceValidity.status !== 'match'
+      || (run.evidenceValidity.status !== 'match' && run.evidenceValidity.status !== 'not_applicable')
+    ))))) {
       blockingGates.add('l1_bundle_evidence_integrity');
     }
     const record = {
@@ -183,21 +314,39 @@ export function buildL2ReadinessArtifacts({
       domainId,
       currentPolicy,
       policyCeiling,
+      l1EvidencePolicySetHash: evidencePolicySetHash,
+      promotionCurrentPolicyRows,
+      promotionTargetPolicyRows,
+      policyArtifactProvenance,
       l1Runs,
-      successfulCommittedL1Runs: l1Runs.filter((run) => run.runStatus === 'COMPLETED' && run.applyStatus === 'COMMITTED').length,
-      qualifyingCommittedL1Runs: adapterStatus === 'pass' ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
+      successfulCommittedL1Runs: l1Runs.filter((run) => (
+        (run.status ?? run.runStatus) === 'COMPLETED' && run.applyStatus === 'COMMITTED'
+      )).length,
+      qualifyingCommittedL1Runs: adapterRunsBound ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
       l1EvidenceAdapterReadback: {
-        status: adapterStatus,
-        distinctCommittedL1Runs: adapterStatus === 'pass' ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
-        fullReconciliation: adapterEvidence?.fullReconciliation ?? false,
+        status: alreadyL2 ? 'skipped' : adapterStatus,
+        policySetHash: evidencePolicySetHash,
+        databaseEvidenceRoot: evidenceRootIdentity,
+        distinctCommittedL1Runs: adapterRunsBound ? Number(adapterEvidence?.distinctCommittedL1Runs ?? 0) : 0,
+        fullReconciliation: adapterRunsBound ? (adapterEvidence?.fullReconciliation ?? false) : false,
+        qualifyingL1Runs: adapterRunsBound
+          ? adapterEvidence.qualifyingL1Runs
+          : [],
+        excludedHistoricalRuns: adapterRunsBound && Array.isArray(adapterEvidence?.excludedHistoricalRuns)
+          ? adapterEvidence.excludedHistoricalRuns
+          : [],
         error: adapterResult?.error ?? null,
+        ...(alreadyL2 ? { skipReason: 'domain_already_l2' } : {}),
       },
+      fullReconciliation,
       blockingGates: [...blockingGates],
       verdict: 'BLOCKED',
       proposalInput: false,
       readinessRecordRole: 'evidence-display-only',
       evidence: {
         ...(template.evidence ?? {}),
+        l1EvidencePolicySetHash: evidencePolicySetHash,
+        databaseEvidenceRoot: evidenceRootIdentity,
         panelReports: readPanelReports(root, path.join(panelDirectory, domainId), domainId, timestamp, REQUIRED_PANEL_IDS[domainId]),
         sharedReports: buildSharedReportRefs(root, sharedReports, absoluteRunRoot),
         uiReadiness: uiEvidence,
@@ -235,6 +384,7 @@ export function buildL2ReadinessArtifacts({
     })),
     sharedReports: shared,
     uiReadiness: uiEvidence,
+    databaseEvidenceRoot: evidenceRootIdentity,
     databaseBoundary,
     runtimeBoundary: {
       acceptance: acceptanceEvidence?.path ?? null,
@@ -252,6 +402,7 @@ export function buildL2ReadinessArtifacts({
     mode: 'read-only',
     runId: normalizedRunId,
     scope: selectedDomains,
+    databaseEvidenceRoot: evidenceRootIdentity,
     database: {
       host: databaseBoundary.host ?? '127.0.0.1',
       port: Number(databaseBoundary.serverPort ?? 13306),
@@ -264,6 +415,8 @@ export function buildL2ReadinessArtifacts({
     },
     policySet: {
       recomputedCurrentHash: adapterReadback.policySetHash,
+      l1EvidencePolicySetHash: evidencePolicySetHash,
+      currentRows: promotionCurrentPolicyRows,
       priorMatrixHash,
       hashMatchesPriorMatrix: priorMatrixHash == null ? null : adapterReadback.policySetHash === priorMatrixHash,
     },
@@ -289,6 +442,8 @@ export function buildL2ReadinessArtifacts({
       successfulCommittedL1Runs: entry.record.successfulCommittedL1Runs,
       qualifyingCommittedL1Runs: entry.record.qualifyingCommittedL1Runs,
       l1EvidenceAdapterReadback: entry.record.l1EvidenceAdapterReadback,
+      l1EvidencePolicySetHash: entry.record.l1EvidencePolicySetHash,
+      databaseEvidenceRoot: evidenceRootIdentity,
       fullReconciliation: entry.record.fullReconciliation,
       downstreamReports: {
         status: 'pass',
@@ -336,6 +491,9 @@ function assertDisplayReadinessRecord(record) {
       || record.verdict !== 'BLOCKED' || record.proposalInput !== false
       || record.readinessRecordRole !== 'evidence-display-only'
       || !Array.isArray(record.blockingGates) || record.blockingGates.length === 0
+      || !HASH_PATTERN.test(record.l1EvidencePolicySetHash ?? '')
+      || record.l1EvidenceAdapterReadback?.policySetHash !== record.l1EvidencePolicySetHash
+      || record.evidence?.l1EvidencePolicySetHash !== record.l1EvidencePolicySetHash
       || !record.evidence || !Array.isArray(record.evidence.panelReports)
       || record.evidence.uiReadiness?.status !== 'pass'
       || !HASH_PATTERN.test(record.evidence.uiReadiness?.sha256 ?? '')
@@ -343,6 +501,7 @@ function assertDisplayReadinessRecord(record) {
       || !HASH_PATTERN.test(record.evidence.v2Preflight?.sha256 ?? '')) {
     throw new Error('readiness display record schema is incomplete');
   }
+  normalizePolicyRows(record.promotionCurrentPolicyRows, 'promotion current policy rows');
 }
 
 export function writeL2ReadinessArtifacts({ repoRoot = process.cwd(), artifacts } = {}) {
@@ -430,6 +589,8 @@ export async function readRegisteredL2PolicyCeilingEvidence({
   const ceiling = artifact.targetPolicy.policyJson;
   return Object.freeze({
     status: 'verified',
+    artifactHash: artifact.artifactHash,
+    currentPolicySetHash: artifact.currentPolicySetHash,
     policyVersion: artifact.targetPolicy.policyVersion,
     level: artifact.targetPolicy.level,
     policyHash: artifact.targetPolicy.policyHash,
@@ -454,6 +615,7 @@ export async function readRegisteredL2PolicyCeilingEvidence({
       commitMarkerPath: proof.commitMarkerPath,
       commitMarkerFileSha256: proof.commitMarkerFileSha256,
       decisionIdentity: proof.registrationDecisionIdentity,
+      commitMarkerDecisionIdentity: proof.commitMarkerDecisionIdentity,
     },
   });
 }
@@ -490,7 +652,14 @@ function readPanelReports(repoRoot, directory, domainId, generatedAt, expectedPa
   const reports = entries.map((name) => {
     const filePath = assertRepositoryOrdinaryFile({ repoRoot, filePath: path.join(confinedDirectory, name), label: `${domainId} panel report` });
     const report = readJson(filePath, `${domainId} panel report`);
-    if (report.domainId !== domainId || report.status !== 'pass' || !report.panelId) throw new Error(`invalid ${domainId} panel report`);
+    const acceptedStatus = report.status === 'pass' || report.status === 'warning';
+    const blockingReasons = Array.isArray(report.blockingReasons) ? report.blockingReasons : [];
+    const blockedCount = Number(report.summary?.blockedCount ?? report.summary?.blockingCount ?? 0);
+    if (report.domainId !== domainId || !acceptedStatus || !report.panelId
+        || blockingReasons.length > 0
+        || !Number.isSafeInteger(blockedCount) || blockedCount > 0) {
+      throw new Error(`invalid ${domainId} panel report`);
+    }
     if (report.generatedAt !== generatedAt) throw new Error(`${domainId} panel report generatedAt is stale or mismatched`);
     if (report.reportPath !== relative(repoRoot, filePath)) throw new Error(`${domainId} panel reportPath drifted`);
     panelIds.push(report.panelId);
@@ -765,15 +934,200 @@ function assertUiAdminCoverage(adminEvidence) {
   return adminEvidence;
 }
 
+function normalizeAdapterL1Run(repoRoot, run, domainId, policySetHash) {
+  if (!run || typeof run !== 'object' || Array.isArray(run)) {
+    throw new Error('adapter qualifying L1 run is invalid');
+  }
+  const runId = requireText(run.runId, 'adapter L1 runId');
+  const status = run.status ?? run.runStatus;
+  if (status !== 'COMPLETED' || run.applyStatus !== 'COMMITTED') {
+    throw new Error(`adapter L1 run ${runId} is not a committed completed run`);
+  }
+  const bundlePath = normalizeEvidencePath(repoRoot, run.bundlePath ?? run.evidence?.path, 'adapter L1 bundle path');
+  const bundleSha256 = run.bundleSha256 ?? run.evidence?.sha256 ?? run.evidence?.bundleFileHash;
+  if (!bundlePath || !HASH_PATTERN.test(bundleSha256 ?? '')) {
+    throw new Error(`adapter L1 run ${runId} bundle identity is invalid`);
+  }
+  if (!bundlePath.startsWith('reports/authorization/canonical/')) {
+    throw new Error(`adapter L1 run ${runId} bundle path is not canonical`);
+  }
+  if (run.operationId !== DOMAIN_L1_OPERATION_IDS[domainId]
+      || run.policySetHash !== policySetHash) {
+    throw new Error(`adapter L1 run ${runId} policy or operation identity is invalid`);
+  }
+  const evidencePath = run.evidencePath == null
+    ? null
+    : normalizeEvidencePath(repoRoot, run.evidencePath, 'adapter L1 evidence path');
+  if (evidencePath != null && !HASH_PATTERN.test(run.evidenceSha256 ?? '')) {
+    throw new Error(`adapter L1 run ${runId} evidence identity is invalid`);
+  }
+  if (evidencePath == null && run.fullReconciliation === true) {
+    throw new Error(`adapter L1 run ${runId} full reconciliation path is missing`);
+  }
+  return {
+    ...run,
+    status,
+    runStatus: run.runStatus ?? status,
+    applyStatus: run.applyStatus,
+    bundlePath,
+    bundleSha256,
+    evidencePath,
+    evidenceSha256: run.evidenceSha256 ?? null,
+    evidence: run.evidence ?? (bundlePath ? { path: bundlePath, sha256: bundleSha256 } : null),
+  };
+}
+
+function normalizePolicyRows(value, label) {
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`${label} are required`);
+  try {
+    return canonicalizePolicySet(value.map((row) => ({
+      domainId: row?.domainId,
+      policyVersion: Number(row?.policyVersion),
+      policyHash: row?.policyHash,
+    })));
+  } catch (error) {
+    throw new Error(`${label} are invalid: ${error.message}`);
+  }
+}
+
+function buildPromotionTargetPolicyRows(currentRows, domainId, policyCeiling) {
+  const targetVersion = Number(policyCeiling.policyVersion);
+  const targetHash = policyCeiling.policyHash;
+  if (!Number.isSafeInteger(targetVersion) || targetVersion < 1 || !HASH_PATTERN.test(targetHash ?? '')) {
+    throw new Error('verified L2 policy ceiling target identity is invalid');
+  }
+  return currentRows.map((row) => (
+    row.domainId === domainId
+      ? { domainId, policyVersion: targetVersion, policyHash: targetHash }
+      : row
+  ));
+}
+
+function buildPolicyArtifactProvenance(policyCeiling) {
+  const registration = policyCeiling.registration;
+  // The adapter's registered-ceiling readback names the immutable target set
+  // `policySetHash`, while older in-memory/display fixtures used the more
+  // explicit `targetPolicySetHash` alias.  Normalize both at this boundary so
+  // a real readback cannot be rejected merely because of the field spelling;
+  // downstream validation still compares the value against the artifact.
+  const targetPolicySetHash = policyCeiling.targetPolicySetHash
+    ?? policyCeiling.policySetHash;
+  const provenance = {
+    artifactHash: policyCeiling.artifactHash,
+    artifactPath: policyCeiling.artifactPath,
+    artifactFileSha256: policyCeiling.artifactFileSha256,
+    currentPolicySetHash: policyCeiling.currentPolicySetHash,
+    targetPolicySetHash,
+    registration: registration == null ? null : {
+      resultPath: registration.resultPath,
+      resultFileSha256: registration.resultFileSha256,
+      commitMarkerPath: registration.commitMarkerPath,
+      commitMarkerFileSha256: registration.commitMarkerFileSha256,
+      registrationDecisionIdentity: registration.decisionIdentity,
+      commitMarkerDecisionIdentity: registration.commitMarkerDecisionIdentity
+        ?? registration.decisionIdentity,
+    },
+  };
+  if (!HASH_PATTERN.test(provenance.artifactHash ?? '')
+      || !HASH_PATTERN.test(provenance.artifactFileSha256 ?? '')
+      || !HASH_PATTERN.test(provenance.currentPolicySetHash ?? '')
+      || !HASH_PATTERN.test(provenance.targetPolicySetHash ?? '')
+      || !provenance.artifactPath
+      || !provenance.registration
+      || !HASH_PATTERN.test(provenance.registration.resultFileSha256 ?? '')
+      || !HASH_PATTERN.test(provenance.registration.commitMarkerFileSha256 ?? '')
+      || !provenance.registration.resultPath
+      || !provenance.registration.commitMarkerPath
+      || !provenance.registration.registrationDecisionIdentity
+      || !provenance.registration.commitMarkerDecisionIdentity) {
+    throw new Error('verified L2 policy ceiling artifact provenance is incomplete');
+  }
+  return provenance;
+}
+
+function resolveAdapterFullReconciliation(adapterEvidence, l1Runs, fallback) {
+  const candidate = adapterEvidence?.fullReconciliation;
+  if (!candidate || candidate === false) return fallback;
+  const match = l1Runs.find((run) => run.fullReconciliation === true
+    && typeof run.evidencePath === 'string' && run.evidencePath.trim() !== ''
+    && (candidate.runId == null || candidate.runId === run.runId));
+  if (!match || !match.evidenceSha256) return fallback;
+  return {
+    status: 'verified',
+    evidence: match.evidencePath,
+    evidenceSha256: match.evidenceSha256,
+    runId: match.runId,
+  };
+}
+
+function normalizeEvidencePath(repoRoot, value, label) {
+  const text = String(value ?? '').trim().replaceAll('\\', '/');
+  if (!text) return null;
+  if (path.isAbsolute(text)) {
+    const relativePath = path.relative(path.resolve(repoRoot), path.resolve(text)).replaceAll('\\', '/');
+    if (!relativePath || relativePath === '..' || relativePath.startsWith('../') || path.isAbsolute(relativePath)) {
+      throw new Error(`${label} escapes the repository root`);
+    }
+    return relativePath;
+  }
+  if (!text.startsWith('reports/') || text.includes('..')) throw new Error(`${label} must be a confined reports path`);
+  return text;
+}
+
+/**
+ * Resolve the immutable prior readiness templates without granting them any
+ * write capability.  Relative paths are intentionally confined to the
+ * caller worktree.  An absolute path may target the explicitly trusted
+ * corresponding primary worktree, which is how linked-worktree database rows
+ * can retain their historical display templates without copying them into a
+ * new evidence root.
+ */
+export function resolvePriorReadRoot({ repoRoot, evidenceRootPath, priorRoot } = {}) {
+  const callerRoot = path.resolve(String(repoRoot ?? ''));
+  const trustedRoot = path.resolve(String(evidenceRootPath ?? callerRoot));
+  const raw = String(priorRoot ?? '').trim();
+  if (!raw) throw new Error('prior readiness root is required');
+  const candidate = path.resolve(raw);
+  const roots = path.isAbsolute(raw)
+    ? [callerRoot, trustedRoot].filter((value, index, values) => values.indexOf(value) === index)
+    : [callerRoot];
+  for (const root of roots) {
+    const relativePath = path.relative(root, candidate);
+    if (relativePath && relativePath !== '..'
+        && !relativePath.startsWith(`..${path.sep}`) && !path.isAbsolute(relativePath)) {
+      return {
+        root,
+        path: assertRepositoryOrdinaryDirectory({
+          repoRoot: root,
+          filePath: candidate,
+          label: 'prior readiness root',
+        }),
+      };
+    }
+    if (!relativePath && root === candidate) {
+      return {
+        root,
+        path: assertRepositoryOrdinaryDirectory({
+          repoRoot: root,
+          filePath: candidate,
+          label: 'prior readiness root',
+        }),
+      };
+    }
+  }
+  throw new Error('prior readiness root must remain inside the caller or explicitly trusted evidence worktree');
+}
+
 function auditBundleSource(repoRoot, run) {
-  const bundlePath = String(run?.evidence?.path ?? '').trim();
+  const bundlePath = String(run?.bundlePath ?? run?.evidence?.path ?? '').trim();
   if (!bundlePath) return { status: 'missing', reason: 'bundle_path_missing' };
   const absolute = path.isAbsolute(bundlePath) ? bundlePath : path.resolve(repoRoot, bundlePath);
-  const result = { bundlePath: safeRelative(repoRoot, absolute), expectedBundleSha256: run.evidence?.sha256 ?? null };
+  const result = { bundlePath: safeRelative(repoRoot, absolute), expectedBundleSha256: run.bundleSha256 ?? run.evidence?.sha256 ?? null };
   try {
-    const stat = fs.lstatSync(absolute);
+    const confined = assertRepositoryOrdinaryFile({ repoRoot, filePath: absolute, label: 'L1 bundle artifact' });
+    const stat = fs.lstatSync(confined);
     if (!stat.isFile() || stat.isSymbolicLink()) return { ...result, status: 'invalid', reason: 'bundle_not_ordinary_file' };
-    const bundleBytes = fs.readFileSync(absolute);
+    const bundleBytes = fs.readFileSync(confined);
     result.bundleActualSha256 = hashBytes(bundleBytes);
     if (result.expectedBundleSha256 && result.bundleActualSha256 !== result.expectedBundleSha256) return { ...result, status: 'mismatch', reason: 'bundle_file_hash_drift' };
     const bundle = JSON.parse(bundleBytes.toString('utf8'));
@@ -783,11 +1137,36 @@ function auditBundleSource(repoRoot, run) {
     result.expectedSourceSha256 = sourceHash || null;
     if (!sourcePath.startsWith('reports/') || sourcePath.includes('..') || sourcePath.startsWith('/') || !HASH_PATTERN.test(sourceHash)) return { ...result, status: 'invalid', reason: 'source_identity_invalid' };
     const sourceAbsolute = path.resolve(repoRoot, sourcePath);
-    const sourceStat = fs.lstatSync(sourceAbsolute);
+    const sourceConfined = assertRepositoryOrdinaryFile({ repoRoot, filePath: sourceAbsolute, label: 'L1 source artifact' });
+    const sourceStat = fs.lstatSync(sourceConfined);
     if (!sourceStat.isFile() || sourceStat.isSymbolicLink()) return { ...result, status: 'invalid', reason: 'source_not_ordinary_file' };
-    result.sourceActualSha256 = hashFile(sourceAbsolute);
-    JSON.parse(fs.readFileSync(sourceAbsolute, 'utf8'));
+    result.sourceActualSha256 = hashFile(sourceConfined);
+    JSON.parse(fs.readFileSync(sourceConfined, 'utf8'));
     return { ...result, status: result.sourceActualSha256 === sourceHash ? 'match' : 'mismatch', reason: result.sourceActualSha256 === sourceHash ? null : 'source_artifact_hash_drift' };
+  } catch (error) {
+    return { ...result, status: error?.code === 'ENOENT' ? 'missing' : 'invalid', reason: error.message };
+  }
+}
+
+function auditL1Evidence(repoRoot, run) {
+  const evidencePath = String(run?.evidencePath ?? '').trim();
+  if (!evidencePath) {
+    return { status: run?.fullReconciliation === true ? 'missing' : 'not_applicable', reason: run?.fullReconciliation === true ? 'reconciliation_path_missing' : null };
+  }
+  const absolute = path.isAbsolute(evidencePath) ? evidencePath : path.resolve(repoRoot, evidencePath);
+  const result = {
+    evidencePath: safeRelative(repoRoot, absolute),
+    expectedEvidenceSha256: run.evidenceSha256 ?? null,
+  };
+  try {
+    const confined = assertRepositoryOrdinaryFile({ repoRoot, filePath: absolute, label: 'L1 evidence artifact' });
+    const bytes = fs.readFileSync(confined);
+    result.evidenceActualSha256 = hashBytes(bytes);
+    if (!HASH_PATTERN.test(run.evidenceSha256 ?? '') || result.evidenceActualSha256 !== run.evidenceSha256) {
+      return { ...result, status: 'mismatch', reason: 'evidence_file_hash_drift' };
+    }
+    JSON.parse(bytes.toString('utf8'));
+    return { ...result, status: 'match', reason: null };
   } catch (error) {
     return { ...result, status: error?.code === 'ENOENT' ? 'missing' : 'invalid', reason: error.message };
   }
@@ -905,19 +1284,90 @@ function requireTimestamp(value) {
   if (!timestamp || !Number.isFinite(Date.parse(timestamp))) throw new Error('generatedAt must be an ISO timestamp');
   return timestamp;
 }
+function requireText(value, label) {
+  const text = String(value ?? '').trim();
+  if (!text) throw new Error(`${label} is required`);
+  return text;
+}
+function requireHash(value, label) {
+  if (!HASH_PATTERN.test(value ?? '')) throw new Error(`${label} must be a sha256 hash`);
+  return value;
+}
 function normalizeDomains(domains) {
   if (!Array.isArray(domains) || domains.length === 0 || domains.some((domain) => !TARGET_DOMAINS.includes(domain))) throw new Error('domains must be a non-empty subset of the eight L2 domains');
   return [...new Set(domains)];
 }
 
-async function readAdapterEvidence({ repoRoot, dbConfig, domains }) {
+function assertHistoricalDispositionServerFingerprintBinding(adapterReadback, databaseBoundary) {
+  const dispositionPaths = Array.isArray(adapterReadback.historicalDispositionPaths)
+    ? adapterReadback.historicalDispositionPaths.filter(Boolean)
+    : [];
+  const hasExcludedHistoricalRuns = Object.values(adapterReadback.domains ?? {}).some((domainResult) => {
+    const excluded = domainResult?.evidence?.excludedHistoricalRuns;
+    return excluded !== undefined && excluded !== null
+      && (!Array.isArray(excluded) || excluded.length > 0);
+  });
+  if (dispositionPaths.length === 0 && !hasExcludedHistoricalRuns) return;
+  const adapterFingerprint = adapterReadback.serverFingerprint;
+  const boundaryFingerprint = databaseBoundary.serverFingerprint;
+  if (!adapterFingerprint || !boundaryFingerprint) {
+    throw new Error('historical disposition readiness requires adapter and database boundary server fingerprints');
+  }
+  let canonicalAdapterFingerprint;
+  let canonicalBoundaryFingerprint;
+  try {
+    canonicalAdapterFingerprint = canonicalServerFingerprint(adapterFingerprint);
+    canonicalBoundaryFingerprint = canonicalServerFingerprint(boundaryFingerprint);
+  } catch (error) {
+    throw new Error(`historical disposition server fingerprint is invalid: ${error.message}`);
+  }
+  if (JSON.stringify(canonicalAdapterFingerprint) !== JSON.stringify(canonicalBoundaryFingerprint)) {
+    throw new Error('historical disposition server fingerprint drifted between adapter and database boundary reads');
+  }
+}
+
+async function readAdapterEvidence({
+  repoRoot,
+  dbConfig,
+  domains,
+  l1EvidencePolicySetHash,
+  historicalDispositionPaths = [],
+  databaseEvidenceRoot = null,
+  historicalEvidenceRoot = null,
+  evidenceRoot = null,
+}) {
+  const evidencePolicySetHash = requireHash(
+    l1EvidencePolicySetHash,
+    'l1 evidence policy-set hash',
+  );
   const mysql = loadMysqlModule({ repoRoot });
   const connection = await mysql.createConnection(dbConfig);
-  const result = { policySetHash: null, domains: {} };
+  const result = {
+    policySetHash: null,
+    l1EvidencePolicySetHash: evidencePolicySetHash,
+    policyRows: null,
+    historicalDispositionPaths: [...historicalDispositionPaths],
+    serverFingerprint: null,
+    databaseEvidenceRoot: null,
+    domains: {},
+  };
   try {
     await connection.beginTransaction();
-    const adapter = createMysqlAutomationPolicyDecisionAdapter(connection, { repoRoot });
-    result.policySetHash = await adapter.readCurrentPolicySetHash();
+    const historicalDispositionServerFingerprint = historicalDispositionPaths.length > 0
+      ? await readConnectionServerFingerprint(connection, dbConfig)
+      : null;
+    result.serverFingerprint = historicalDispositionServerFingerprint;
+    const adapter = createMysqlAutomationPolicyDecisionAdapter(connection, {
+      repoRoot,
+      databaseEvidenceRoot,
+      historicalEvidenceRoot,
+      evidenceRoot,
+      historicalSourceHashDispositionPaths: historicalDispositionPaths,
+      historicalDispositionServerFingerprint,
+    });
+    result.databaseEvidenceRoot = adapter.evidenceRoot;
+    result.policyRows = await adapter.readCurrentPolicyRows();
+    result.policySetHash = computePolicySetHash(result.policyRows);
     for (const domainId of domains) {
       const domainResult = {
         status: 'pass', policy: null, evidence: null, error: null,
@@ -926,11 +1376,23 @@ async function readAdapterEvidence({ repoRoot, dbConfig, domains }) {
       try {
         domainResult.policy = await adapter.readPolicyForUpdate(domainId);
         if (!domainResult.policy) throw new Error('policy_missing');
-        domainResult.evidence = await adapter.readQualifyingL1Evidence(domainId, {
-          policyVersion: Number(domainResult.policy.policyVersion),
-          policyHash: domainResult.policy.policyHash,
-          policySetHash: result.policySetHash,
-        });
+        if (domainResult.policy.currentLevel === 'L2') {
+          domainResult.status = 'skipped';
+          domainResult.evidence = {
+            distinctCommittedL1Runs: 0,
+            fullReconciliation: false,
+            qualifyingL1Runs: [],
+            excludedHistoricalRuns: [],
+            policySetHash: evidencePolicySetHash,
+            skipReason: 'domain_already_l2',
+          };
+        } else {
+          domainResult.evidence = await adapter.readQualifyingL1Evidence(domainId, {
+            policyVersion: Number(domainResult.policy.policyVersion),
+            policyHash: domainResult.policy.policyHash,
+            policySetHash: evidencePolicySetHash,
+          });
+        }
       } catch (error) {
         domainResult.status = 'error';
         domainResult.error = error.message;
@@ -964,10 +1426,17 @@ async function readDatabaseBoundary({ dbConfig, domains, repoRoot }) {
     const count = async (sql, params = [domains]) => { const [rows] = await connection.query(sql, params); return Number(rows?.[0]?.total ?? 0); };
     const latestVersion = Number(flywayRows?.[0]?.latestVersion ?? 0);
     const server = serverRows?.[0] ?? {};
+    const serverFingerprint = canonicalServerFingerprint({
+      host: dbConfig.host,
+      port: Number(server.port),
+      serverUuid: server.serverUuid,
+      databases: FORMAL_DATABASES,
+    });
     return {
       host: dbConfig.host,
       serverPort: Number(server.port),
       serverUuid: server.serverUuid,
+      serverFingerprint,
       observedDatabases,
       flywayLatestVersion: latestVersion,
       v59Applied: latestVersion >= 59,
@@ -981,6 +1450,19 @@ async function readDatabaseBoundary({ dbConfig, domains, repoRoot }) {
   } finally {
     await connection.end();
   }
+}
+
+async function readConnectionServerFingerprint(connection, dbConfig) {
+  const [serverRows] = await connection.query(
+    'SELECT @@server_uuid AS serverUuid, @@port AS port',
+  );
+  const server = serverRows?.[0] ?? {};
+  return canonicalServerFingerprint({
+    host: dbConfig.host,
+    port: Number(server.port),
+    serverUuid: server.serverUuid,
+    databases: FORMAL_DATABASES,
+  });
 }
 
 function parseArgs(argv) {
@@ -1009,6 +1491,18 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     multipleStatements: false,
   };
   const domains = TARGET_DOMAINS;
+  const historicalDispositionPaths = parsePathList(
+    args['historical-source-hash-disposition']
+      ?? args['historical-disposition-paths']
+      ?? args['historical-disposition'],
+  );
+  const databaseEvidenceRoot = args['database-evidence-root'] ?? null;
+  const historicalEvidenceRoot = args['historical-evidence-root'] ?? null;
+  const evidenceRoot = args['evidence-root'] ?? null;
+  const l1EvidencePolicySetHash = requireHash(
+    args['l1-evidence-policy-set-hash'],
+    '--l1-evidence-policy-set-hash',
+  );
   const sharedReports = {
     crossDbPath: path.join(runRoot, 'cross-db.json'),
     relationJsonPath: path.join(runRoot, 'relation', `relation-health-${generatedAt.slice(0, 10)}.json`),
@@ -1023,18 +1517,37 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     ? readJson(path.resolve(repoRoot, v2PreflightPath), 'V2 preflight report')
     : null;
   Promise.all([
-    readAdapterEvidence({ repoRoot, dbConfig, domains }),
+    readAdapterEvidence({
+      repoRoot,
+      dbConfig,
+      domains,
+      l1EvidencePolicySetHash,
+      historicalDispositionPaths,
+      databaseEvidenceRoot,
+      historicalEvidenceRoot,
+      evidenceRoot,
+    }),
     readDatabaseBoundary({ repoRoot, dbConfig, domains }),
   ]).then(([adapterReadback, databaseBoundary]) => {
     const crossDb = readJson(path.resolve(repoRoot, sharedReports.crossDbPath), 'cross-db report');
     const relation = readJson(path.resolve(repoRoot, sharedReports.relationJsonPath), 'relation-health report');
     const acceptancePath = args.acceptance ? args.acceptance.replaceAll('\\', '/') : null;
     const acceptance = acceptancePath ? readJson(path.resolve(repoRoot, acceptancePath), 'acceptance report') : null;
-    const priorMatrix = args['prior-root']
-      ? readJson(path.join(path.resolve(repoRoot, args['prior-root']), 'l2-readiness-matrix.json'), 'prior L2 readiness matrix')
-      : null;
+    const priorRootDescriptor = resolvePriorReadRoot({
+      repoRoot,
+      evidenceRootPath: adapterReadback.databaseEvidenceRoot?.kind === 'primary-worktree'
+        ? databaseEvidenceRoot
+        : repoRoot,
+      priorRoot: args['prior-root'],
+    });
+    const priorMatrix = readJson(
+      path.join(priorRootDescriptor.path, 'l2-readiness-matrix.json'),
+      'prior L2 readiness matrix',
+    );
     const artifacts = buildL2ReadinessArtifacts({
       repoRoot, runId, generatedAt, runRoot, priorRoot: args['prior-root'],
+      databaseEvidenceRoot, historicalEvidenceRoot, evidenceRoot,
+      l1EvidencePolicySetHash,
       panelRoot: path.join(runRoot, 'domain'), sharedReports, uiReadinessPath, uiReadiness,
       v2PreflightPath, v2Preflight, adapterReadback,
       databaseBoundary, crossDb, relation, acceptancePath,
@@ -1047,4 +1560,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     console.error(error.stack ?? error.message ?? String(error));
     process.exitCode = 1;
   });
+}
+
+function parsePathList(value) {
+  if (value == null || String(value).trim() === '') return [];
+  return String(value).split(',').map((entry) => entry.trim()).filter(Boolean);
 }

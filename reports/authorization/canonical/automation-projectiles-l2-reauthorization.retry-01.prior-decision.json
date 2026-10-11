@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-projectiles-l2-promotion-20260830-admin-03",
+  "packetHash": "sha256:bdbeae71a5c8b5791a9e119f83226a4217ec90c6c1eddac8b46b819fd2a55781",
+  "policySetHash": "sha256:4b9f53431fe9bb6cc7d7c3437918d4f011f75f1916e37524f3b999f780704fc6",
+  "expiresAt": "2026-08-30T19:10:24.000Z",
+  "domainId": "projectiles"
+}

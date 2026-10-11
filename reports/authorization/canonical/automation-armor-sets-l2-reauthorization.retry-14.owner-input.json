@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04 fresh append-only armor_sets L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and predecessor L1/full reconciliation, no policy update, scheduler activation, crawler, import, or business data write.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/retry-14/armor_sets",
+  "decisionIdentity": "automation-armor-sets-l2-reauthorization-20260919-standing-01",
+  "authorizedAt": "2026-09-19T07:51:30.712Z"
+}

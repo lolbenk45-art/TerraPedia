@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-projectiles-l2-reauthorization",
+  "domainId": "projectiles",
+  "policyVersion": 2,
+  "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20260918-owner-04",
+  "actor": "admin",
+  "reason": "User-authorized fresh append-only Projectiles L2 reauthorization after expired prior decision; preserve current L2/ACTIVE policy, bind current H8 and fresh historical disposition, no policy update, no crawler/import.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-reauthorization/retry-14/projectiles",
+  "packetHash": "sha256:2aa9d372c390ad70d7bdf29d11c633d8a793c5e541dfa35b0c3dac84d9842535",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-09-18T09:54:19.536Z"
+}

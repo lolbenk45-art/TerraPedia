@@ -511,6 +511,31 @@ test('start refuses to reuse an app port owned by another worktree', () => {
   assert.match(source, /assert_port_owned_by_worktree admin-console "\$TP_ADMIN_PORT"/);
 });
 
+test('start binds durable queue state and source-monitor command roots from runtime config', () => {
+  const source = startSource();
+  const runtimeConfig = fs.readFileSync('platform/local/lib/runtime-config.sh', 'utf8');
+  const exampleConfig = fs.readFileSync('platform/local/config/local-stack.config.example.json', 'utf8');
+
+  assert.match(runtimeConfig, /TP_CRAWLER_QUEUE_V2_REPO_ROOT/);
+  assert.match(runtimeConfig, /TP_CRAWLER_QUEUE_V2_COMMAND_ROOT/);
+  assert.match(exampleConfig, /"crawlerQueueV2"/);
+  assert.match(source, /resolved_queue_v2_repo_root/);
+  assert.match(source, /resolved_queue_v2_command_root/);
+  assert.match(source, /export TERRAPEDIA_CRAWLER_QUEUE_V2_REPO_ROOT="\$resolved_queue_v2_repo_root"/);
+  assert.match(source, /export TERRAPEDIA_CRAWLER_QUEUE_V2_COMMAND_ROOT="\$resolved_queue_v2_command_root"/);
+  assert.match(source, /terrapedia\.crawler\.queue-v2\.repo-root=/);
+  assert.match(source, /terrapedia\.crawler\.queue-v2\.command-root=/);
+  assert.match(source, /queueV2/);
+});
+
+test('start prepares the owner-only base automatic artifact boundary before services', () => {
+  const source = startSource();
+
+  assert.match(source, /prepare-base-automatic-artifact-boundary\.mjs/);
+  assert.match(source, /prepare_base_automatic_artifact_boundary/);
+  assert.match(source, /scheduler startup is blocked/);
+});
+
 test('stop preserves shared redis unless --stop-shared is passed', () => {
   const source = stopSource();
 

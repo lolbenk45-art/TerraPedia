@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized fresh Items L2 stable reauthorization after expired predecessor; bind current H8 and approved historical source-hash disposition without policy update.",
+  "authorizationReference": "user://conversation/2026-09-18/l2-stable-reauthorization/items-retry-05",
+  "decisionIdentity": "automation-items-l2-reauthorization-20260918-owner-03",
+  "authorizedAt": "2026-09-18T02:53:00.000Z"
+}

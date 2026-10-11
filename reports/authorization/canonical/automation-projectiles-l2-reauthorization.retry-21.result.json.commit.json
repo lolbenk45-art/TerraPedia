@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-projectiles-l2-reauthorization",
+  "domainId": "projectiles",
+  "policyVersion": 2,
+  "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+  "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20260919-standing-05",
+  "actor": "admin",
+  "reason": "Standing AUTH-04 prerequisite: append-only stable L2 reauthorization for expired projectiles policy identity before retry-26 scheduler canary.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/projectiles/retry-21",
+  "packetHash": "sha256:f063b79566bb74f7488037d28fd02ad85fc6f001e3a516f349a03a25a1ff9d5c",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-09-19T11:58:13.133Z"
+}

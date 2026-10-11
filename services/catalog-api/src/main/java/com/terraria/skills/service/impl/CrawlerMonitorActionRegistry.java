@@ -270,21 +270,20 @@ public class CrawlerMonitorActionRegistry {
                 "data/generated/fetch-wiki-buffs-progress.latest.json",
                 BUFF_RESUME
             ),
-            baseAutomatic(
+            armorAutomatic(
                 "armor_sets",
                 "重新抓取盔甲套装模块",
                 "wiki.module.armorsetbonuses",
                 "Module:ArmorSetBonuses",
                 "domain-source-armor-sets",
-                "fresh",
                 "direct_crawl",
                 "fresh",
-                "直接重新抓取一个 Armor Set Bonuses 模块。",
-                "更新盔甲套装来源、标准化文件和报告",
+                "fresh",
+                "抓取 Armor Set Bonuses 模块并执行受治理的 canonical 全链路入库。",
+                "更新盔甲套装来源、标准化文件和 canonical 入库结果",
                 "write",
                 1L,
-                "data/generated/domain-source-armor-sets-progress.latest.json",
-                null
+                "data/generated/domain-source-armor-sets-progress.latest.json"
             ),
             backend(
                 "recipes", "预览配方关系差异", "wiki.zh.recipes", "本地物品和配方关系来源",
@@ -619,6 +618,56 @@ public class CrawlerMonitorActionRegistry {
             resumeStatePath,
             resumeStatePath == null ? "fresh" : "resume-dispatch",
             operationId,
+            category,
+            mode,
+            descriptionZh,
+            true,
+            fileWriteSummary,
+            databaseAccess,
+            estimatedRequests,
+            null,
+            false,
+            true,
+            "summary",
+            true
+        );
+    }
+
+    private static CrawlerMonitorActionDefinition armorAutomatic(
+        String domain,
+        String label,
+        String sourceKey,
+        String locator,
+        String actionId,
+        String category,
+        String mode,
+        String defaultResumeMode,
+        String descriptionZh,
+        String fileWriteSummary,
+        String databaseAccess,
+        Long estimatedRequests,
+        String progressPath
+    ) {
+        return new CrawlerMonitorActionDefinition(
+            domain,
+            label,
+            sourceKey,
+            locator,
+            actionId,
+            progressPath,
+            List.of(
+                "node",
+                "pipelines/automation/run-armor-automatic-operation.mjs",
+                "--domain=" + domain,
+                "--progress-path=" + progressPath
+            ),
+            false,
+            true,
+            false,
+            defaultResumeMode,
+            null,
+            "fresh",
+            "canonical-armor-ingestion",
             category,
             mode,
             descriptionZh,

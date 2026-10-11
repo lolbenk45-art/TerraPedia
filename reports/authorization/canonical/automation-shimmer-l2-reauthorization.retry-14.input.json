@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-shimmer-l2-reauthorization",
+  "databaseName": "terria_v1_local",
+  "domainId": "shimmer",
+  "reauthorization": true,
+  "currentPolicy": {
+    "domainId": "shimmer",
+    "policyVersion": 2,
+    "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-shimmer-l2-reauthorization-20260918-owner-01",
+    "packetHash": "sha256:07e55550413eb8504bf62c57c5b0ea448e8a23d2dd97007822cdf7d7b5feb216",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "expiresAt": "2026-09-18T04:02:00.000Z",
+    "domainId": "shimmer"
+  },
+  "targetPolicy": {
+    "domainId": "shimmer",
+    "policyVersion": 2,
+    "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "proposalOnly": false,
+  "proposalPath": "reports/authorization/canonical/automation-shimmer-l2-reauthorization/dba318267d7444c3d1c93707579c0d806259335b1ce986b5840f6194803d1b81/proposal.json",
+  "proposalSha256": "sha256:f0bb5141d5bb33b5f2b041f882d02c8bed0d5908f93bac2dbaa89df07a08f090",
+  "proposalHash": "sha256:dba318267d7444c3d1c93707579c0d806259335b1ce986b5840f6194803d1b81"
+}

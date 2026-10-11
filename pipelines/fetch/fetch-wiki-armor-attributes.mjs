@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import path from 'node:path';
+import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -8,11 +10,13 @@ import {
   fetchWikiPagePayload,
   parseCliArgs,
   shouldKeepSnapshot,
-  writeJson
+  writeJson,
+  writeJsonNoOverwrite
 } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   buildActionProgressPayload,
+  createCrawlerProgressHeartbeat,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 
@@ -26,30 +30,8 @@ const DEFAULT_OUTPUT_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-armor
 
 const SLOT_GROUPS = [
   { code: 'head', headings: ['头盔', 'helmets', 'helmet'] },
-  { code: 'body', headings: ['胸甲', 'breastplates', 'breastplate', 'shirts'] },
-  { code: 'legs', headings: ['护腿', 'leggings', 'greaves', 'pants'] }
-];
-
-const FIXED_REAL_TABLE_KEYS = [
-  'image',
-  'item',
-  'meleeDamage',
-  'rangedDamage',
-  'magicDamage',
-  'summonDamage',
-  'meleeCritChance',
-  'rangedCritChance',
-  'magicCritChance',
-  'meleeDamageCritChance',
-  'rangedDamageCritChance',
-  'magicDamageCritChance',
-  'classSpecific',
-  'meleeSpeed',
-  'manaCost',
-  'minionSlots',
-  'sentrySlots',
-  'defense',
-  'otherBonus'
+  { code: 'body', headings: ['胸甲', '上衣', 'breastplates', 'breastplate', 'shirts'] },
+  { code: 'legs', headings: ['护腿', '裤装', 'leggings', 'greaves', 'pants'] }
 ];
 
 function decodeHtmlEntities(value) {
@@ -112,11 +94,13 @@ function splitHtmlRows(sectionHtml, { dataOnly = true } = {}) {
 }
 
 function splitHtmlCells(rowHtml) {
-  return [...String(rowHtml ?? '').matchAll(/<(td|th)\b[^>]*>([\s\S]*?)<\/\1>/gi)]
+  return [...String(rowHtml ?? '').matchAll(/<(td|th)\b([^>]*)>([\s\S]*?)<\/\1>/gi)]
     .map((match) => ({
       tag: match[1].toLowerCase(),
-      html: match[2],
-      text: htmlToText(match[2])
+      html: match[3],
+      text: htmlToText(match[3]),
+      rowspan: Number(getTagAttribute(match[2], 'rowspan') || 1),
+      colspan: Number(getTagAttribute(match[2], 'colspan') || 1)
     }));
 }
 
@@ -133,8 +117,23 @@ function extractPrimaryLink(cellHtml) {
   };
 }
 
+function extractImageIdentity(cellHtml) {
+  const tag = String(cellHtml ?? '').match(/<img\b[^>]*>/i)?.[0] ?? '';
+  if (!tag) return { fileTitle: null, sourceUrl: null };
+  const sourceUrl = getTagAttribute(tag, 'src') || null;
+  const alt = getTagAttribute(tag, 'alt') || null;
+  return { fileTitle: alt || null, sourceUrl };
+}
+
 function normalizeHeaderKey(value) {
   const text = String(value ?? '').replace(/\s+/g, '').toLowerCase();
+  if (text === '') return 'image';
+  if (text === '近战速度') return 'classSpecific';
+  if (text === '最大魔力') return 'maxMana';
+  if (text === '魔力消耗') return 'manaCost';
+  if (text === '仆从容量') return 'minionSlots';
+  if (text === '哨兵容量') return 'sentrySlots';
+  if (text === 'movementspeed' || text === '移动速度') return 'movementSpeed';
   if (text.includes('物品') || text === 'item') return 'item';
   if (text.includes('伤害') || text === 'damage') return 'damage';
   if (text.includes('暴击') || text.includes('critical')) return 'critChance';
@@ -144,62 +143,46 @@ function normalizeHeaderKey(value) {
   return null;
 }
 
-function buildRawCells(cells, tableHeaderKeys = []) {
-  const headerCells = cells.filter((cell) => cell.tag === 'th');
-  const dataCells = cells.filter((cell) => cell.tag === 'td');
-  const headerKeys = tableHeaderKeys.length > 0
-    ? tableHeaderKeys
-    : headerCells.map((cell) => normalizeHeaderKey(cell.text));
-  if (headerKeys.length === dataCells.length && dataCells.length > 0) {
-    const rawCells = {};
-    for (let index = 0; index < dataCells.length; index += 1) {
-      const key = headerKeys[index];
-      if (key && key !== 'item' && key !== 'defense') {
-        rawCells[key] = dataCells[index].text;
+function expandedHeaderKeys(rows) {
+  if (!rows.length) throw new Error('Armor table requires declared column headers');
+  const grid = [];
+  rows.forEach((cells, rowIndex) => {
+    grid[rowIndex] ??= [];
+    let column = 0;
+    for (const cell of cells) {
+      while (grid[rowIndex][column]) column += 1;
+      if (![cell.rowspan, cell.colspan].every(span => Number.isSafeInteger(span) && span > 0 && span <= 64)) {
+        throw new Error('Armor table header span is invalid');
       }
+      for (let r = rowIndex; r < rowIndex + cell.rowspan; r += 1) {
+        grid[r] ??= [];
+        for (let c = column; c < column + cell.colspan; c += 1) {
+          if (grid[r][c]) throw new Error('Armor table header cells overlap');
+          grid[r][c] = cell;
+        }
+      }
+      column += cell.colspan;
     }
-    if (Object.keys(rawCells).length > 0) {
-      return rawCells;
+  });
+  const width = grid[0].length;
+  if (grid.length !== rows.length || grid.some(row => row.length !== width || Array.from({ length: width }, (_, c) => row[c]).some(cell => !cell))) {
+    throw new Error('Armor table header grid is incomplete');
+  }
+  const keys = grid[0].map((_, column) => {
+    const path = [...new Set(grid.map(row => row[column]))].map(cell => cell.text.replace(/\s+/g, ''));
+    const leaf = path.at(-1);
+    const role = { 近战: 'melee', 远程: 'ranged', 魔法: 'magic', 召唤: 'summon' }[leaf];
+    if (role && path.length > 1) {
+      if (path[0] === '伤害+暴击率') return `${role}DamageCritChance`;
+      if (path[0] === '暴击率') return `${role}CritChance`;
+      if (path[0] === '伤害') return `${role}Damage`;
     }
+    return normalizeHeaderKey(leaf);
+  });
+  if (keys.some(key => !key) || new Set(keys).size !== keys.length || !keys.includes('item')) {
+    throw new Error('Armor table column headers are unknown or ambiguous');
   }
-
-  const rawCells = {};
-  for (let index = 0; index < dataCells.length && index < FIXED_REAL_TABLE_KEYS.length; index += 1) {
-    const key = FIXED_REAL_TABLE_KEYS[index];
-    if (key !== 'image' && key !== 'item' && key !== 'defense') {
-      rawCells[key] = dataCells[index].text;
-    }
-  }
-  return rawCells;
-}
-
-function findItemCell(cells) {
-  const dataCells = cells.filter((cell) => cell.tag === 'td');
-  return dataCells.find((cell) => {
-    const link = extractPrimaryLink(cell.html);
-    return link.title || link.text;
-  }) ?? null;
-}
-
-function parseDefense(rawCells) {
-  const raw = rawCells.defense ?? rawCells.__defense ?? '';
-  const match = String(raw).match(/-?\d+/);
-  return match ? Number(match[0]) : null;
-}
-
-function extractDefenseValue(cells, tableHeaderKeys = []) {
-  const dataCells = cells.filter((cell) => cell.tag === 'td');
-  const defenseIndex = tableHeaderKeys.findIndex((key) => key === 'defense');
-  if (tableHeaderKeys.length === dataCells.length && defenseIndex >= 0 && dataCells[defenseIndex]) {
-    const match = dataCells[defenseIndex].text.match(/-?\d+/);
-    return match ? Number(match[0]) : null;
-  }
-  const fixedDefenseIndex = FIXED_REAL_TABLE_KEYS.indexOf('defense');
-  if (fixedDefenseIndex >= 0 && dataCells[fixedDefenseIndex]) {
-    const match = dataCells[fixedDefenseIndex].text.match(/-?\d+/);
-    return match ? Number(match[0]) : null;
-  }
-  return null;
+  return keys;
 }
 
 export function parseWikiArmorAttributeRows({
@@ -209,11 +192,11 @@ export function parseWikiArmorAttributeRows({
   const rows = [];
   let currentSectionCode = null;
   let currentSlotGroup = null;
-  const tokens = [...String(html ?? '').matchAll(/<(h[23])\b[^>]*>[\s\S]*?<\/\1>|<table\b[^>]*>[\s\S]*?<\/table>/gi)];
+  const tokens = [...String(html ?? '').matchAll(/<(h[234])\b[^>]*>[\s\S]*?<\/\1>|<table\b[^>]*>[\s\S]*?<\/table>/gi)];
 
   for (const token of tokens) {
     const fragment = token[0];
-    if (/^<h[23]\b/i.test(fragment)) {
+    if (/^<h[234]\b/i.test(fragment)) {
       const text = headingText(fragment);
       const sectionCode = classifySectionCode(text);
       const slotGroup = classifySlotGroup(text);
@@ -230,22 +213,28 @@ export function parseWikiArmorAttributeRows({
       continue;
     }
 
-    let tableHeaderKeys = [];
+    const headerRows = [];
+    let tableHeaderKeys = null;
     for (const rowHtml of splitHtmlRows(fragment, { dataOnly: false })) {
       const cells = splitHtmlCells(rowHtml);
       if (cells.some((cell) => cell.tag === 'th') && !cells.some((cell) => cell.tag === 'td')) {
-        const headerKeys = cells.map((cell) => normalizeHeaderKey(cell.text));
-        if (headerKeys.some(Boolean)) {
-          tableHeaderKeys = headerKeys;
-        }
+        if (tableHeaderKeys) throw new Error('Armor table headers changed between data rows');
+        headerRows.push(cells);
         continue;
       }
-      const itemCell = findItemCell(cells);
+      if (!cells.length) continue;
+      tableHeaderKeys ??= expandedHeaderKeys(headerRows);
+      if (cells.length !== tableHeaderKeys.length || cells.some(cell => cell.tag !== 'td' || cell.rowspan !== 1 || cell.colspan !== 1)) {
+        throw new Error('Armor data cell count does not match declared column headers');
+      }
+      const itemCell = cells[tableHeaderKeys.indexOf('item')];
       if (!itemCell) {
         continue;
       }
       const primaryLink = extractPrimaryLink(itemCell.html);
-      const rawCells = buildRawCells(cells, tableHeaderKeys);
+      const imageIdentity = extractImageIdentity(cells[tableHeaderKeys.indexOf('image')]?.html);
+      const rawCells = Object.fromEntries(tableHeaderKeys.flatMap((key, index) =>
+        ['image', 'item', 'defense'].includes(key) ? [] : [[key, cells[index].text]]));
       if (Object.keys(rawCells).length === 0) {
         continue;
       }
@@ -253,13 +242,16 @@ export function parseWikiArmorAttributeRows({
       if (!itemNameZh) {
         continue;
       }
+      const defenseMatch = cells[tableHeaderKeys.indexOf('defense')]?.text.match(/-?\d+/);
       rows.push({
         sectionCode: currentSectionCode,
         slotGroup: currentSlotGroup,
         itemPageTitle: primaryLink.title || itemNameZh,
         itemHref: primaryLink.href || null,
         itemNameZh,
-        defenseValue: extractDefenseValue(cells, tableHeaderKeys) ?? parseDefense(rawCells),
+        imageFileTitle: imageIdentity.fileTitle,
+        imageSourceUrl: imageIdentity.sourceUrl,
+        defenseValue: defenseMatch ? Number(defenseMatch[0]) : null,
         rawCells,
         sourceRevisionTimestamp
       });
@@ -275,6 +267,10 @@ async function main(argv = process.argv.slice(2)) {
   const pageTitle = String(options.page ?? DEFAULT_PAGE_TITLE);
   const outputDir = path.resolve(process.cwd(), options['output-dir'] ?? path.dirname(DEFAULT_OUTPUT_PATH));
   const outputPath = path.join(outputDir, 'wiki-armor-attributes.latest.json');
+  const rawOutputPath = options['raw-output'] ? path.resolve(process.cwd(), options['raw-output']) : null;
+  const identityPage = options['identity-page'] ? String(options['identity-page']) : null;
+  const identityRawPath = options['identity-raw-output'] ? path.resolve(process.cwd(), options['identity-raw-output']) : null;
+  const totalRequests = identityPage ? 2 : 1;
   const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
   const canonicalProgressPath = path.resolve(DEFAULT_PROGRESS_PATH);
   const keepSnapshot = shouldKeepSnapshot(options);
@@ -300,22 +296,38 @@ async function main(argv = process.argv.slice(2)) {
     }
   };
 
-  writeProgress({
+  // Reject path aliases before even the first progress write can replace evidence.
+  for (const target of [rawOutputPath, identityRawPath].filter(Boolean)) {
+    if ([outputPath, progressPath, canonicalProgressPath].includes(target)) {
+      throw new Error('Raw source output must not overlap parsed output or progress');
+    }
+  }
+  const heartbeat = createCrawlerProgressHeartbeat({ writeProgress });
+  heartbeat.publish({
     status: 'running',
     phase: 'start',
     message: 'starting armor attribute source fetch',
     current: 0,
-    total: 1
+    total: totalRequests
   });
 
   try {
-    const payload = await fetchWikiPagePayload({ pageTitle, apiUrl });
-    writeProgress({
+    if (Boolean(identityPage) !== Boolean(identityRawPath)) throw new Error('Identity page and immutable raw output must be supplied together');
+    const payload = await fetchWikiPagePayload({ pageTitle, apiUrl, requireRevisionBinding: true });
+    const rawSourceArtifact = rawOutputPath ? freezeRawPage(rawOutputPath, payload) : null;
+    let identitySourceArtifact = null;
+    if (identityPage) {
+      heartbeat.publish({ status: 'running', phase: 'identity-source',
+        message: `capturing independent identity source ${identityPage}`, current: 1, total: totalRequests });
+      const identity = await fetchWikiPagePayload({ pageTitle: identityPage, apiUrl, requireRevisionBinding: true });
+      identitySourceArtifact = freezeRawPage(identityRawPath, identity);
+    }
+    heartbeat.publish({
       status: 'running',
       phase: 'parse',
       message: `parsing armor attribute rows from ${payload.pageTitle}`,
-      current: 1,
-      total: 1
+      current: totalRequests,
+      total: totalRequests
     });
 
     const records = parseWikiArmorAttributeRows({
@@ -328,10 +340,13 @@ async function main(argv = process.argv.slice(2)) {
       sourceApi: apiUrl,
       sourcePageTitle: payload.pageTitle,
       sourceRevisionTimestamp: payload.revisionTimestamp,
+      sourceRevisionId: payload.revisionId,
       fetchedAt: payload.fetchedAt,
       generatedAt,
       total: records.length,
-      records
+      records,
+      ...(rawSourceArtifact ? { rawSourceArtifact } : {}),
+      ...(identitySourceArtifact ? { identitySourceArtifact } : {})
     };
 
     ensureDir(outputDir);
@@ -339,26 +354,33 @@ async function main(argv = process.argv.slice(2)) {
     if (keepSnapshot) {
       writeJson(path.join(outputDir, `wiki-armor-attributes.${generatedAt.replaceAll(':', '-')}.json`), result);
     }
-    writeProgress({
+    heartbeat.publish({
       status: 'completed',
       phase: 'write',
       message: `finished armor attribute source fetch; records=${records.length}`,
-      current: 1,
-      total: 1,
+      current: totalRequests,
+      total: totalRequests,
       generatedAt
     });
     console.log(`Fetched ${records.length} wiki armor attribute rows from ${payload.pageTitle}`);
   } catch (error) {
-    writeProgress({
+    heartbeat.publish({
       status: 'failed',
       phase: 'error',
       message: error instanceof Error ? error.message : String(error),
       current: 0,
-      total: 1,
+      total: totalRequests,
       nextStep: 'check wiki armor attributes page source availability'
     });
     throw error;
+  } finally {
+    heartbeat.stop();
   }
+}
+
+function freezeRawPage(outputPath, payload) {
+  writeJsonNoOverwrite(outputPath, payload);
+  return { path: outputPath, sha256: `sha256:${createHash('sha256').update(fs.readFileSync(outputPath)).digest('hex')}` };
 }
 
 function buildArmorAttributesProgressPayload({

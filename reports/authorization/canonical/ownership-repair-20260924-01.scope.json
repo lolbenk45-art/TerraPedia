@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "human_scope_authorization_not_execution_packet",
+  "authorizationReference": "user://conversation/automation-canonical-ownership-repair-approved-01",
+  "quotedInstruction": "授权了 生成授权信息然后开始执行",
+  "reaffirmedBy": "继续任务",
+  "approvedAt": null,
+  "recordedAt": "2026-09-24T01:36:04.024Z",
+  "decisionOwner": "user directing this session",
+  "runtimeActorObserved": "admin",
+  "runtimeActorStatus": "ACTIVE",
+  "worktree": "/home/lolben/TerraPedia/.worktrees/automation-scheduler-continuation",
+  "branch": "feat/automation-scheduler-continuation",
+  "head": "0f871e94dc8b48f8883c77b1e0557593a271609b",
+  "target": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "databases": [
+      "terria_v1_local",
+      "terria_v1_maint",
+      "terria_v1_relation"
+    ],
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0"
+  },
+  "approvedScope": [
+    "bounded Armor canonical incremental publication",
+    "Buff source/immunity/image/relation/projection repair",
+    "Shimmer explicit cross-owner context and source-lineage partitions",
+    "required scoped operation registration and fresh serial local canonical execution after technical gates"
+  ],
+  "requiredBeforeExecution": [
+    "independent specification and quality review",
+    "fresh exact source baseline code server and policy bindings",
+    "registered executor and unique immutable packet",
+    "one-use dispatch and transaction-held ownership fence",
+    "post-transaction exact DB and consumer readback"
+  ],
+  "notAuthorized": [
+    "remote targets",
+    "DDL",
+    "direct SQL or Redis writes",
+    "manual scheduler sweep",
+    "blanket policy widening",
+    "broad deletes",
+    "unbounded scheduling",
+    "Git commit push or cleanup"
+  ],
+  "scopeLifetime": "until revoked, task closure, or worktree/server identity change",
+  "executable": false,
+  "databaseWrites": false,
+  "packetGenerated": false
+}
