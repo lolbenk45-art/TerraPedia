@@ -6,6 +6,7 @@ import path from 'node:path';
 
 import {
   assertAutomationRedisLogicalDb,
+  assertAutomationRedisDomainLogicalDb,
   AUTOMATION_REDIS_LOGICAL_DB_MAX,
   FORMAL_DATABASES,
 } from './automation-database-contract.mjs';
@@ -420,6 +421,7 @@ export async function createLiveAutomationAdapter({
   repoRoot,
   mysql,
   redis,
+  domain,
   environmentId,
   accountNames,
   accountPasswords,
@@ -427,6 +429,12 @@ export async function createLiveAutomationAdapter({
   maxRowsPerTable = 2
 } = {}) {
   const root = path.resolve(String(repoRoot ?? ''));
+  if (domain !== undefined && domain !== null) {
+    if (redis?.logicalDb === undefined || redis?.logicalDb === null) {
+      throw new Error(`${String(domain)} recrawl requires an explicit Redis logical DB binding`);
+    }
+    assertAutomationRedisDomainLogicalDb(domain, redis.logicalDb);
+  }
   const bootstrap = createMysqlCommandClient({ ...mysql, execute });
   const provisioner = createMysqlCommandClient({
     ...mysql, username: accountNames.provisioner, password: accountPasswords.provisioner, execute
@@ -486,7 +494,9 @@ export async function createLiveAutomationAdapter({
     },
     async allocateRedisLogicalDb({ runKey }) {
       const reservationToken = randomBytes(24).toString('hex');
-      const candidates = redis.logicalDb != null
+      const candidates = domain !== undefined && domain !== null
+        ? [assertAutomationRedisDomainLogicalDb(domain, redis.logicalDb)]
+        : redis.logicalDb != null
         ? [assertAutomationRedisLogicalDb(redis.logicalDb, 'automation Redis logical DB')]
         : Array.from({ length: AUTOMATION_REDIS_LOGICAL_DB_MAX }, (_, index) => AUTOMATION_REDIS_LOGICAL_DB_MAX - index);
       for (const logicalDb of candidates) {

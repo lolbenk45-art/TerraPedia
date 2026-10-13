@@ -234,6 +234,57 @@ test('explicit DB14 allocation is rejected before any Redis command', async (t) 
   assert.equal(calls.length, 0);
 });
 
+test('domain-aware Redis allocation binds Armor to DB20 without falling back to DB13', async (t) => {
+  const calls = [];
+  let reservationValue = '';
+  const adapter = await createLiveAutomationAdapter({
+    repoRoot: process.cwd(),
+    mysql: { host: '127.0.0.1', port: 13306, username: 'bootstrap', password: 'bootstrap-secret' },
+    redis: { host: '127.0.0.1', port: 16380, password: 'redis-secret', logicalDb: 20 },
+    domain: 'armor',
+    environmentId: 'test',
+    accountNames: { provisioner: 'automation_prov_test', readonly: 'automation_ro_test' },
+    accountPasswords: { provisioner: 'provisioner-secret', readonly: 'readonly-secret' },
+    execute: async (input) => {
+      calls.push(input);
+      if (input.args.includes('DBSIZE')) return { stdout: '0', stderr: '', exitCode: 0 };
+      if (input.args.includes('SET')) {
+        reservationValue = input.args.at(-1);
+        return { stdout: 'OK', stderr: '', exitCode: 0 };
+      }
+      if (input.args.includes('GET')) return { stdout: reservationValue, stderr: '', exitCode: 0 };
+      return { stdout: '', stderr: '', exitCode: 0 };
+    }
+  });
+  t.after(() => adapter.cleanupAccounts());
+
+  const allocation = await adapter.allocateRedisLogicalDb({ runKey: 'test_0123456789abcdef' });
+  assert.equal(allocation.logicalDb, 20);
+  assert.equal(calls.some(({ args }) => args.includes('13')), false);
+  assert.equal(calls.some(({ args }) => args.includes('20')), true);
+});
+
+test('domain-aware Redis allocation rejects a mismatched domain DB before any Redis command', async (t) => {
+  const calls = [];
+  await assert.rejects(
+    () => createLiveAutomationAdapter({
+      repoRoot: process.cwd(),
+      mysql: { host: '127.0.0.1', port: 13306, username: 'bootstrap', password: 'bootstrap-secret' },
+      redis: { host: '127.0.0.1', port: 16380, password: 'redis-secret', logicalDb: 13 },
+      domain: 'buff',
+      environmentId: 'test',
+      accountNames: { provisioner: 'automation_prov_test', readonly: 'automation_ro_test' },
+      accountPasswords: { provisioner: 'provisioner-secret', readonly: 'readonly-secret' },
+      execute: async (input) => {
+        calls.push(input);
+        return { stdout: '', stderr: '', exitCode: 0 };
+      }
+    }),
+    /buff.*DB22/i,
+  );
+  assert.equal(calls.length, 0);
+});
+
 test('command execution preserves child stderr when a large stdin hits EPIPE', async () => {
   const result = await defaultExecute({
     command: process.execPath,
