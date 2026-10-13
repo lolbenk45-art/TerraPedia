@@ -4,10 +4,17 @@ import path from 'node:path';
 
 export const DATABASE_ROLES = Object.freeze(['maint', 'relation', 'local']);
 export const TEST_PROFILES = Object.freeze(['unit', 't0', 't1', 't2-readonly']);
-// DB14-DB17 are reserved by other local owners; DB18 is the explicit Buff source replay lane.
+// DB14-DB17 are reserved by other local owners; DB18 is the explicit Buff source
+// replay lane. DB20/22/24 are reserved for the three-domain full-recrawl lanes.
 export const AUTOMATION_REDIS_LOGICAL_DB_MIN = 1;
 export const AUTOMATION_REDIS_LOGICAL_DB_MAX = 13;
 export const AUTOMATION_REDIS_LOGICAL_DB_EXTRA = 18;
+export const AUTOMATION_REDIS_LOGICAL_DB_EXTRAS = Object.freeze([18, 20, 22, 24]);
+export const AUTOMATION_REDIS_DOMAIN_BINDINGS = Object.freeze({
+  armor: 20,
+  buff: 22,
+  shimmer: 24,
+});
 export const FORMAL_DATABASES = Object.freeze({
   local: 'terria_v1_local',
   maint: 'terria_v1_maint',
@@ -17,10 +24,23 @@ export const FORMAL_DATABASES = Object.freeze({
 export function assertAutomationRedisLogicalDb(value, label = 'Redis logical DB') {
   if (!Number.isInteger(value)
       || value < AUTOMATION_REDIS_LOGICAL_DB_MIN
-      || (value > AUTOMATION_REDIS_LOGICAL_DB_MAX && value !== AUTOMATION_REDIS_LOGICAL_DB_EXTRA)) {
-    throw new Error(`${label} must be an integer from ${AUTOMATION_REDIS_LOGICAL_DB_MIN} through ${AUTOMATION_REDIS_LOGICAL_DB_MAX} or ${AUTOMATION_REDIS_LOGICAL_DB_EXTRA}`);
+      || (value > AUTOMATION_REDIS_LOGICAL_DB_MAX && !AUTOMATION_REDIS_LOGICAL_DB_EXTRAS.includes(value))) {
+    throw new Error(`${label} must be an integer from ${AUTOMATION_REDIS_LOGICAL_DB_MIN} through ${AUTOMATION_REDIS_LOGICAL_DB_MAX} or one of ${AUTOMATION_REDIS_LOGICAL_DB_EXTRAS.join(', ')}`);
   }
   return value;
+}
+
+export function assertAutomationRedisDomainLogicalDb(domain, value, label) {
+  const normalizedDomain = String(domain ?? '').trim().toLowerCase();
+  if (!Object.prototype.hasOwnProperty.call(AUTOMATION_REDIS_DOMAIN_BINDINGS, normalizedDomain)) {
+    throw new Error(`Redis domain must be one of: ${Object.keys(AUTOMATION_REDIS_DOMAIN_BINDINGS).join(', ')}`);
+  }
+  const expected = AUTOMATION_REDIS_DOMAIN_BINDINGS[normalizedDomain];
+  const actual = assertAutomationRedisLogicalDb(value, label ?? `${normalizedDomain} Redis logical DB`);
+  if (actual !== expected) {
+    throw new Error(`${normalizedDomain} recrawl requires Redis DB${expected}; received DB${actual}`);
+  }
+  return actual;
 }
 
 const MYSQL_IDENTIFIER_LIMIT = 64;
