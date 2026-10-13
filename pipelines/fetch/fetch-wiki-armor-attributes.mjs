@@ -131,8 +131,8 @@ function normalizeHeaderKey(value) {
   if (text === '近战速度') return 'classSpecific';
   if (text === '最大魔力') return 'maxMana';
   if (text === '魔力消耗') return 'manaCost';
-  if (text === '仆从容量') return 'minionSlots';
-  if (text === '哨兵容量') return 'sentrySlots';
+  if (text === '仆从容量' || text === '仆从上限') return 'minionSlots';
+  if (text === '哨兵容量' || text === '哨兵上限') return 'sentrySlots';
   if (text === 'movementspeed' || text === '移动速度') return 'movementSpeed';
   if (text.includes('物品') || text === 'item') return 'item';
   if (text.includes('伤害') || text === 'damage') return 'damage';
@@ -173,7 +173,7 @@ function expandedHeaderKeys(rows) {
     const leaf = path.at(-1);
     const role = { 近战: 'melee', 远程: 'ranged', 魔法: 'magic', 召唤: 'summon' }[leaf];
     if (role && path.length > 1) {
-      if (path[0] === '伤害+暴击率') return `${role}DamageCritChance`;
+      if (path[0] === '伤害+暴击率' || path[0] === '伤害+暴击') return `${role}DamageCritChance`;
       if (path[0] === '暴击率') return `${role}CritChance`;
       if (path[0] === '伤害') return `${role}Damage`;
     }
