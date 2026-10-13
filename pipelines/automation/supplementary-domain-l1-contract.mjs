@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
 
+import {
+  buildShimmerPartitionBundle,
+  SHIMMER_PARTITION_SCOPES,
+} from './shimmer-partition-contract.mjs';
+
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const FROZEN_SOURCE_ROOT = 'reports/authorization/canonical/';
 
@@ -72,6 +77,13 @@ const OWNED_TABLES_BY_DOMAIN = Object.freeze({
   ]),
 });
 
+const SHIMMER_PARTITION_OWNED_TABLES = Object.freeze(SHIMMER_PARTITION_SCOPES.map((scope) => Object.freeze({
+  databaseRole: scope.databaseRole,
+  table: scope.table,
+  fieldGroup: scope.fieldGroup,
+  logicalPredicateHash: scope.logicalPredicateHash,
+})));
+
 export function buildSupplementaryL1Bundle(input = {}) {
   const domainId = requireDomain(input.domainId);
   const operationId = requireText(input.operationId, 'operationId');
@@ -86,7 +98,13 @@ export function buildSupplementaryL1Bundle(input = {}) {
   const executionMode = normalizeExecutionMode(input.executionMode);
   const policy = normalizePolicy(input.policy, domainId, executionMode);
   const ownedTables = normalizeOwnedTables(input.ownedTables);
-  assertSupplementaryOwnedTables(domainId, ownedTables);
+  const importPlan = cloneObject(input.importPlan, 'importPlan');
+  const hasShimmerCrossOwnerScope = domainId === 'shimmer'
+    && ownedTables.some((scope) => scope.table === 'world_contexts' || scope.table === 'entity_source_snapshots');
+  const shimmerPartition = domainId === 'shimmer' && (hasShimmerCrossOwnerScope || importPlan.shimmerPartition != null)
+    ? validateShimmerPartitionImportPlan({ importPlan, ownedTables })
+    : null;
+  assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerPartition });
   if (executionMode === 'ACTIVATION_GATED_AUTO') {
     assertAutomaticPolicyOwnedTables(policy, ownedTables);
   }
@@ -99,7 +117,6 @@ export function buildSupplementaryL1Bundle(input = {}) {
     throw new Error('manual Owner bundles must not carry a scheduler source dispatch identity');
   }
   const reconciliationInput = normalizeReconciliationInput(input.reconciliationInput);
-  const importPlan = cloneObject(input.importPlan, 'importPlan');
   const baselineFingerprint = hashJson(baseline);
   const logicalDiffIdentity = {
     baselineFingerprint,
@@ -198,15 +215,29 @@ function normalizeSourceDispatchIdentity(value) {
   return { sourceFingerprint, sourceRunIdentity, sourceContentIdentity };
 }
 
-export function assertSupplementaryOwnedTables(domainId, ownedTables) {
+export function assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerPartition = null } = {}) {
   const domain = requireDomain(domainId);
   const normalized = normalizeOwnedTables(ownedTables);
-  const physicalScopes = normalized.map(({ databaseRole, table }) => ({ databaseRole, table }));
-  if (JSON.stringify(sortOwnedTables(physicalScopes))
-      !== JSON.stringify(sortOwnedTables(OWNED_TABLES_BY_DOMAIN[domain]))) {
+  const expected = domain === 'shimmer' && shimmerPartition != null
+    ? SHIMMER_PARTITION_OWNED_TABLES
+    : OWNED_TABLES_BY_DOMAIN[domain];
+  const comparable = domain === 'shimmer' && shimmerPartition != null
+    ? normalized
+    : normalized.map(({ databaseRole, table }) => ({ databaseRole, table }));
+  if (JSON.stringify(sortOwnedTables(comparable))
+      !== JSON.stringify(sortOwnedTables(expected))) {
     throw new Error(`supplementary ${domain} owned table set is invalid`);
   }
   return true;
+}
+
+function validateShimmerPartitionImportPlan({ importPlan, ownedTables }) {
+  const partition = buildShimmerPartitionBundle(importPlan?.shimmerPartition);
+  const expectedOwnedTables = SHIMMER_PARTITION_OWNED_TABLES;
+  if (JSON.stringify(ownedTables) !== JSON.stringify(expectedOwnedTables)) {
+    throw new Error('Shimmer six-scope partition must exactly match ownedTables');
+  }
+  return partition;
 }
 
 function normalizePolicy(policy, domainId, executionMode = 'MANUAL_OWNER_L1') {

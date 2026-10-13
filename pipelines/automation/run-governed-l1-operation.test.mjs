@@ -10,10 +10,13 @@ import {
   buildL1RunArtifactPaths,
   buildManualL1AuthorizationContext,
   buildImportPlan,
+  acquireShimmerPartitionFences,
   getGovernedL1DomainConfig,
   hashFileBytes,
+  loadShimmerPartitionFences,
   sourceCommandArgs,
 } from './run-governed-l1-operation.mjs';
+import { SHIMMER_PARTITION_SCOPES } from './shimmer-partition-contract.mjs';
 import {
   CANONICAL_CUTOVER_OPERATION_IDS,
   CANONICAL_OPERATION_ENTRYPOINTS,
@@ -31,6 +34,12 @@ test('exposes the approved eight-domain serial L1 order and exact owned tables',
     { databaseRole: 'local', table: 'boss_groups' },
     { databaseRole: 'local', table: 'npcs' },
   ]);
+  assert.deepEqual(getGovernedL1DomainConfig('shimmer').ownedTables, SHIMMER_PARTITION_SCOPES.map((scope) => ({
+    databaseRole: scope.databaseRole,
+    table: scope.table,
+    fieldGroup: scope.fieldGroup,
+    logicalPredicateHash: scope.logicalPredicateHash,
+  })));
   assert.throws(() => getGovernedL1DomainConfig('biomes'), /unsupported governed L1 domain/);
 });
 
@@ -130,6 +139,21 @@ test('builds the Shimmer import plan from the frozen generation manifest path', 
     },
     connection: {},
     bundle: { repoRoot: '/repo' },
+    runId: 'shimmer_l1_20260829_run01',
+    ownerApprovals: ['items', 'shimmer', 'town_npc_maintenance'],
+    currentContext: {
+      baseline: {
+        environmentId: 'local',
+        generations: SHIMMER_PARTITION_SCOPES.map((scope, index) => ({ ...scope, generation: index })),
+      },
+    },
+    acquireShimmerPartitionFencesImpl: async () => SHIMMER_PARTITION_SCOPES.map((scope, index) => ({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      logicalPredicateHash: scope.logicalPredicateHash,
+      generation: index,
+      fenceToken: `fence-${index}`,
+    })),
     loadShimmerBundleImpl: (options) => {
       calls.push(['bundle', options]);
       return verifiedBundle;
@@ -150,6 +174,9 @@ test('builds the Shimmer import plan from the frozen generation manifest path', 
 
   assert.equal(result.previewSha256, `sha256:${'c'.repeat(64)}`);
   assert.equal(result.targetFingerprintSha256, `sha256:${'d'.repeat(64)}`);
+  assert.equal(result.shimmerPartition.scopes.length, 6);
+  assert.equal(result.shimmerPartition.generationId, verifiedBundle.generationId);
+  assert.equal(result.shimmerPartition.previewSha256, `sha256:${'c'.repeat(64)}`);
   assert.deepEqual(calls, [[
     'bundle',
     {
@@ -177,6 +204,14 @@ test('builds the Shimmer import plan against the explicit caller worktree root',
     },
     connection: {},
     bundle: { domainId: 'shimmer' },
+    runId: 'shimmer_l1_20260829_run01',
+    ownerApprovals: ['items', 'shimmer', 'town_npc_maintenance'],
+    currentContext: {
+      baseline: {
+        environmentId: 'local',
+        generations: SHIMMER_PARTITION_SCOPES.map((scope, index) => ({ ...scope, generation: index })),
+      },
+    },
     loadShimmerBundleImpl: (options) => {
       calls.push(options);
       return verifiedBundle;
@@ -193,9 +228,90 @@ test('builds the Shimmer import plan against the explicit caller worktree root',
       targetFingerprintSha256: `sha256:${'d'.repeat(64)}`,
       tables: { shimmer_item_transforms: { count: 0 } },
     }),
+    acquireShimmerPartitionFencesImpl: async () => SHIMMER_PARTITION_SCOPES.map((scope, index) => ({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      logicalPredicateHash: scope.logicalPredicateHash,
+      generation: index,
+      fenceToken: `fence-${index}`,
+    })),
   });
 
   assert.equal(calls[0].repoRoot, '/caller/worktree');
+});
+
+test('Shimmer governed import plan fails closed without a six-scope baseline', async () => {
+  await assert.rejects(
+    () => buildImportPlan({
+      domainId: 'shimmer',
+      sourcePayload: {
+        generationId: '379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761',
+        manifestPath: 'generations/379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761/wiki-shimmer-manifest.json',
+      },
+      connection: {},
+      currentContext: { baseline: { environmentId: 'local', generations: [] } },
+      runId: 'shimmer_l1_20260829_run01',
+      ownerApprovals: ['items', 'shimmer', 'town_npc_maintenance'],
+      loadShimmerBundleImpl: () => ({
+        generationId: '379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761',
+        manifestSha256: `sha256:${'a'.repeat(64)}`,
+        dataBundleSha256: `sha256:${'b'.repeat(64)}`,
+      }),
+      buildShimmerPreviewImpl: () => ({
+        previewSha256: `sha256:${'c'.repeat(64)}`,
+        targetFingerprintSha256: `sha256:${'d'.repeat(64)}`,
+        tables: {},
+      }),
+    }),
+    /baseline generations/i,
+  );
+});
+
+test('Shimmer partition fence loader rejects a missing or foreign fence', async () => {
+  const scope = SHIMMER_PARTITION_SCOPES[0];
+  await assert.rejects(
+    () => loadShimmerPartitionFences({
+      query: async () => [[{
+        latestRunId: 'other-run', fenceToken: 'real-fence', beforeGeneration: 0,
+      }]],
+    }, {
+      environmentId: 'local',
+      runId: 'shimmer_l1_20260829_run01',
+      generations: SHIMMER_PARTITION_SCOPES.map((entry, index) => ({ ...entry, generation: index })),
+    }),
+    /missing|owned|run/i,
+  );
+  assert.equal(scope.table, 'world_contexts');
+});
+
+test('Shimmer partition acquisition writes and verifies one real fence per scope', async () => {
+  const inserts = [];
+  const connection = {
+    async query(sql, params) {
+      if (/^INSERT INTO crawler_automation_write_fence/.test(sql)) {
+        inserts.push(params);
+        return [{ affectedRows: 1 }];
+      }
+      if (/^SELECT latest_run_id/.test(sql)) {
+        const inserted = inserts.find((entry) => entry[2] === params[2]);
+        return [[{
+          latestRunId: 'shimmer_l1_20260829_run01',
+          fenceToken: inserted?.[6],
+          beforeGeneration: Number(inserted?.[7]),
+        }]];
+      }
+      throw new Error(`unexpected query: ${sql}`);
+    },
+  };
+  const generations = SHIMMER_PARTITION_SCOPES.map((scope, index) => ({ ...scope, generation: index }));
+  const fences = await acquireShimmerPartitionFences(connection, {
+    environmentId: 'local',
+    runId: 'shimmer_l1_20260829_run01',
+    generations,
+  });
+  assert.equal(inserts.length, 6);
+  assert.equal(fences.length, 6);
+  assert.ok(fences.every((fence) => /^fence:[a-f0-9]{64}$/.test(fence.fenceToken)));
 });
 
 test('rejects a Shimmer manifest path with traversal segments', async () => {

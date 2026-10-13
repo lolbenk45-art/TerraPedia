@@ -6,9 +6,11 @@ import path from 'node:path';
 
 import { computePolicyHash } from './bootstrap-automation-policy.mjs';
 import { computePolicySetHash } from './policy-set-hash.mjs';
+import { SHIMMER_PARTITION_SCOPES } from './shimmer-partition-contract.mjs';
 import { assertRepositoryPathConfinement, assertRepositoryOrdinaryFile } from '../lib/private-repository-path.mjs';
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const SHIMMER_CROSS_OWNER_POLICY_TABLES = new Set(['world_contexts', 'entity_source_snapshots']);
 const DOMAIN_TABLES = Object.freeze({
   items: [{ databaseRole: 'local', table: 'items', fieldGroup: 'all_columns' }],
   npcs: [{ databaseRole: 'local', table: 'npcs', fieldGroup: 'npc_owned' }],
@@ -30,6 +32,14 @@ const DOMAIN_TABLES = Object.freeze({
     { databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned' },
   ],
   shimmer: [
+    ...SHIMMER_PARTITION_SCOPES
+      .filter((scope) => SHIMMER_CROSS_OWNER_POLICY_TABLES.has(scope.table))
+      .map((scope) => ({
+        databaseRole: scope.databaseRole,
+        table: scope.table,
+        fieldGroup: scope.fieldGroup,
+        logicalPredicateHash: scope.logicalPredicateHash,
+      })),
     { databaseRole: 'local', table: 'shimmer_item_transforms', fieldGroup: 'all_columns' },
     { databaseRole: 'local', table: 'shimmer_decraft_rules', fieldGroup: 'all_columns' },
     { databaseRole: 'local', table: 'shimmer_entity_transforms', fieldGroup: 'all_columns' },
@@ -242,6 +252,10 @@ function normalizeOwnedTables(value, domain) {
   if ((domain === 'npcs' || domain === 'bosses')
       && normalized.some((entry) => entry.table === 'npcs' && !entry.logicalPredicateHash)) {
     throw new Error('shared npcs ownership requires a logical predicate hash');
+  }
+  if (domain === 'shimmer'
+      && normalized.some((entry) => SHIMMER_CROSS_OWNER_POLICY_TABLES.has(entry.table) && !entry.logicalPredicateHash)) {
+    throw new Error('Shimmer cross-owner ownership requires a logical predicate hash');
   }
   return normalized;
 }
