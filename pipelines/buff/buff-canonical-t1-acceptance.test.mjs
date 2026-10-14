@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
+  assertBuffFullCaptureResources,
   assertBuffT1SourceReplayResources,
   buildBuffT1InputDescriptor,
   buildBuffT1LandingRows,
@@ -130,4 +131,25 @@ test('source replay accepts only the isolated T1 databases and Redis DB18', () =
   for (const redisLogicalDb of [13, 14, 15, 16, 17]) {
     assert.throws(() => assertBuffT1SourceReplayResources({ profile: 't1', databases, redisLogicalDb }), /DB18|Redis/i);
   }
+});
+
+test('full capture mode accepts exactly 400 records and binds Redis DB22', () => {
+  const records = Array.from({ length: 400 }, (_, index) => ({
+    id: index + 1,
+    internalName: `Buff${index + 1}`,
+    sourceItems: [{ itemId: index + 1, internalName: `Item${index + 1}` }],
+    inflictingNpcs: [],
+    immuneNpcs: [],
+    sourceEvidence: { parseStatus: 'parsed', provider: 'terraria.wiki.gg' },
+  }));
+  const databases = {
+    local: 'terria_v1_automation_acceptance_abc_0123456789abcdef_local',
+    maint: 'terria_v1_automation_acceptance_abc_0123456789abcdef_maint',
+    relation: 'terria_v1_automation_acceptance_abc_0123456789abcdef_relation',
+  };
+  assert.doesNotThrow(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 22 }));
+  assert.throws(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 18 }), /DB22|Redis/i);
+  const rows = buildBuffT1LandingRows({ recordsOverride: records, sourceMetadata: { sourceRevisionTimestamp: '2026-08-22T05:46:54Z' } });
+  assert.equal(JSON.parse(rows[0].payload_json).records.length, 400);
+  assert.equal(rows[0].source_kind, 'full_wiki_capture');
 });
