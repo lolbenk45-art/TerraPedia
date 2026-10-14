@@ -489,7 +489,7 @@ const RELATION_DATETIME_COLUMNS = new Set([
   'updated_at',
 ]);
 
-function normalizeRelationDateValue(column, value) {
+export function normalizeRelationDateValue(column, value) {
   if (!RELATION_DATETIME_COLUMNS.has(column) || value == null || value === '') return value;
   const date = value instanceof Date ? value : new Date(String(value));
   if (!Number.isFinite(date.getTime())) return value;

@@ -249,7 +249,8 @@ export async function runBuffCanonicalT1Acceptance({
         itemBuffRelationCount: actualItemBuffRelationCount,
         inflictingNpcBuffRelationCount: actualInflictingNpcBuffRelationCount,
         immuneNpcRelationCount: 0,
-        unresolvedFixtureCount: sourceReplay ? 0 : 0,
+        unresolvedFixtureCount: fullCapture ? null : 0,
+        unresolvedSourceItemCount: sourceItemRelations.unmatched,
       },
       consumerReadback: projectionRows.map((row) => ({ sourceId: Number(row.source_id), internalName: row.internal_name, sourceItemCount: Number(row.source_item_count), immuneNpcCount: Number(row.immune_npc_count) })),
       unresolved: {

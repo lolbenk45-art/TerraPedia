@@ -119,7 +119,7 @@ export function parseProbeCounts(output) {
 
 export function resolveAcceptanceScope(scope, executor) {
   if (scope === undefined || scope === null || scope === '') return null;
-  if (!['item-groups', 'npc-canonical', 'recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated'].includes(scope)) {
+  if (!['item-groups', 'npc-canonical', 'recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'].includes(scope)) {
     throw new Error(`unsupported live acceptance scope: ${scope}`);
   }
   if (typeof executor !== 'function') throw new Error(`${scope} acceptance executor is required`);
@@ -237,7 +237,7 @@ export async function runLiveAutomationAcceptance({
       snapshotVerification,
       completion: npcT1Completion,
       snapshotBinding,
-      mysql: ['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated'].includes(scope) ? {
+      mysql: ['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'].includes(scope) ? {
         host: mysql.host,
         port: mysql.port,
         username: resources.accounts.provisioner,

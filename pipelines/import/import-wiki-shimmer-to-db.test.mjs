@@ -142,6 +142,11 @@ test('verified shimmer import projection rejects ambiguous or unresolved referen
       () => shimmerImporter.buildShimmerImportProjection({ bundle: ambiguous }),
       /ambiguous|unresolved|reference kind/i,
     );
+
+    const isolatedPartial = structuredClone(bundle);
+    isolatedPartial.allowUnresolvedReferences = true;
+    isolatedPartial.itemTransformsPayload.records[0].inputKind = 'unresolved';
+    assert.doesNotThrow(() => shimmerImporter.buildShimmerImportProjection({ bundle: isolatedPartial }));
   } finally {
     fixture.cleanup();
   }

@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { runLiveAutomationAcceptance } from '../automation/run-live-automation-acceptance.mjs';
@@ -101,10 +102,17 @@ export async function runFullBuffCanonicalIsolated({
       schemaVersion: 'buff-full-canonical-isolated/v1',
       status: result.status,
       runId,
-      inputPath,
+      source: {
+        inputPath,
+        totalBuffs: capture.buffs.length,
+        sourceRevisionTimestamp: capture.sourceRevisionTimestamp ?? null,
+        captureSha256: `sha256:${createHash('sha256').update(fs.readFileSync(inputPath)).digest('hex')}`,
+      },
       redisLogicalDb: BUFF_REDIS_DB,
       formalDatabaseWrites: false,
       databaseWritesToFormalRuntime: false,
+      realIsolatedIngestion: result.acceptance,
+      cleanup: { passed: result.cleanupPassed === true, acceptanceCleanupPassed: result.cleanupPassed === true },
       acceptance: result,
       cleanupPassed: result.cleanupPassed === true,
     };

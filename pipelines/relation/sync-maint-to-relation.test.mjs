@@ -15,6 +15,7 @@ import {
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
 
+
 test('collectArmorAttributeCellDiagnostics preserves every qualified source cell for review', () => {
   const diagnostics = collectArmorAttributeCellDiagnostics([
     {
