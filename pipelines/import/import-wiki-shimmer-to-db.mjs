@@ -157,7 +157,7 @@ function buildDatabaseConfig({ config, env, overrides = {}, database } = {}) {
   return db;
 }
 
-export function loadVerifiedShimmerImportBundle({ bundleManifestPath, repoRoot: suppliedRepoRoot = repoRoot } = {}) {
+export function loadVerifiedShimmerImportBundle({ bundleManifestPath, repoRoot: suppliedRepoRoot = repoRoot, allowUnresolvedReferences = false } = {}) {
   const root = path.resolve(suppliedRepoRoot);
   const manifestPath = requireContentAddressedManifestPath({ bundleManifestPath, repoRoot: root });
   const verified = verifyShimmerGeneration({ manifestPath });
@@ -175,9 +175,10 @@ export function loadVerifiedShimmerImportBundle({ bundleManifestPath, repoRoot: 
     })
   ]));
   requireVerifiedShimmerWorldContext(payloads.contextPayload);
-  assertImportableReferenceKinds(payloads);
+  assertImportableReferenceKinds(payloads, { allowUnresolvedReferences });
   return Object.freeze({
     ...payloads,
+    allowUnresolvedReferences,
     dataBundleSha256: verified.manifest.dataBundleSha256,
     generationId: verified.manifest.generationId,
     generationPath: verified.generationPath,
@@ -191,6 +192,7 @@ export function loadVerifiedShimmerImportBundle({ bundleManifestPath, repoRoot: 
 export function loadVerifiedShimmerImportBundleFromInputContract({
   inputContractPath,
   repoRoot: suppliedRepoRoot = repoRoot,
+  allowUnresolvedReferences = false,
 } = {}) {
   const root = path.resolve(suppliedRepoRoot);
   const inputContract = readCanonicalShimmerImportInputContract({
@@ -200,6 +202,7 @@ export function loadVerifiedShimmerImportBundleFromInputContract({
   const bundle = loadVerifiedShimmerImportBundle({
     bundleManifestPath: inputContract.manifestPath,
     repoRoot: root,
+    allowUnresolvedReferences,
   });
   assertInputContractMatchesBundle({ inputContract, bundle });
   return Object.freeze({ ...bundle, inputContract });
@@ -271,7 +274,7 @@ function mergeSnapshotProjectionRows(existingRows, nextRows) {
 export function buildShimmerImportProjection({ bundle } = {}) {
   const normalizedBundle = requireVerifiedBundle(bundle);
   assertBundleProviderScope(normalizedBundle);
-  assertImportableReferenceKinds(normalizedBundle);
+  assertImportableReferenceKinds(normalizedBundle, { allowUnresolvedReferences: normalizedBundle.allowUnresolvedReferences === true });
   const worldContext = requireVerifiedShimmerWorldContext(normalizedBundle.contextPayload);
   const shimmerTables = buildShimmerTableProjectionRows(normalizedBundle, worldContext.code);
   const snapshots = buildShimmerSnapshotDefinitions(normalizedBundle)
@@ -620,8 +623,9 @@ function requireApplyInputContract(inputContract) {
   return inputContract;
 }
 
-function assertImportableReferenceKinds(bundle) {
+function assertImportableReferenceKinds(bundle, { allowUnresolvedReferences = false } = {}) {
   const allowed = new Set(['item', 'item_group', 'npc', 'none']);
+  if (allowUnresolvedReferences) allowed.add('unresolved');
   const assertKind = (kind, label) => {
     if (!allowed.has(kind)) {
       throw new Error(`verified shimmer import ${label} has an unsupported reference kind: ${kind ?? 'missing'}`);

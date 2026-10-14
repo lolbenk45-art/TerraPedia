@@ -118,6 +118,7 @@ test('live acceptance resolves only explicit registered scopes', () => {
   assert.equal(resolveAcceptanceScope('boss-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('projectile-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('biome-canonical', executor), executor);
+  assert.equal(resolveAcceptanceScope('shimmer-canonical-isolated', executor), executor);
   assert.throws(() => resolveAcceptanceScope('unknown', executor), /scope/i);
   assert.throws(() => resolveAcceptanceScope('item-groups'), /executor/i);
   assert.throws(() => resolveAcceptanceScope('npc-canonical'), /executor/i);
@@ -130,7 +131,7 @@ test('live acceptance passes the run identity to the scoped executor', () => {
   assert.match(source, /password:\s*accountPasswords\.provisioner/);
   assert.match(source, /readonlyUsername:\s*resources\.accounts\.readonly/);
   assert.match(source, /readonlyPassword:\s*accountPasswords\.readonly/);
-  assert.match(source, /\['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical'\]\.includes\(scope\)/);
+  assert.match(source, /\['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated'\]\.includes\(scope\)/);
 });
 
 test('NPC canonical selects a distinct T1 executor instead of the fixture executor', () => {
