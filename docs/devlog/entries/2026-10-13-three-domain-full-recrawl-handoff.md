@@ -147,4 +147,4 @@ Only after all three domains have fresh source evidence should the parent handof
 - Validation: final isolated-chain commits are `a8fd9af0`, `ef71d26c`, `697cd70f`, and `539fb5c5` on `ops/isolated-real-ingestion-20261014`; the execution worktree is clean. Focused Buff validation passed `17/17`; Armor, Shimmer, and allocation validations are recorded above and in the execution artifacts.
 - Residual risks: Armor canonical ownership admission remains blocked for the documented `maint_items` scope and missing source contracts; Buff retains `13` unresolved source-item identities; Shimmer retains `796` unresolved references under the isolated-only allow-unresolved harness. These are not promoted to formal data.
 - Follow-up: production source-fingerprint change, authorization/preflight, natural tick, soak, restart, and update-repair work remain separate. No follow-up is required to deliver this handoff.
-- Commit SHA pending in final response for this devlog closeout.
+- Commit: `f28636321a7d22a955f4eb318cf2441e94f11e65` (`docs(devlog): close three-domain recrawl handoff`).
