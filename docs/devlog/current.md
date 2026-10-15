@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-10-15 11:12 CST by Codex
+Last updated: 2026-10-15 11:18 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
 Active focus: The three-domain full-recrawl handoff is closed after isolated maintained-chain verification. Production remains gated on a future real Wiki fingerprint update and fresh authorization.
@@ -28,6 +28,7 @@ Active focus: The three-domain full-recrawl handoff is closed after isolated mai
 ## Recently closed
 
 - Three-domain full-recrawl handoff: isolated maintained-chain verification complete; production authorization and future source-delta work remain separate.
+- Local worktree archive: five archived worktrees verified and removed while retaining branch refs and recovery bundles.
 
 ## Workspace storage cleanup - 2026-10-12 17:24
 
@@ -38,7 +39,7 @@ Active focus: The three-domain full-recrawl handoff is closed after isolated mai
 
 ## Local worktree archive - 2026-10-13 11:27
 
-- Entry: `docs/devlog/entries/2026-10-13-local-worktree-archive.md`; owner Codex; status `ready-for-commit`; branch `feat/supplementary-domains-readiness`; worktree `/home/lolben/TerraPedia`; no parent/child entry.
+- Entry: `docs/devlog/entries/2026-10-13-local-worktree-archive.md`; owner Codex; status `closed`; branch `feat/supplementary-domains-readiness`; worktree `/home/lolben/TerraPedia`; no parent/child entry.
 - `automation-ingestion-continuation`, three older Superpowers worktrees, and `close-structure-compat-window` have verified local archives; all five registrations are removed and branch refs remain.
 - Armor, Buff, and Shimmer remain untouched. Archive/restore details and remaining storage state are in the entry.
 
