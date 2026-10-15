@@ -1,8 +1,8 @@
 # Current Devlog
 
-Last updated: 2026-10-15 11:36 CST by Codex
+Last updated: 2026-10-15 11:40 CST by Codex
 
-Active branch: `feat/supplementary-domains-readiness`
+Active branch: `main`
 Active focus: The three-domain full-recrawl handoff passed isolated automated-ingestion acceptance. Production changed-only dispatch remains deferred until the next Wiki/game-version fingerprint update and fresh authorization.
 
 ## Isolated real automation ingestion - 2026-10-14
