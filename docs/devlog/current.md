@@ -1,9 +1,9 @@
 # Current Devlog
 
-Last updated: 2026-10-15 11:18 CST by Codex
+Last updated: 2026-10-15 11:36 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
-Active focus: The three-domain full-recrawl handoff is closed after isolated maintained-chain verification. Production remains gated on a future real Wiki fingerprint update and fresh authorization.
+Active focus: The three-domain full-recrawl handoff passed isolated automated-ingestion acceptance. Production changed-only dispatch remains deferred until the next Wiki/game-version fingerprint update and fresh authorization.
 
 ## Isolated real automation ingestion - 2026-10-14
 
@@ -23,11 +23,12 @@ Active focus: The three-domain full-recrawl handoff is closed after isolated mai
 - Buff: fresh `400/400` with all page-immunity facts and both languages, progress terminal `completed`, DB22 pseudo-ingestion readback `400/400/400/400`, cleanup zero. Evidence: `.local/tmp/full-recrawl-20261013/buffs/buf_20261013_full/`.
 - Shimmer: fresh 2026-10-14 raw revision/sections/html and `823/823` langlinks captured; generation `51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd` verified. Manual admin-authorized isolated pseudo-ingestion read back all six scopes on DB24 with unresolved rows marked `partial`; cleanup is zero. Canonical formal import remains unexecuted. Evidence: `.local/tmp/full-recrawl-20261014/shimmer/shm_20261014_full/isolated-pseudo-ingestion.json`.
 - Contract and parser checks: Redis allocation contract `28/28`; Armor attribute fetch tests `16/16`; fresh Shimmer parser/generation/allocation checks `30/30`. The Shimmer artifact records DB20/22/24 cleanup as zero; the Shimmer temporary MySQL instance is stopped. Redis `6380` remains owned by the concurrent Armor chain and was not stopped by this session.
-- Next agent start point: use the recorded source reports for delivery; obtain a fresh Shimmer authorization context before any six-scope import. Production fingerprint-change, natural-tick, soak, and update-repair work remain separate follow-ups.
+- Acceptance: isolated full-chain write/readback passed for Armor, Buff, and Shimmer in run-derived DB20/22/24 schemas. Unchanged Wiki fingerprints before a game-version update are expected and do not fail this acceptance; no production scheduler tick or formal write was claimed.
+- Next agent start point: use the recorded source reports for delivery; obtain a fresh authorization context after the next Wiki/game-version fingerprint update before any production six-scope import. Natural-tick, soak, and update-repair work remain separate follow-ups.
 
 ## Recently closed
 
-- Three-domain full-recrawl handoff: isolated maintained-chain verification complete; production authorization and future source-delta work remain separate.
+- Three-domain full-recrawl handoff: isolated automated-ingestion acceptance passed; production authorization and future source-delta work remain separate.
 - Local worktree archive: five archived worktrees verified and removed while retaining branch refs and recovery bundles.
 
 ## Workspace storage cleanup - 2026-10-12 17:24
