@@ -197,6 +197,22 @@ function expandedArmorTable({ sentry = false, movement = false } = {}) {
     + '</tr><tr>' + values.map(value => `<td>${value}</td>`).join('') + '</tr></table>';
 }
 
+test('accepts the live wiki armor header wording 伤害+暴击', () => {
+  const html = expandedArmorTable().replaceAll('伤害+暴击率', '伤害+暴击');
+  const rows = parseWikiArmorAttributeRows({ html });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].itemNameZh, '挖矿头盔');
+});
+
+test('accepts the live wiki armor capacity header wording 仆从上限 and 哨兵上限', () => {
+  const html = expandedArmorTable({ sentry: true })
+    .replaceAll('仆从容量', '仆从上限')
+    .replaceAll('哨兵容量', '哨兵上限');
+  const rows = parseWikiArmorAttributeRows({ html });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].itemNameZh, '挖矿头盔');
+});
+
 for (const canonical of [false, true]) {
   test(`rejects raw/progress overlap before writing any evidence (canonical=${canonical})`, (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'armor-path-overlap-'));

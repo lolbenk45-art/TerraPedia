@@ -7,6 +7,7 @@ import {
   buildSupplementaryL1Bundle,
   validateSupplementaryL1Bundle,
 } from './supplementary-domain-l1-contract.mjs';
+import { SHIMMER_PARTITION_SCOPES } from './shimmer-partition-contract.mjs';
 
 const HASH_A = `sha256:${'a'.repeat(64)}`;
 const HASH_B = `sha256:${'b'.repeat(64)}`;
@@ -47,6 +48,54 @@ function input(overrides = {}) {
     ...overrides,
   };
 }
+
+function shimmerInput(overrides = {}) {
+  const scopes = SHIMMER_PARTITION_SCOPES.map((scope) => ({
+    databaseRole: scope.databaseRole,
+    table: scope.table,
+    fieldGroup: scope.fieldGroup,
+    logicalPredicateHash: scope.logicalPredicateHash,
+  }));
+  const partition = {
+    scopes: SHIMMER_PARTITION_SCOPES.map((scope) => ({ ...scope })),
+    ownerApprovals: ['items', 'shimmer', 'town_npc_maintenance'],
+    fences: SHIMMER_PARTITION_SCOPES.map((scope, index) => ({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      logicalPredicateHash: scope.logicalPredicateHash,
+      generation: index,
+      fenceToken: `fence-${index}`,
+    })),
+    generationId: HASH_A,
+    previewSha256: HASH_B,
+  };
+  return {
+    ...input({
+      domainId: 'shimmer',
+      operationId: 'automation-shimmer-first-l1',
+      runId: 'shimmer_l1_20260814_01',
+      policy: { ...input().policy, domainId: 'shimmer' },
+      baseline: {
+        ...input().baseline,
+        generations: scopes.map((scope, index) => ({ ...scope, generation: index })),
+      },
+      ownedTables: scopes,
+      importPlan: { shimmerPartition: partition },
+    }),
+    ...overrides,
+  };
+}
+
+test('constructs a Shimmer six-scope bundle only with a matching partition contract', () => {
+  const bundle = buildSupplementaryL1Bundle(shimmerInput());
+  assert.deepEqual(bundle.ownedTables, shimmerInput().ownedTables);
+  assert.deepEqual(bundle.importPlan.shimmerPartition.scopes, SHIMMER_PARTITION_SCOPES);
+  assert.equal(validateSupplementaryL1Bundle(bundle), true);
+
+  assert.throws(() => buildSupplementaryL1Bundle(shimmerInput({
+    importPlan: {},
+  })), /six-scope|partition/i);
+});
 
 test('builds a stable immutable L1 bundle for a supported domain', () => {
   assert.deepEqual(SUPPLEMENTARY_L1_DOMAINS, ['audio', 'bosses', 'shimmer']);

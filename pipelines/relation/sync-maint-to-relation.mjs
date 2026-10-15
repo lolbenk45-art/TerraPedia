@@ -475,9 +475,25 @@ function camelToSnake(name) {
 function mapRowToDb(row) {
   const mapped = {};
   for (const [key, value] of Object.entries(row)) {
-    mapped[camelToSnake(key)] = value;
+    const column = camelToSnake(key);
+    mapped[column] = normalizeRelationDateValue(column, value);
   }
   return mapped;
+}
+
+const RELATION_DATETIME_COLUMNS = new Set([
+  'source_revision_timestamp',
+  'landing_fetched_at',
+  'landing_parsed_at',
+  'created_at',
+  'updated_at',
+]);
+
+export function normalizeRelationDateValue(column, value) {
+  if (!RELATION_DATETIME_COLUMNS.has(column) || value == null || value === '') return value;
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (!Number.isFinite(date.getTime())) return value;
+  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 async function queryRows(connection, sql) {

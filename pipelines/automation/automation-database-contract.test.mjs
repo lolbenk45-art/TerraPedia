@@ -9,6 +9,8 @@ import {
   TEST_PROFILES,
   FORMAL_DATABASES,
   assertAutomationRedisLogicalDb,
+  assertAutomationRedisDomainLogicalDb,
+  AUTOMATION_REDIS_DOMAIN_BINDINGS,
   openDurableRunKeyRegistry,
   normalizeRunKey,
   buildAutomationDatabaseNames,
@@ -28,12 +30,27 @@ test('database roles and test profiles are closed enums', () => {
   assert.deepEqual(TEST_PROFILES, ['unit', 't0', 't1', 't2-readonly']);
 });
 
-test('isolated automation Redis DBs allow the explicit Buff replay DB18 and exclude reserved DB14 through DB17', () => {
+test('isolated automation Redis DBs allow the explicit Buff replay DB18 and recrawl DB20/22/24 while excluding other reserved DBs', () => {
   assert.equal(assertAutomationRedisLogicalDb(13), 13);
   assert.equal(assertAutomationRedisLogicalDb(18), 18);
-  for (const value of [14, 15, 16, 17, '13']) {
-    assert.throws(() => assertAutomationRedisLogicalDb(value), /1 through 13|18/i);
+  for (const value of [20, 22, 24]) {
+    assert.equal(assertAutomationRedisLogicalDb(value), value);
   }
+  for (const value of [14, 15, 16, 17, 19, 21, 23, 25, '13']) {
+    assert.throws(() => assertAutomationRedisLogicalDb(value), /1 through 13|18|20|22|24/i);
+  }
+});
+
+test('three-domain recrawl bindings require Armor DB20, Buff DB22, and Shimmer DB24', () => {
+  assert.deepEqual(AUTOMATION_REDIS_DOMAIN_BINDINGS, { armor: 20, buff: 22, shimmer: 24 });
+  for (const [domain, logicalDb] of Object.entries(AUTOMATION_REDIS_DOMAIN_BINDINGS)) {
+    assert.equal(assertAutomationRedisDomainLogicalDb(domain, logicalDb), logicalDb);
+    assert.throws(
+      () => assertAutomationRedisDomainLogicalDb(domain, logicalDb === 20 ? 22 : 20),
+      new RegExp(`${domain}.*DB${logicalDb}`, 'i'),
+    );
+  }
+  assert.throws(() => assertAutomationRedisDomainLogicalDb('items', 20), /domain|armor|buff|shimmer/i);
 });
 
 test('normalizeRunKey creates a maximum-20-character slug plus lowercase sha256 suffix', (t) => {

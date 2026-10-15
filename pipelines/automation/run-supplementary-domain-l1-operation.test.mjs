@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
+import { SHIMMER_PARTITION_SCOPES } from './shimmer-partition-contract.mjs';
 import * as operationModule from './run-supplementary-domain-l1-operation.mjs';
 
 const { executeSupplementaryL1Operation } = operationModule;
@@ -65,6 +66,44 @@ test('Shimmer rejects a six-table whole-owner scope without cross-owner partitio
     bundle: { ...bundle('shimmer'), source: fixture.source, ownedTables: tables.map((table) => ({ databaseRole: 'local', table, fieldGroup: 'all_columns' })) },
   }), /cross-owner partition contract/);
   assert.deepEqual(calls, []);
+});
+
+test('Shimmer importer accepts only the exact six-scope partition contract', () => {
+  const scopes = SHIMMER_PARTITION_SCOPES.map((scope) => ({
+    databaseRole: scope.databaseRole,
+    table: scope.table,
+    fieldGroup: scope.fieldGroup,
+    logicalPredicateHash: scope.logicalPredicateHash,
+  }));
+  const partition = {
+    scopes: SHIMMER_PARTITION_SCOPES.map((scope) => ({ ...scope })),
+    ownerApprovals: ['items', 'shimmer', 'town_npc_maintenance'],
+    fences: SHIMMER_PARTITION_SCOPES.map((scope, index) => ({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      logicalPredicateHash: scope.logicalPredicateHash,
+      generation: index,
+      fenceToken: `fence-${index}`,
+    })),
+    generationId: HASH('a'),
+    previewSha256: HASH('b'),
+  };
+
+  assert.doesNotThrow(() => operationModule.assertShimmerImporterWriteScope({
+    domainId: 'shimmer',
+    ownedTables: scopes,
+    importPlan: { shimmerPartition: partition },
+  }));
+  assert.doesNotThrow(() => operationModule.assertShimmerImporterWriteScope({
+    domainId: 'shimmer',
+    ownedTables: scopes,
+    importPlan: { shimmerPartition: partition },
+  }, { generationId: HASH('a'), previewSha256: HASH('b') }));
+  assert.throws(() => operationModule.assertShimmerImporterWriteScope({
+    domainId: 'shimmer',
+    ownedTables: scopes,
+    importPlan: { shimmerPartition: partition },
+  }, { generationId: HASH('c'), previewSha256: HASH('b') }), /generation|preview/i);
 });
 
 test('Shimmer cannot authorize auxiliary owner writes with a caller-supplied mode string', async () => {

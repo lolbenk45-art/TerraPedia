@@ -1,9 +1,48 @@
 # Current Devlog
 
-Last updated: 2026-10-11 20:24 CST by Codex
+Last updated: 2026-10-15 11:40 CST by Codex
 
-Active branch: `feat/supplementary-domains-readiness`
-Active focus: Armor and Buff automation code is integrated. Production automatic-ingestion acceptance remains disabled until each domain has a real source delta and fresh exact authorization. Buff's latest current-Wiki replay passed on isolated Redis DB18 with `production_source_delta=false`; Armor remains owner-isolated on `18104/DB14` with its source/binding gates closed. No production scheduler or formal table write was performed by this merge.
+Active branch: `main`
+Active focus: The three-domain full-recrawl handoff passed isolated automated-ingestion acceptance. Production changed-only dispatch remains deferred until the next Wiki/game-version fingerprint update and fresh authorization.
+
+## Isolated real automation ingestion - 2026-10-14
+
+- Buff real-chain artifact: `.local/tmp/full-recrawl-20261014/buffs/buf_full_canonical_20261014/isolated-real-ingestion.json`, SHA-256 `sha256:38516dc903bfc8e599b8a15aa57b0d8af8c93ced5427fefdecfbdf868c611bb9`.
+- The runner used `runLiveAutomationAcceptance` T1 plus the maintained `runBuffCanonicalT1Acceptance` path, not the old `recrawl_*` tables. Redis was `6380/DB22`; landing/import created `400` Buff rows, relation/projection parent readback was `400/400`, consumer readback was `400`, item-Buff relation readback was `411`, and inflicting-NPC relation readback was `486`.
+- `13` source-item identities remained unresolved and are explicitly retained in the artifact samples; full-capture mode allows this known partial dependency state while fixture/bounded replay modes still require zero unresolved rows. `formalDatabaseWrites=false`, `databaseWritesToFormalRuntime=false`, and cleanup passed with run-derived schemas/accounts/Redis keys at zero.
+- The isolated runner also fixed ISO-to-MySQL `DATETIME` normalization in relation sync. Focused Buff/live acceptance validation passed `21/21`; the temporary restored MySQL instance was stopped after verification.
+- Shimmer real-chain artifact: `.local/tmp/full-recrawl-20261014/shimmer/shm_full_canonical_20261014/isolated-real-ingestion.json`. It used the maintained `applyBundleChanges` transaction against a run-derived local schema on DB24 and read back `world_contexts=1`, `entity_source_snapshots=7`, and Shimmer transforms `283/248/121/29`; the generation had `796` unresolved references, allowed only by the isolated harness. Focused Shimmer/import/live validation passed `64/64`; formal databases, production permits, and decision ledger were untouched.
+- Armor real-chain artifact: `.local/tmp/full-recrawl-20261014/armor/arm_full_canonical_20261014/isolated-real-ingestion.json`, SHA-256 `sha256:03c78bdacf9387ab5b19e93f916cf4c6fd35323efe887d598269079fde311407`. Maint/relation/projection readback counts are `64/433/64/494/431/64` (sets, maint images, relation sets/items/images, projection), with per-table row hashes; maint image count includes two T1 representative seed rows. Run-derived DB20 resources were cleaned.
+- Shimmer's latest real-chain artifact SHA-256 is `sha256:00d446ba903149f5dcc4373b732999f6e2feeac02e1a2bad960f7f9322df5372`; it records `796` unresolved references under the isolated-only allow-unresolved mode. DB24 and all run-derived resources were cleaned.
+- All three tests used the restored MySQL snapshot only as a read-only dependency source, wrote to run-derived schemas, and left formal DB contents unchanged. The temporary MySQL server was stopped and DB20/22/24 were verified empty. Production still waits for a future real Wiki fingerprint change and probe dispatch.
+
+## Three-domain full-recrawl handoff - 2026-10-13
+
+- Entry: `docs/devlog/entries/2026-10-13-three-domain-full-recrawl-handoff.md`; owner Codex; status `closed`; execution worktrees were created from `main@844c3668`.
+- Armor: fresh run `arm_20261013b` source `64/88/237/431` (module/sets/attributes/images), all source progress terminals `completed`. Follow-up DB20 source-evidence materialization read back `820` rows per run-derived schema, and the authorized isolated direct business pseudo-adapter read back landing/maint/relation/projection counts `2/64/431/64/494/431/64`; cleanup is zero. Canonical operation acceptance remains blocked by the recorded `maint_items` ownership and missing attribute/effect evidence contracts. Evidence: `.local/tmp/full-recrawl-20261014/armor/arm_20261014d/business-pseudo-ingestion-v2.json` plus the source-evidence artifacts.
+- Buff: fresh `400/400` with all page-immunity facts and both languages, progress terminal `completed`, DB22 pseudo-ingestion readback `400/400/400/400`, cleanup zero. Evidence: `.local/tmp/full-recrawl-20261013/buffs/buf_20261013_full/`.
+- Shimmer: fresh 2026-10-14 raw revision/sections/html and `823/823` langlinks captured; generation `51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd` verified. Manual admin-authorized isolated pseudo-ingestion read back all six scopes on DB24 with unresolved rows marked `partial`; cleanup is zero. Canonical formal import remains unexecuted. Evidence: `.local/tmp/full-recrawl-20261014/shimmer/shm_20261014_full/isolated-pseudo-ingestion.json`.
+- Contract and parser checks: Redis allocation contract `28/28`; Armor attribute fetch tests `16/16`; fresh Shimmer parser/generation/allocation checks `30/30`. The Shimmer artifact records DB20/22/24 cleanup as zero; the Shimmer temporary MySQL instance is stopped. Redis `6380` remains owned by the concurrent Armor chain and was not stopped by this session.
+- Acceptance: isolated full-chain write/readback passed for Armor, Buff, and Shimmer in run-derived DB20/22/24 schemas. Unchanged Wiki fingerprints before a game-version update are expected and do not fail this acceptance; no production scheduler tick or formal write was claimed.
+- Next agent start point: use the recorded source reports for delivery; obtain a fresh authorization context after the next Wiki/game-version fingerprint update before any production six-scope import. Natural-tick, soak, and update-repair work remain separate follow-ups.
+
+## Recently closed
+
+- Three-domain full-recrawl handoff: isolated automated-ingestion acceptance passed; production authorization and future source-delta work remain separate.
+- Local worktree archive: five archived worktrees verified and removed while retaining branch refs and recovery bundles.
+
+## Workspace storage cleanup - 2026-10-12 17:24
+
+- Cleanup entry: `docs/devlog/entries/2026-10-12-workspace-storage-cleanup.md`.
+- Obsolete Codex sessions, clean old worktrees, rebuildable caches, duplicate Armor/Buff evidence copies, and rebuildable Comic artifacts were cleaned while current sessions, dirty worktrees, reports, source data, and backups were preserved.
+- The SQL backup remains pending credentialed restore verification; do not delete it yet.
+- Full MySQL backup/binlog result and remaining restore rehearsal/credential rotation: `docs/devlog/entries/2026-10-13-mysql-full-backup-binlog-purge-handoff.md`.
+
+## Local worktree archive - 2026-10-13 11:27
+
+- Entry: `docs/devlog/entries/2026-10-13-local-worktree-archive.md`; owner Codex; status `closed`; branch `feat/supplementary-domains-readiness`; worktree `/home/lolben/TerraPedia`; no parent/child entry.
+- `automation-ingestion-continuation`, three older Superpowers worktrees, and `close-structure-compat-window` have verified local archives; all five registrations are removed and branch refs remain.
+- Armor, Buff, and Shimmer remain untouched. Archive/restore details and remaining storage state are in the entry.
 
 ## Automation domain merge checkpoint - 2026-10-11 20:24
 
