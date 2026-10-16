@@ -1,9 +1,9 @@
 # Current Devlog
 
-Last updated: 2026-10-15 11:36 CST by Codex
+Last updated: 2026-10-16 18:12 CST by Codex
 
 Active branch: `feat/supplementary-domains-readiness`
-Active focus: The three-domain full-recrawl handoff passed isolated automated-ingestion acceptance. Production changed-only dispatch remains deferred until the next Wiki/game-version fingerprint update and fresh authorization.
+Active focus: The eight-domain production-readiness plan now requires fresh isolated real-ingestion evidence for every domain before any formal production release. Production changed-only dispatch remains deferred until the plan gates and fresh authorization pass.
 
 ## Isolated real automation ingestion - 2026-10-14
 
@@ -246,6 +246,8 @@ This was an interim runtime reassignment. Later user direction and the current r
 - Pending: build current backend, start only Buff at `18105/DB16`, perform authenticated idempotent recovery, verify marker/API/Redis agreement, scheduler disabled and zero live work/fences, then refresh Phase 0 and continue AUTH-04 decisions serially. Natural source change and data-visible ingestion remain unproven.
 
 ## Open work
+
+- Owner: Codex coordinator; status `active`; branch `feat/supplementary-domains-readiness`; worktree `/home/lolben/TerraPedia`; parent plan [Eight-domain production readiness](../superpowers/plans/2026-10-16-eight-domain-production-readiness.md); entry [Eight-domain production readiness plan](entries/2026-10-16-eight-domain-production-readiness-plan.md). Dependencies: isolated allocation contract and eight serial child runs. Contract handoff: formal schemas and production Redis remain read-only; Armor DB20, Buff DB22, Shimmer DB24 are existing isolated allocations, while five additional isolated allocations require a tested contract before execution. Current blockers: Armor ownership/source contracts, Buff unresolved identities, Shimmer unresolved references, and missing fresh isolated full-chain evidence for Items/NPCs/Projectiles/Audio/Bosses.
 
 - Owner: Codex coordinator, deferred Buff source-contract follow-ups and any newly scoped work.
 - Worktree: `/home/lolben/TerraPedia/.worktrees/automation-domain-buff`.
