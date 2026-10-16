@@ -49,3 +49,14 @@ Define the eight-domain path from real revision-bound source capture to maintain
 ## Next Action
 
 Run the master Task 0 resource inventory and allocation decision first, then Task 1/API lifecycle checks, and only then execute the eight child plans serially. Stop a child on source/identity/ownership/cleanup drift and create a new run identity after repair.
+
+## Execution Baseline Inventory - 2026-10-17 01:44 CST
+
+- Execution branch/worktree: `exec/eight-domain-production-readiness` at commit `3aa7f055a86afc69509dad8e50886c34d3701d54`; worktree clean before inventory. The parent worktree's unrelated dirty files were not copied.
+- MySQL is reachable read-only at `127.0.0.1:13306`, server UUID `b4ae6728-4f72-11f1-bcc9-00155d37eadf`, with formal databases `terria_v1_local`, `terria_v1_maint`, `terria_v1_relation`, and historical `terria_v1_v55_rehearsal`. No `terria_v1_automation_*` schemas were present.
+- Redis `127.0.0.1:6380` was unreachable; its persistent directory exists and contains AOF/RDB files. No Redis allocation was approved and no Redis command mutated state.
+- MinIO `127.0.0.1:19000/19001` was unreachable; its data directory contains only the existing `.minio.sys/format.json`. No object-store allocation or write was performed.
+- No catalog API, frontend, admin, Redis, or MinIO listener was active. Only the shared MySQL daemon was listening on `13306`.
+- Toolchain observed: Node `26.1.0` default shell with Node `22.23.0` available through nvm, pnpm `9.0.0`, Java `17.0.18`, Maven `3.8.7`, MySQL CLI `9.2.0`, Redis CLI `7.0.15`. No dependency installation was performed.
+- Baseline artifact: `reports/runtime/eight-domain-production-readiness/20261017/execution-manifest.json`.
+- Blocked before execution: Redis/object-store allocation, Node 22 shell selection, isolated account/resource creation, and bringing the reviewed plan into this branch are now resolved only for the plan/baseline; runtime resources remain intentionally unallocated.
