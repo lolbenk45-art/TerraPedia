@@ -4,7 +4,7 @@
 
 **Goal:** Prove Boss source records can traverse the maintained Boss import and projection chain in isolated schemas without overlapping NPC ownership.
 
-**Architecture:** Capture the Boss bundle and stable NPC mapping, serialize the isolated `npcs` fence with the NPC child, run `runBossCanonicalT1Acceptance` or its maintained importer in caller-owned transaction mode, and independently read back Boss groups, members, images, and API output. Consume the Boss Redis/API resources from the master allocation manifest.
+**Architecture:** Use the frozen 33-record `data/generated/wiki-bosses.latest.json` and `data/generated/npc-standardized-map.json`, with any managed image bytes confined to the run-owned Boss bucket. Serialize the isolated `npcs` fence with the NPC child, run the maintained Boss importer in caller-owned transaction mode, and independently read back Boss groups, members, images, and API output. Then run one isolated non-fixture V2 attempt through the registered Boss runner.
 
 **Tech Stack:** `fetch-wiki-bosses.mjs`, `boss-canonical-t1-acceptance.mjs`, `import-wiki-bosses-to-db.mjs`, Boss owner/image helpers, MySQL, Redis, Node tests.
 
@@ -22,8 +22,8 @@
 **Files:** `pipelines/fetch/fetch-wiki-bosses.mjs`, `pipelines/boss/boss-canonical-t1-acceptance.mjs`, `pipelines/import/import-wiki-bosses-to-db.mjs`, `pipelines/import/boss-import-strict-mode.mjs`
 
 - [ ] Consume the Boss allocation manifest entry and confirm no NPC writer or shared fence is active.
-- [ ] Bind Boss records with page/revision/hash, stable Boss code, member NPC IDs, and image-source evidence.
-- [ ] Default to `repository-frozen` `data/generated/wiki-bosses.latest.json` and the tracked NPC identity map; a bounded live capture is optional and must produce a new source submanifest.
+- [ ] Bind `data/generated/wiki-bosses.latest.json` (33 records) and `data/generated/npc-standardized-map.json` by SHA-256, source revision metadata, stable Boss code, and member NPC IDs. Record that this is frozen source evidence and does not claim a current Boss page delta.
+- [ ] Capture only the image content required by those exact Boss records into the run-owned MinIO bucket/prefix. Bind each file title/revision/content hash to the owner record; do not write the production bucket or use unmanaged production URLs as image acceptance.
 - [ ] Reject display-name-only member mapping, generic NPC fallback, duplicate Boss codes, and unresolved member IDs.
 - [ ] Freeze a read-only NPC dependency snapshot and a run-owned image policy.
 - [ ] Create the Boss dependency manifest for exact NPC/member/image rows and call the common exact-key dependency seeder before the first business DML.
@@ -50,10 +50,12 @@ node --test pipelines/fetch/fetch-wiki-bosses.test.mjs \
 
 - [ ] Compare Boss group/member/image row hashes and stable NPC IDs across local/maint/relation/projection layers.
 - [ ] Start the run-owned catalog API, read representative Boss API/admin DTOs and verify member IDs/names/image policy, then stop and verify its exact process/port.
+- [ ] In `isolated-v2-attempt` mode, call one authenticated V2 sweep for Bosses; require the registered Boss runner, a non-fixture attempt, nonzero Boss-owned rows and managed image receipts, exact source/attempt identity agreement, terminal acknowledgement, independent DB/API readback, and cleanup.
 - [ ] Verify schemas/accounts, manifest Redis endpoint/DB, fence, processes, ports, and object-storage artifacts are zero after cleanup.
-- [ ] Write `reports/runtime/eight-domain-production-readiness/20261016/bosses/<runKey>/isolated-real-ingestion.json`.
+- [ ] Write `reports/runtime/eight-domain-production-readiness/20261017/bosses/<runKey>/isolated-real-ingestion.json`.
 
 ### Task 4: Validate and close the child
 
 - [ ] Run Boss focused tests, ownership matrix tests, image contract tests, `node --check`, and `git diff --check`.
 - [ ] Keep Boss blocked if the NPC shared-table predicate or member identity cannot be independently proven.
+- [ ] Keep `v2AutomaticIngestionStatus` blocked until one non-fixture V2 attempt launches the registered Boss runner, commits nonzero Boss-owned rows, independently reads them back, and acknowledges the exact source/attempt identity. Start this run only after the NPC run's shared-table fence and cleanup are verified.

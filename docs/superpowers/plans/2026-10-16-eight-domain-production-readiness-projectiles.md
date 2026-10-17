@@ -4,7 +4,7 @@
 
 **Goal:** Prove the current Projectile source can write the maintained Projectile chain in isolated schemas and preserve exact Item/NPC source relations.
 
-**Architecture:** Capture Projectileinfo, resolve source relations only from explicit `projectileId`/`shoot` fields, call the existing Projectile T1 importer and maint/relation sync, and read back Projectile rows and relation/API consumers. Consume the Projectile resource and API entries from the master allocation manifest.
+**Architecture:** Use the repository-frozen 1,111-record standardized Projectile source, resolve source relations only from explicit `projectileId`/`shoot` fields, call the maintained Projectile importer and maint/relation sync, and read back Projectile rows and relation/API consumers. Then execute one isolated non-fixture V2 attempt through the registered Projectile runner; no live Projectileinfo fetch is part of this run.
 
 **Tech Stack:** `fetch-wiki-projectileinfo.mjs`, `projectile-canonical-t1-acceptance.mjs`, `sync-landing-to-maint.mjs`, `sync-maint-to-relation.mjs`, `projectile-source-relations-milestones.md`, MySQL, Redis, Node tests.
 
@@ -22,8 +22,7 @@
 **Files:** `pipelines/fetch/fetch-wiki-projectileinfo.mjs`, `pipelines/lib/projectile-name-resolver.mjs`, `docs/plans/projectile-source-relations-milestones.md`
 
 - [ ] Consume the Projectile allocation manifest entry and verify endpoint/DB/API-port emptiness and no active Item/NPC writer conflict.
-- [ ] Bind Projectileinfo/local source evidence with stable source IDs, revision/hash, and terminal progress.
-- [ ] Default to `repository-frozen` `data/standardized/projectiles.standardized.json` and `data/standardized-view/projectiles/`; bind their hashes and explicit source-relation fields before import.
+- [ ] Bind `repository-frozen` `data/standardized/projectiles.standardized.json` (1,111 records) and `data/standardized-view/projectiles/_meta.json` by SHA-256, upstream timestamp, and explicit source-relation fields before import. Do not start a source crawler.
 - [ ] Build an explicit source-relation manifest from Item `shoot`/`projectileId` and NPC `raw_json.wikiCrawler.combat.projectileId` or `raw_json.combat.projectileId` only.
 - [ ] Fail closed with sampled unresolved rows when an explicit relation field is missing; do not infer from `aiStyle`.
 - [ ] Create the Projectile dependency manifest for exact Item/NPC rows used by explicit source relations and call the common exact-key dependency seeder before the first business DML.
@@ -47,10 +46,12 @@ node --test pipelines/fetch/fetch-wiki-projectileinfo.test.mjs \
 
 - [ ] Verify every accepted Item/NPC relation has a stable source identity and the exact source field that created it.
 - [ ] Read representative Projectile API/admin responses through the run-owned API and compare relation counts/source IDs with the isolated relation database; stop the API and verify its exact port/process.
+- [ ] In `isolated-v2-attempt` mode, call one authenticated V2 sweep for Projectiles; require the registered runner, a non-fixture attempt, nonzero Projectile-owned rows, exact source/attempt identity agreement, terminal acknowledgement, independent DB/API readback, and cleanup.
 - [ ] Verify derived schemas/accounts, manifest endpoint/DB, processes, and temporary ports are zero after cleanup.
-- [ ] Write `reports/runtime/eight-domain-production-readiness/20261016/projectiles/<runKey>/isolated-real-ingestion.json`.
+- [ ] Write `reports/runtime/eight-domain-production-readiness/20261017/projectiles/<runKey>/isolated-real-ingestion.json`.
 
 ### Task 4: Validate and close the child
 
 - [ ] Run the Projectile T1 suite, source relation tests, focused maint/relation tests, `node --check`, and `git diff --check`.
+- [ ] Keep `v2AutomaticIngestionStatus` blocked until one non-fixture V2 attempt launches the registered Projectile automatic runner, commits nonzero Projectile-owned rows and explicit relations, independently reads them back, and acknowledges the same source/attempt identity.
 - [ ] Mark the child blocked when any relation relies on a display-name or `aiStyle` fallback, even if row counts look complete.

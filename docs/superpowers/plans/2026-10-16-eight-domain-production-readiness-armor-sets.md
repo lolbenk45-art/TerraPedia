@@ -4,7 +4,7 @@
 
 **Goal:** Re-run Armor Sets through the maintained landing, maint, relation, projection, and image paths in isolated schemas, then close the ownership and source-evidence blockers that prevent formal admission.
 
-**Architecture:** Capture fresh revision-bound Armor set, attribute, and image sources; create a new isolated runner using the maintained `runMaintSync`/`runSync` path; and consume the Armor Redis/API resources from the master allocation manifest. Use readonly Item dependency snapshots. The canonical formal Armor operation remains a separate authorization gate.
+**Architecture:** Use the frozen 64-record standardized Armor set source and 88-record Wiki set-definition source, then perform a bounded live capture of the missing `盔甲属性表` page and the exact image inputs matched to those standardized set identities. Write captures and images only to the private run directory/run-owned MinIO. Use readonly Item dependencies, the maintained `runMaintSync`/`runSync` path, and one isolated non-fixture V2 attempt. The canonical formal Armor operation remains a separate authorization gate.
 
 **Tech Stack:** `fetch-wiki-armor-sets.mjs`, `fetch-wiki-armor-attributes.mjs`, `fetch-wiki-armor-set-images.mjs`, the new Armor isolated runner, Armor source/effect transactions, MySQL, Redis, Node tests.
 
@@ -22,8 +22,11 @@
 **Files:** `pipelines/fetch/fetch-wiki-armor-sets.mjs`, `pipelines/fetch/fetch-wiki-armor-attributes.mjs`, `pipelines/fetch/fetch-wiki-armor-set-images.mjs`, `pipelines/maint/armor-item-effect-source-reader.mjs`, `pipelines/maint/armor-missing-attribute-source-transaction.mjs`
 
 - [ ] Consume the Armor allocation manifest entry and verify endpoint/DB/API-port emptiness and no competing Armor writer.
-- [ ] Bind module, set, attribute, and image sources with revision/content hashes and completed progress.
-- [ ] Default to `repository-frozen` generated Armor set/attribute/image evidence and bind each artifact hash; do not recrawl all Armor pages for this validation unless a bounded live check is explicitly selected.
+- [ ] Bind `data/standardized/armor_sets.standardized.json` (64 records), `data/generated/wiki-armor-sets.latest.json` (88 records), and `data/generated/armor-set-definition-map.json` by SHA-256. `wiki-armor-attributes.latest.json` and a frozen set-image catalog are absent; capture the attribute page and image metadata live rather than labeling them frozen.
+- [ ] Fetch exactly one revision-bound attribute page, `盔甲属性表`, using action ID `domain-source-armor-attributes`, progress path `data/generated/domain-source-armor-attributes-progress.latest.json`, raw/output/report files under `.local/tmp/eight-domain-production-readiness/20261017/armor_sets/source/`, and a terminal `completed` status.
+- [ ] Build a private image-input manifest by exact stable identity/title crosswalk for all 64 standardized sets against the 88 Wiki definitions. If any standardized set has zero or ambiguous source matches, retain it as unresolved and stop before image upload; do not silently use the first 64 Wiki rows.
+- [ ] Fetch image evidence for only that exact 64-set input, with `--limit=64`, action ID `domain-source-armor-sets`, and progress path `data/generated/domain-source-armor-sets-progress.latest.json`. Bind per-file title/revision/content hash. Set a request cap of 200 Wiki API requests; if the current fetcher cannot enforce it, add the cap and test before any capture.
+- [ ] Keep all parsed/raw/report outputs under `.local/tmp/eight-domain-production-readiness/20261017/armor_sets/source/`; only the registered progress files may be written under `data/generated/`. No formal data or production image URL/bucket may be written.
 - [ ] Resolve every typed attribute/effect owner and record missing/ambiguous cells; do not accept table-derived placeholders as typed item effects.
 - [ ] Bind the 243 positive Item dependency IDs through a readonly snapshot and record the exact dependency hash.
 - [ ] Convert the positive Item closure into the exact-key Armor dependency manifest and call the common dependency seeder before the first business DML; the 243 count is evidence, not a fixed acceptance constant.
@@ -50,11 +53,13 @@ node --test pipelines/fetch/fetch-wiki-armor-sets.test.mjs \
 ### Task 3: Read back consumers and clean resources
 
 - [ ] Start the run-owned catalog API, read representative Armor API/admin responses and compare set membership/effect cells/image URLs/source revisions with isolated tables, then stop and verify its process/port.
+- [ ] In `isolated-v2-attempt` mode, call one authenticated V2 sweep for Armor Sets; require the registered Armor runner, a non-fixture attempt, nonzero Armor-owned rows and managed image receipts, exact source/attempt identity agreement, terminal acknowledgement, independent DB/API readback, and cleanup.
 - [ ] Verify run-derived schemas/accounts, manifest Redis endpoint/DB, image temp resources, ports, and child processes are zero after cleanup.
-- [ ] Write `reports/runtime/eight-domain-production-readiness/20261016/armor_sets/<runKey>/isolated-real-ingestion.json`.
+- [ ] Write `reports/runtime/eight-domain-production-readiness/20261017/armor_sets/<runKey>/isolated-real-ingestion.json`.
 
-### Task 4: Resolve formal blockers and validate
+### Task 4: Record formal blockers and validate isolated results
 
-- [ ] Produce a concrete ownership decision for `maint_items` scope and a complete version-bound attribute/effect evidence bundle; no open decision is treated as a pass.
+- [ ] Record the unresolved `maint_items` ownership and source/effect evidence blockers in the artifact and aggregate. Do not create a production decision or attempt to clear these blockers inside the isolated ingestion run.
 - [ ] Run Armor canonical, source, image, relation, and transaction suites, `node --check`, and `git diff --check`.
 - [ ] Mark isolated readiness passed only when the maintained runner succeeds; mark production readiness blocked until the ownership/source contracts are separately admitted.
+- [ ] Keep `v2AutomaticIngestionStatus` blocked until one non-fixture V2 attempt launches the registered Armor automatic runner, commits nonzero Armor-owned rows and managed image receipts, independently reads them back, and acknowledges the matching source/attempt identity.

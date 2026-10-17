@@ -1,9 +1,9 @@
 # Current Devlog
 
-Last updated: 2026-10-16 18:12 CST by Codex
+Last updated: 2026-10-17 by Codex
 
-Active branch: `feat/supplementary-domains-readiness`
-Active focus: The eight-domain production-readiness plan now requires fresh isolated real-ingestion evidence for every domain before any formal production release. Production changed-only dispatch remains deferred until the plan gates and fresh authorization pass.
+Active branch: `exec/eight-domain-production-readiness`
+Active focus: Lock the eight-domain isolated acceptance plan and resources before execution. Each domain must separately prove basic function, maintained-chain writes, and one real non-fixture V2 attempt; formal production writes and unattended soak remain out of scope.
 
 ## Isolated real automation ingestion - 2026-10-14
 
@@ -247,7 +247,7 @@ This was an interim runtime reassignment. Later user direction and the current r
 
 ## Open work
 
-- Owner: Codex coordinator; status `active`; branch `feat/supplementary-domains-readiness`; worktree `/home/lolben/TerraPedia`; parent plan [Eight-domain production readiness](../superpowers/plans/2026-10-16-eight-domain-production-readiness.md); entry [Eight-domain production readiness plan](entries/2026-10-16-eight-domain-production-readiness-plan.md). Dependencies: isolated allocation contract and eight serial child runs. Contract handoff: formal schemas and production Redis remain read-only; Armor DB20, Buff DB22, Shimmer DB24 are existing isolated allocations, while five additional isolated allocations require a tested contract before execution. Current blockers: Armor ownership/source contracts, Buff unresolved identities, Shimmer unresolved references, and missing fresh isolated full-chain evidence for Items/NPCs/Projectiles/Audio/Bosses.
+- Owner: Codex coordinator; status `active`; branch `exec/eight-domain-production-readiness`; worktree `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; parent plan [Eight-domain production readiness](../superpowers/plans/2026-10-16-eight-domain-production-readiness.md); entry [Eight-domain production readiness plan](entries/2026-10-16-eight-domain-production-readiness-plan.md). Resource identities and all eight run IDs are fixed in `reports/runtime/eight-domain-production-readiness/20261017/execution-manifest.json`; runtime reservation, dependency installation, services, crawler, and database writes have not run. Next: finish plan audit/validation, then run allocation and isolated-V2 contract tests before provisioning. Blockers retained: current production runners hard-code `terria_v1_local`; isolated V2 mode must use a run-local source state, local runner command, and private source manifest; bounded Audio/Armor capture and isolated V2 binding need implementation and verification before any domain run; Armor ownership, Buff identity/source consistency, and Shimmer unresolved references remain production blockers.
 
 - Owner: Codex coordinator, deferred Buff source-contract follow-ups and any newly scoped work.
 - Worktree: `/home/lolben/TerraPedia/.worktrees/automation-domain-buff`.

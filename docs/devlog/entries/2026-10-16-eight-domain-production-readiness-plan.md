@@ -5,21 +5,21 @@
 `active`
 
 - Owner: Codex coordinator.
-- Branch: `feat/supplementary-domains-readiness`.
-- Worktree: `/home/lolben/TerraPedia`.
+- Branch: `exec/eight-domain-production-readiness`.
+- Worktree: `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`.
 - Parent plan: `docs/superpowers/plans/2026-10-16-eight-domain-production-readiness.md`.
 - Child plans: the eight `2026-10-16-eight-domain-production-readiness-*.md` files beside the parent plan.
 
 ## Goal
 
-Define the eight-domain path from real revision-bound source capture to maintained isolated database ingestion and independent consumer readback before any formal production release. This planning task performs no crawler, importer, scheduler, Redis, or formal database mutation.
+Prove basic functionality, maintained-chain writes, and one real V2-dispatched automatic ingestion attempt for Items, NPCs, Projectiles, Armor Sets, Buffs, Audio, Bosses, and Shimmer in isolated databases, with error recovery and independent API readback before any formal production release. This planning continuation performs no dependency installation, crawler/importer run, service lifecycle change, scheduler call, or database mutation.
 
 ## Evidence Reviewed
 
 - `docs/devlog/current.md` and the 2026-10-13 three-domain full-recrawl handoff.
 - `docs/project-governance/00_CURRENT_SPEC.md` and `docs/project-governance/00_WORKFLOW.md`.
 - Existing isolated real-ingestion plan and maintained T1/Importer entrypoints.
-- Current allocation state: no eight-domain allocation is approved yet; historical Armor/Buff/Shimmer DB20/DB22/DB24 artifacts are reference only. Formal runtime DB14/DB15 remain reserved.
+- Current allocation state: fixed resource identities, eight run IDs, source paths/hashes, and derived MySQL schema names are recorded in the ignored execution manifest. Historical DB20/DB22/DB24 artifacts are reference only; production Redis DB14/DB15 and historical DB16/DB18 are forbidden.
 
 ## Plan Result
 
@@ -48,7 +48,7 @@ Define the eight-domain path from real revision-bound source capture to maintain
 
 ## Next Action
 
-Run the master Task 0 resource inventory and allocation decision first, then Task 1/API lifecycle checks, and only then execute the eight child plans serially. Stop a child on source/identity/ownership/cleanup drift and create a new run identity after repair.
+Complete the fixed-resource/source/V2 plan audit and static contract tests first. Then revalidate the fixed resources without prompting, implement the isolated runner/API bindings, and execute the eight child plans serially in this worktree. Stop automatically on any mismatch; create a new run identity only after a scoped repair and fresh preflight.
 
 ## Execution Baseline Inventory - 2026-10-17 01:44 CST
 
@@ -60,3 +60,15 @@ Run the master Task 0 resource inventory and allocation decision first, then Tas
 - Toolchain observed: Node `26.1.0` default shell with Node `22.23.0` available through nvm, pnpm `9.0.0`, Java `17.0.18`, Maven `3.8.7`, MySQL CLI `9.2.0`, Redis CLI `7.0.15`. No dependency installation was performed.
 - Baseline artifact: `reports/runtime/eight-domain-production-readiness/20261017/execution-manifest.json`.
 - Blocked before execution: Redis/object-store allocation, Node 22 shell selection, isolated account/resource creation, and bringing the reviewed plan into this branch are now resolved only for the plan/baseline; runtime resources remain intentionally unallocated.
+
+## Plan Audit Continuation - 2026-10-17
+
+- Current execution branch/worktree/HEAD at review start: `exec/eight-domain-production-readiness`, `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`, `756ae8bf96f58e6a3e6c7edb256c57bdeb65967c`. The coordinator root worktree has unrelated dirty paths; they were not changed or copied.
+- Resource contract is fixed but not live-reserved: MySQL source/readback identity `127.0.0.1:13306` / UUID `b4ae6728-4f72-11f1-bcc9-00155d37eadf`; Redis `127.0.0.1:16380`, DB1-8; MinIO `127.0.0.1:19100/19101`; isolated API `127.0.0.1:18280`. Exact run IDs, derived schema names, source hashes, buckets, and stop/no-fallback rules are in `reports/runtime/eight-domain-production-readiness/20261017/execution-manifest.json`. Fresh occupancy/hash/credential preflight is still required before install or service start.
+- Source inventory corrected the plan: Items uses the 6,131 local standardized rows and a deterministic 100-ID sample; NPCs uses 762 standardized rows and the existing identity map; Projectiles uses 1,111 standardized rows; Buffs uses 388 standardized rows, not a nonexistent 400-row Iteminfo/page bundle; Bosses uses 33 frozen records and the NPC identity map; Shimmer uses the pinned generation `379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761`; Audio has no frozen catalog and will use a 150-record/5-page-per-prefix metadata-only capture; Armor's attribute/image outputs are missing and will use one bounded attribute page plus at most 64 exact image inputs.
+- Critical automation finding: `run-base-domain-automatic-operation`, `run-supplementary-domain-automatic-operation`, and the supplementary L1 adapter all reject any database other than `terria_v1_local`. The previous plan proved only a T1 maintained import path. Task 1E now requires an explicit manifest-bound isolated profile and one authenticated non-fixture V2 sweep per domain; fixture or direct-runner success cannot set V2 automatic status.
+- V2 source-probe finding: the normal API `/sweep` spawns `check-source-updates.mjs` for the full source set and writes the canonical source state. Isolated mode now requires a run-local source snapshot derived from the exact input manifest and passes its private ordinary-file path into the child worker; production mode keeps the current live probe. The sandbox records an initial import with `productionSourceDelta=false` and cannot reuse a fixture attempt.
+- V2 worker command finding: `CrawlerMonitorActionRegistry` defaults Base/Supplementary attempts to live source mode and the Armor runner always fetches/acknowledges its source manifest. Task 1E now requires isolated commands to use `source-mode=local` and per-run private manifests, redirect automatic artifacts under the run's `reports/runtime` root, disable Wiki-manifest mutation, and count only the V2 queue's post-commit terminal acknowledgement. Production command definitions remain live.
+- Resume/error contract: no full Item crawl. A deterministic mock interrupts the 100-record Item test after record 50 and resumes only with an unchanged source fingerprint. Buff/Boss keyed resume and Audio verified-file resume are tested with private fixtures; fresh-only domains prove failed terminal progress plus a new run ID. Database commit uncertainty requires independent reconciliation before retry.
+- Runtime status at this checkpoint: no dependency installation, service start/stop, source fetch, MySQL schema/account creation, Redis/MinIO mutation, V2 sweep, or business-table write was performed. The root worktree changes remain untouched.
+- Next action: finish targeted plan consistency checks, validate the execution manifest JSON and source hashes, run documentation validation, then commit this plan/devlog-only checkpoint. Execution begins only after the written Task 0/1E static tests and fresh resource preflight pass; mismatches stop automatically without user prompts.

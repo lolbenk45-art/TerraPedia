@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to execute this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Establish, for Items, NPCs, Projectiles, Armor Sets, Buffs, Audio, Bosses, and Shimmer, fresh evidence that the maintained source-to-database-to-consumer chain can perform real writes in isolated databases before any formal production release is considered.
+**Goal:** For Items, NPCs, Projectiles, Armor Sets, Buffs, Audio, Bosses, and Shimmer, prove basic functions, maintained writes, and one real V2-dispatched automatic ingestion attempt per domain in isolated databases, with independent consumer readback and failure recovery evidence.
 
-**Architecture:** Each domain runs from a revision-bound real source capture into a run-derived `local/maint/relation` database set and the reviewed `redis-allocation-manifest.json` entry for that run. The execution must call the maintained importer/sync entrypoints, start a run-owned catalog API bound to the same three schemas when consumer routes are tested, independently read back business tables and API/projection consumers, and prove cleanup. The plan produces production-readiness evidence; it does not enable the production scheduler or write the formal `terria_v1_*` databases.
+**Architecture:** Use one dedicated execution worktree and run the eight domains serially from fixed, hash-bound source inputs into manifest-derived `local/maint/relation` schemas. Keep the maintained-chain T1 check separate from an isolated one-shot V2 sweep that must create a real queue attempt, launch the domain automatic runner, write nonzero business rows, and acknowledge the exact source dispatch identity. A run-owned API, Redis, and MinIO are bound only to the isolated run; formal databases and production Redis remain read-only. The plan does not enable unattended scheduling or authorize a formal production write.
 
-**Tech Stack:** Node.js ESM pipelines, Spring Boot catalog API, MySQL/InnoDB run-derived schemas, Redis V2 isolated logical databases or a run-owned loopback Redis instance, `node:test`, Maven, Nuxt checks, JSON evidence under `reports/runtime/eight-domain-production-readiness/`.
+**Tech Stack:** Node.js ESM pipelines, Spring Boot catalog API and V2 queue, MySQL/InnoDB run-derived schemas, run-owned Redis, isolated MinIO, `node:test`, Maven, Nuxt checks, JSON evidence under `reports/runtime/eight-domain-production-readiness/`.
 
 ---
 
@@ -14,17 +14,15 @@
 
 ### 0.1 Install the exact code in the specified directory
 
-- [ ] The execution manifest must provide `executionRoot`, `codeRef`, `codeSha256`, `sourceRoot`, and `evidenceRoot`. A missing or non-absolute `executionRoot` blocks the run; the plan never silently falls back to the current dirty worktree.
-- [ ] The coordinator creates or verifies an empty dedicated worktree at `executionRoot` from the exact `codeRef`, then verifies `git rev-parse HEAD` equals the manifest ref/hash. A non-empty directory, dirty checkout, detached commit mismatch, or source root outside the worktree stops before dependency installation.
-- [ ] Install the exact toolchain in that directory and record versions: Node 22.x, pnpm 9.x, Java 17, Maven 3.8+, MySQL client, Redis CLI, and (only for image lanes) MinIO client/server. Do not use the coordinator's `node_modules`, Maven target, environment file, or cached credentials.
+- [x] Execution root is fixed at `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; code ref is `exec/eight-domain-production-readiness`, commit `756ae8bf96f58e6a3e6c7edb256c57bdeb65967c`, archive SHA-256 `sha256:5a8498768aac9d503463fa3481d989cdc98355dbe27fd0dc21dd287994a7d68a`. Source and install root are this same worktree; no fallback to the dirty coordinator worktree is allowed.
+- [x] Toolchain is fixed: Node `/home/lolben/.nvm/versions/node/v22.23.0/bin/node` v22.23.0 with pnpm 9.0.0, Java 17.0.18, Maven 3.8.7, MySQL CLI 9.2.0, Redis server/CLI 7.0.15, MinIO RELEASE.2025-09-07T16-13-09Z, and mc 2025-08-13. Binary hashes are recorded in the ignored execution manifest.
+- [ ] Install exact locked dependencies only in this execution worktree. Do not use the coordinator's `node_modules`, Maven target, environment file, or cached credentials.
 
 ```bash
-cd "$EXECUTION_ROOT"
-corepack enable
-corepack pnpm --version
-cd apps/public-web && corepack pnpm install --frozen-lockfile
-cd ../admin-console && corepack pnpm install --frozen-lockfile
-cd ../../services/catalog-api && mvn -DskipTests dependency:go-offline
+export PATH="/home/lolben/.nvm/versions/node/v22.23.0/bin:$PATH"
+cd /home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness/apps/public-web && pnpm install --frozen-lockfile
+cd ../admin-console && pnpm install --frozen-lockfile
+cd ../../services/catalog-api && mvn -B -DskipTests package
 ```
 
 - [ ] Record dependency tree hashes, package-manager lockfile hashes, Maven version, Java version, Node version, and the built catalog JAR hash in `install-manifest.json`. A package install that changes a lockfile or resolves dependencies from an unrecorded external source is a blocked environment result.
@@ -47,10 +45,11 @@ Every child declares one of these modes in its source manifest:
 
 Every domain must produce four separate results; one green result cannot substitute for another:
 
-1. **Basic function:** parser/normalizer, source identity, schema contract, and representative API route.
-2. **Isolated real ingestion:** maintained importer/sync writes run-derived databases, independent table hashes and API readback pass, and cleanup is zero.
-3. **Error handling:** injected source/hash/identity/DB/API/Redis/object-store failures stop before unsafe mutation or compensate and reconcile after mutation.
-4. **Release classification:** `repository-frozen`, `bounded-live-capture`, or production source-delta status; unresolved ownership/data blockers remain explicit.
+1. **Basic function:** parser/normalizer, stable source identity, schema contract, and representative API route.
+2. **Maintained-chain ingestion:** the named maintained importer/sync writes run-derived databases and independent table/API readback passes. This is the T1 lane only.
+3. **V2 automatic ingestion:** the isolated V2 sweep creates one non-fixture queue attempt, the real worker launches the registered domain automatic runner, nonzero rows are written, and acknowledgement binds the exact source dispatch identity and attempt identity. A T1 pass cannot set this result.
+4. **Error handling:** injected source/progress/identity/DB/API/Redis/object-store/worker failures stop before unsafe mutation or enter a recorded rollback/reconciliation state after mutation.
+5. **Release classification:** source mode and current-source status are explicit; unresolved ownership/data/authentication blockers remain blocked.
 
 The cross-test report must include the exact code ref, execution root, source mode, run ID, database/Redis/API/object-store identities, commands, exit codes, and artifact hashes.
 
@@ -60,14 +59,14 @@ Source-crawl resume and database-import retry are separate contracts:
 
 | Domain | Current source interruption behavior | Required validation behavior |
 | --- | --- | --- |
-| Items | The detached Item page crawler has `--resume-from-progress=true`; the planned repository-frozen fast lane skips crawling entirely | Test the existing local-source lane plus one optional live resume contract; never call the recorded local path proof of live crawl resume |
-| NPCs | Current monitor rule does not declare keyed resume for the base NPC refresh | Simulate interruption, prove failed terminal progress, then rerun the frozen source from fresh input with a new run identity |
-| Projectiles | Current monitor rule does not declare keyed resume for the base Projectile refresh | Same fresh-rerun policy; explicit source identity prevents duplicate relation rows |
-| Armor Sets | Armor-set source rule is fresh-only; its tests record `resumeOutcome=not_supported` | Simulate interruption, retain failed evidence, rerun from immutable source with a new run identity |
-| Buffs | Keyed resume exists with `data/generated/resume/buff-page-immunity-refresh.resume.json` and fingerprint validation | Inject a crash before/after completion marking, resume only when the source fingerprint matches, and reject drift |
-| Audio | Asset-download phase resumes from a manifest and skips only verified existing files; source discovery is not a general whole-crawl resume | Test verified-file skip, size/hash mismatch, transient retry, and non-retryable failure |
-| Bosses | Keyed resume exists with `data/generated/resume/domain-source-bosses.resume.json` and fingerprint validation | Inject a crash before/after completion marking, resume matching pages, and reject changed seed sets |
-| Shimmer | Current source rule has progress but no keyed resume contract | Simulate interruption, retain failed progress, and rerun the immutable generation/source from fresh input |
+| Items | The detached Item page crawler supports `--resume-from-progress=true`; this plan's import uses frozen data and does not crawl the full corpus | Use a deterministic mock for the 100-page selector, interrupt after 50 records, resume with the same fingerprint, and reject drift. No live 6k-page crawl. |
+| NPCs | No keyed resume contract is used by this frozen-source lane | Inject failed terminal progress, then prove a fresh run ID can restart from the immutable standardized input without duplicating rows. |
+| Projectiles | No keyed resume contract is used by this frozen-source lane | Same fresh-rerun policy; stable source identity prevents duplicate relation rows. |
+| Armor Sets | The attribute/image fetches are bounded source actions; any interruption is terminal and starts a new capture run | Simulate failure with the registered progress action, retain failed evidence, and retry only with a new run ID after source hashes are rechecked. |
+| Buffs | The fetcher supports keyed item resume with source-fingerprint validation; its resume state is generated per run, not assumed to exist in the repository | Use a private temp resume path, interrupt before/after completion marking, resume only with the same fingerprint, and reject drift. The primary 388-row run uses frozen data. |
+| Audio | Asset-download phase resumes from a manifest and skips only verified existing files; metadata discovery is not a general whole-crawl resume | Test verified-file skip, size/hash mismatch, transient retry, and non-retryable failure with downloads isolated; the primary run disables downloads. |
+| Bosses | The fetcher supports keyed resume with fingerprint validation; its resume state is generated per run | Use a private temp state path, interrupt before/after completion marking, resume matching pages, and reject changed seed sets. The primary run uses frozen metadata. |
+| Shimmer | No keyed resume contract is used by this frozen-generation lane | Simulate failed progress and rerun the immutable generation under a new run ID; preserve all unresolved rows. |
 
 For database import interruption, no child may blindly continue from an unknown commit point. The runner must classify the outcome as `rolled_back`, `committed_and_readback_verified`, or `commit_outcome_uncertain`; the uncertain state requires independent reconciliation and a new governed run identity before retry. A new source crawl is not required when the frozen source bundle is still hash-valid.
 
@@ -77,6 +76,7 @@ Each child or the shared harness must test and record:
 
 - missing or malformed source file;
 - network/process interruption at a source record boundary, including a crash before and after keyed completion marking for resume-capable domains;
+- deterministic mocked recovery for resume-capable crawlers and failed-terminal/new-run recovery for fresh-only domains; do not make unbounded Wiki requests to prove interruption handling;
 - source hash/revision drift after manifest binding;
 - missing dependency key, duplicate key, and dependency row-hash drift;
 - migration/schema/database-role mismatch before DML;
@@ -96,12 +96,13 @@ An injected error is a pass only when the artifact records the expected terminal
 
 ## 1. Decision Before Execution
 
-This plan has two separate outcomes:
+This plan has three separate outcomes:
 
-1. **Isolated real-ingestion readiness:** a domain writes its real maintained chain into disposable databases and is independently read back.
-2. **Formal production release readiness:** all domain evidence, ownership contracts, source dependencies, API reads, rollback evidence, and current authorization gates pass for the formal target.
+1. **Basic and maintained-chain readiness:** domain parsers and maintained entrypoints work against the exact frozen or bounded source input in disposable databases.
+2. **Isolated V2 automatic-ingestion readiness:** the V2 queue, worker, automatic runner, source acknowledgement, and consumer readback complete against only the run-derived schemas and run-owned Redis endpoint.
+3. **Formal production release readiness:** all domain evidence, ownership contracts, current source dependencies, API reads, rollback evidence, and current authorization gates pass for the formal target.
 
-An isolated pass does not authorize a formal write. A source-readiness report, parser test, dry-run, fixture scheduler tick, direct pseudo-adapter, or historical `v2/L2/ACTIVE` row is not an isolated real-ingestion pass.
+Neither an isolated maintained-chain pass nor an isolated V2 pass authorizes a formal write. A source-readiness report, parser test, dry-run, fixture scheduler tick, direct pseudo-adapter, direct runner invocation without a V2 attempt, or historical `v2/L2/ACTIVE` row is not proof of V2 automatic ingestion.
 
 The current baseline is:
 
@@ -122,14 +123,14 @@ The planned time-bounded source strategy is:
 
 | Domain | Source strategy for this validation | Required interpretation |
 | --- | --- | --- |
-| Items | `repository-frozen` from `data/standardized/items.standardized.json` plus `data/standardized-view/items/` and `data/standardized-view/item_pages/`; deterministic selected sample for the fast lane | Fast local-source validation; full 6k-page recrawl is explicitly out of this validation. Maintained-chain subset must be tested separately from the recorded compatibility path. |
-| NPCs | `repository-frozen` standardized NPC data plus tracked canonical NPC snapshots; bounded live probe only if a current revision check is needed | Real isolated chain for the frozen source; no fresh upstream delta claim. |
+| Items | `repository-frozen`: `data/standardized/items.standardized.json`, `data/standardized/item_pages.standardized.json`, and their view manifests; exactly 100 equal-rank records selected by the child-plan rule | Full 6,131-page crawl is out of scope. Run the recorded compatibility lane and a separate maintained-import subset from the same 100 identities. |
+| NPCs | `repository-frozen`: `data/standardized/npcs.standardized.json`, `data/standardized-view/npcs/_meta.json`, and `data/generated/npc-standardized-map.json` | No `data/wiki-crawler/canonical/npc/*.latest.json` source exists in this worktree; do not reference it. No fresh upstream delta claim. |
 | Projectiles | `repository-frozen` `data/standardized/projectiles.standardized.json` and standardized-view metadata with explicit source-relation fields | Real isolated relation/import test; no `aiStyle` inference. |
-| Audio | `repository-frozen` generated audio catalog and BGM display-name artifacts; live fetch only for a bounded representative check | Metadata/link chain can be tested without a full audio crawl; binary upload mode is separate. |
-| Bosses | `repository-frozen` `data/generated/wiki-bosses.latest.json` plus tracked NPC identity map | Isolated Boss/NPC ownership test; no new Boss source delta claim. |
-| Armor Sets | `repository-frozen` generated Armor set/attribute/image evidence with hashes; live capture only for missing revision evidence | Maintained set/image chain and source ownership test; formal ownership blockers remain. |
-| Buffs | `repository-frozen` full local Buff/Iteminfo/page-evidence artifacts already captured; bounded live replay only if current-source compatibility is needed | Full 400-record isolated chain without waiting for a new Wiki revision; no production source-delta claim. |
-| Shimmer | `repository-frozen` content-addressed generation, manifest, and raw source artifacts | Six-scope isolated transaction test; unresolved references remain a production blocker. |
+| Audio | `bounded-live-capture`: four Wiki audio prefixes, at most five API pages per prefix and 150 metadata records total; downloads disabled | The generated audio catalog and BGM display-name files are absent from this execution worktree. Metadata/link ingestion only; no binary-upload claim. |
+| Bosses | `hybrid`: frozen `data/generated/wiki-bosses.latest.json` plus `data/generated/npc-standardized-map.json`; current image bytes use the run-owned object store if the importer requires them | The tracked Boss source has 33 records. No fresh Boss page-delta claim; NPC/Boss writes remain serial. |
+| Armor Sets | `hybrid`: frozen `data/standardized/armor_sets.standardized.json` and `data/generated/wiki-armor-sets.latest.json`; capture the missing attribute page and at most 64 set images to private run outputs | `wiki-armor-attributes.latest.json` and a frozen set-image catalog are absent. Do not claim those inputs are frozen. Formal ownership blockers remain. |
+| Buffs | `repository-frozen`: `data/standardized/buffs.standardized.json` (388 records) plus `data/generated/buff-standardized-map.json` | The claimed 400-record Iteminfo/page-evidence bundle is absent from this worktree. Do not use 400 as the expected count or treat the historical 13 unresolved Item identities as a permanent allowlist. No source-delta claim. |
+| Shimmer | `repository-frozen`: generation `379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761`, selected by `data/generated/shimmer/wiki-shimmer-current-generation.json` | Six-scope isolated transaction test; 796 known unresolved references remain an explicit production blocker. |
 
 This table is the execution default. A child may switch to `bounded-live-capture` only with a new source manifest and no silent replacement of the frozen artifact.
 
@@ -139,7 +140,7 @@ These checks are prerequisites for all eight child plans.
 
 ### 2.1 Repository and evidence baseline
 
-- [ ] Confirm branch, worktrees, dirty paths, and current devlog before touching an execution worktree.
+- [x] Confirm branch, worktrees, dirty paths, and current devlog. The execution root is `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; the coordinator worktree has unrelated dirty paths and must not supply code or data.
 
 ```bash
 git status --short --branch
@@ -147,19 +148,22 @@ git worktree list
 sed -n '1,220p' docs/devlog/current.md
 ```
 
-- [ ] Create the evidence root `reports/runtime/eight-domain-production-readiness/20261016/` only from a clean dedicated execution worktree. Do not copy private artifacts from another worktree to bypass trusted-root checks.
-- [ ] Record the current commit, Node version, Maven version, MySQL server UUID/host/port, Redis server identity, and migration level in `baseline.json`.
+- [ ] Use `reports/runtime/eight-domain-production-readiness/20261017/` as the sole evidence root. Record the exact code commit/archive hash, toolchain, current MySQL identity, installed migration hash, and resource preflight in `baseline.json` before installing dependencies.
+- [ ] Re-check the execution worktree is clean except for this reviewed plan/devlog change before installation; never copy `node_modules`, `target`, credentials, or mutable source data from the coordinator worktree.
 
-### 2.2 Isolation resource decision (blocking; no allocations are pre-approved)
+### 2.2 Fixed isolation resource contract (identities fixed; runtime reservation pending)
 
-The current repository contracts disagree: `assertAutomationRedisLogicalDb` accepts DB1-13 or DB18, while the V2 scheduler system driver accepts DB1-16. Historical isolated Armor/Buff/Shimmer artifacts used DB20/DB22/DB24 through execution-worktree-specific contracts, but those allocations are not supported by the shared contract in this branch. Do not infer that a logical DB exists, is empty, or is available from a historical run.
+The resource identities are fixed by `reports/runtime/eight-domain-production-readiness/20261017/execution-manifest.json`; they are planned allocations, not proof that a process or database is currently available. The 2026-10-17 read-only inventory found shared Redis `6380` and MinIO `19000/19001` stopped and their persistent data roots in use; those shared roots are forbidden. Historical DB20/DB22/DB24 are not candidates. There are no interactive resource choices during execution.
 
-- [ ] Read-only inventory the actual Redis endpoint(s), `CONFIG GET databases`, server identity, listening ports, persistence directories, current process owners, and `DBSIZE` for every candidate DB. Do not issue writes, `FLUSHDB`, startup, shutdown, or cleanup during this inventory.
-- [ ] Record the inventory in `reports/runtime/eight-domain-production-readiness/20261016/redis-resource-inventory.json`, including check time and command outputs summarized without credentials.
-- [ ] Select one resource model only after the inventory: (A) extend the shared isolated-DB allowlist with a reviewed, explicit allocation manifest supported by the actual Redis configuration, or (B) use a run-owned disposable loopback Redis instance with a unique port. A run-owned instance may use DB0 only after the shared contract accepts DB0 conditionally on a cryptographically bound run-owned endpoint/process identity; otherwise it must use a contract-allowed DB. The plan does not preselect DB numbers or a port.
-- [ ] Produce `redis-allocation-manifest.json` with exactly eight sequential-run entries, each binding domain, host, port, logical DB, Redis server identity, owner/lifecycle, preflight emptiness evidence, and cleanup method. Entries may reuse one run-owned endpoint only after the prior owner has stopped, its exact keys are zero, and a new allocation epoch is recorded; no two active tasks may own the same endpoint/DB.
-- [ ] Add contract tests proving all eight manifest entries are accepted and unlisted, reserved, historical, occupied, out-of-range, or endpoint-drifted resources fail before provisioning. Preserve explicit protection of production DB14/DB15 and historical DB16/DB18.
-- [ ] Keep all eight child tasks blocked until the allocation decision, manifest, and tests are reviewed. If neither resource model can be proven, stop and request an environment design decision; do not invent DB numbers.
+- [x] Formal/source MySQL is fixed to `127.0.0.1:13306`, expected server UUID `b4ae6728-4f72-11f1-bcc9-00155d37eadf`. Formal schemas are SELECT-only sources. Each target schema is generated from the fixed domain run ID with `buildAutomationDatabaseNames({ profile: 't1', runId })`; no schema name may be typed by a caller.
+- [x] Redis is a dedicated loopback instance `/usr/bin/redis-server` v7.0.15 at `127.0.0.1:16380`, databases 1-8 mapped in domain order in the execution manifest, persistence disabled, with private data/config/auth under `.local/tmp/eight-domain-production-readiness/20261017/redis`. Shared Redis `6380`, production DB14/DB15, and historical DB16/DB18 are forbidden.
+- [x] MinIO is `/home/lolben/.local/bin/minio` RELEASE.2025-09-07T16-13-09Z at API `127.0.0.1:19100` and console `127.0.0.1:19101`, with a private data root under `.local/tmp/eight-domain-production-readiness/20261017/minio`. Buckets are `tp-e8pr-armor-20261017` and `tp-e8pr-bosses-20261017`; object prefixes are `e8pr/armor_sets/<runId>/` and `e8pr/bosses/<runId>/`. Audio is metadata-link-only and uses no MinIO bucket.
+- [x] API is loopback port `18280`, reused only after exact PID/port absence is verified. The same API launch wrapper has separate read-only consumer-readback and explicitly isolated V2-attempt modes.
+- [x] Fixed run IDs are `e8pr-items-20261017-v1`, `e8pr-npcs-20261017-v1`, `e8pr-projectiles-20261017-v1`, `e8pr-audio-20261017-v1`, `e8pr-bosses-20261017-v1`, `e8pr-armor_sets-20261017-v1`, `e8pr-buffs-20261017-v1`, and `e8pr-shimmer-20261017-v1`.
+- [x] Each `<runKey>` path segment is the exact `runKey` returned by `buildAutomationDatabaseNames({ profile: 't1', runId })`, not the readable `runId`. Expected run keys and the resulting local/maint/relation schema names are recorded in the execution manifest.
+- [ ] Before dependency installation, re-probe every fixed port, MySQL UUID, Redis/MinIO binary hash, private data-root emptiness, MySQL formal schema identity, and active crawler/automation writer. Reserve each entry as `planned`, then mark it `ready` only after exact endpoint identity and emptiness are independently read back.
+- [ ] If MySQL is unavailable, credentials are unavailable, any port/root is occupied, a binary hash differs, or an active writer conflicts, write a blocked preflight artifact and stop. Do not start or stop shared services, change ports/DBs, reuse credentials, clean foreign state, or prompt the user for a choice.
+- [ ] Generate the Redis/object-store allocation manifests from these fixed identities. Tests must reject shared Redis, formal/historical DBs, endpoint drift, occupied resources, foreign data roots/objects, and cleanup outside the exact run owner before provisioning.
 
 ```bash
 node --test pipelines/automation/automation-database-contract.test.mjs \
@@ -168,22 +172,28 @@ node --test pipelines/automation/automation-database-contract.test.mjs \
   pipelines/monitor/crawler-queue-v2-scheduler-lifecycle.test.mjs
 ```
 
-### 2.3 Formal-target non-write guard
+### 2.3 Formal-target non-write and isolated V2 guard
 
-- [ ] Every child runner consumes only its manifest entry, rejects `terria_v1_local`, `terria_v1_maint`, `terria_v1_relation`, production Redis DB14/DB15, and production API ports before opening a write connection.
+- [ ] Every isolated child consumes only its reviewed manifest entry. Before opening a connection it rejects `terria_v1_local`, `terria_v1_maint`, `terria_v1_relation`, historical `terria_v1_v55_rehearsal`, any MySQL target other than the fixed server UUID plus that run's derived schema triple, any Redis target other than its assigned `16380/DB1-8`, and any API port other than the run-owned `18280` process.
 - [ ] Formal schemas are available only through a read-only snapshot account for dependency seeding. The run-derived schemas are the only write targets.
-- [ ] The isolated API must use a distinct run-owned `apiReadonly` MySQL account with `SELECT, SHOW VIEW` only on the three run-derived schemas. It must never use the formal snapshot account (formal schemas only) or the provisioner account (DDL/DML authority).
+- [ ] The current Base and Supplementary automatic runners hard-reject `TERRAPEDIA_DB_NAME` values other than `terria_v1_local`. Add an explicit `eight-domain-isolated-acceptance` execution mode that accepts only the signed/current run manifest, exact derived schema triple, fixed MySQL UUID, exact Redis allocation, and `source-mode=local|bounded-live`. Keep the default production mode's `terria_v1_local` guard unchanged.
+- [ ] Exercise the V2 attempt through a run-owned API's authenticated `/api/admin/crawler-monitor/v2/automation/sweep` endpoint. The test API may dispatch only the single domain/run named by its isolated authorization envelope. It must set `SPRING_TASK_SCHEDULING_ENABLED=false`, keep the production API/Redis unreachable, and stop immediately after the attempt reaches terminal state; a fixture queue or direct runner call is not a V2 pass.
+- [ ] The isolated authorization envelope and any scheduler activation rows are synthetic test records stored only in the run-derived schema, bound to the code hash, source hash, domain allowlist, and run ID. They must be rejected by production-mode code and cannot create a production permit, decision, packet, or Owner authorization.
+- [ ] For the V2 pass, require exactly one non-fixture queue attempt per domain, worker launch of the registered production automatic entrypoint in isolated local-source mode, nonzero domain-owned writes, independent readback, and V2 queue terminal acknowledgement bound to the same `(epoch, queueId, attemptId)` and source dispatch identity. Do not acknowledge or mutate the shared Wiki source manifest. Fixture mode, missing attempt identity, a direct manual importer, or a T1-only result cannot set `v2AutomaticIngestionStatus=passed`.
+- [ ] Run domains serially in this one execution worktree and one coordinator session. NPC and Boss share the `npcs` ownership boundary; API port, MinIO, and dependency seeding are also serial resources. Do not split the eight runs across concurrent sessions.
+- [ ] Consumer-readback API mode must use a distinct `apiReadonly` MySQL account with `SELECT, SHOW VIEW` only on the three run-derived schemas. Isolated V2 mode must use the separate `apiV2Test` account scoped to the same run schemas/control tables. Neither mode may use the formal snapshot account or provisioner account.
 - [ ] Add a negative test that a formal database name, symbolic-link evidence path, changed source hash, mismatched run identity, or sibling attempt artifact fails before the first business DML.
-- [ ] Consumer API verification uses a run-owned backend process bound to the same run-derived schemas. The process receives `APP_PORT`, `TERRAPEDIA_DB_URL`, `TERRAPEDIA_DB_MAINT`, `TERRAPEDIA_DB_RELATION`, `TERRAPEDIA_DB_USERNAME`, `TERRAPEDIA_DB_PASSWORD`, `TERRAPEDIA_REDIS_HOST`, `TERRAPEDIA_REDIS_PORT`, `TERRAPEDIA_REDIS_DATABASE`, `SPRING_TASK_SCHEDULING_ENABLED=false`, and its run-owned admin/token secrets through an allowlisted isolated environment; it never inherits the ordinary local-stack configuration.
+- [ ] Consumer-readback mode uses `TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY=true` and a SELECT-only `apiReadonly` account. Isolated V2-attempt mode may set `TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY=false` only when the explicit isolation flag, valid manifest, one-domain authorization envelope, run-derived schemas, and private Redis identity all match; use a separate `apiV2Test` account with grants only on that run's schemas/control tables. Both modes keep `SPRING_TASK_SCHEDULING_ENABLED=false`, keep cutover disabled, use an allowlisted environment, and never inherit ordinary local-stack settings.
 - [ ] The run-owned backend uses a unique loopback port recorded in the run artifact, exposes only the required health/public/admin routes, and is stopped only after API readback and post-stop process/port checks pass.
 
 ### 2.4 Source and chain contract
 
-Each child must provide all of the following before apply:
+Each child must provide all of the following before maintained import or V2 dispatch:
 
-- [ ] Real source capture with provider, page/module identity, revision ID or immutable source timestamp, raw bytes hash, parsed bundle hash, and terminal progress.
+- [ ] A source manifest with the selected source mode, exact repository paths or Wiki page/module identities, SHA-256 values, record counts, source revisions/timestamps, and the run ID. Bounded crawls must use their registered `actionId`, monitor-visible progress path, heartbeat, terminal status, private output/report paths, and one active writer per progress/output family.
 - [ ] Frozen input manifest bound to the run ID and code bundle hash.
 - [ ] Maintained importer/sync call path. Direct SQL, direct JSON mutation, `recrawl_*` tables, or direct pseudo-adapters are diagnostic only and cannot pass the gate.
+- [ ] V2 automatic runner call path with attempt identity, source dispatch identity, runner code bundle hash, worker exit status, V2 queue acknowledgement status, and terminal reconciliation evidence. Isolated local-source runs do not mutate the Wiki source manifest.
 - [ ] Before/after counts and stable-key row hashes for every owned table.
 - [ ] Relation/projection/local consumer readback and representative API DTO readback from the isolated runtime.
 - [ ] Transaction rollback probe, commit probe, and post-commit independent readback.
@@ -209,7 +219,7 @@ Each child must provide all of the following before apply:
 
 ### 2.6 Consumer and release verification
 
-- [ ] For each domain, read the relevant backend DTO/API through the run-owned isolated backend configured only with the run-derived schemas. A direct SQL read alone is insufficient.
+- [ ] For each domain, read the relevant backend DTO/API through the run-owned isolated backend configured only with the run-derived schemas. For V2 acceptance, call exactly one authenticated `/api/admin/crawler-monitor/v2/automation/sweep` on the isolated API and read back its real attempt, worker result, acknowledgement, and domain API response.
 - [ ] Run focused domain tests, backend tests for changed DTO/mapper paths, `apps/public-web` checks where public output is read, and `apps/admin-console` checks where admin output is read.
 - [ ] Run the full local quality gate after all eight isolated runs. Any skipped gate must be recorded with the exact reason and cannot be called a release pass.
 - [ ] Validate rollback by restoring the pre-run fingerprint and verifying no unrelated tables changed.
@@ -235,7 +245,7 @@ The run-owned API launcher must verify the route prefix, database identity, Redi
 Every child writes one immutable artifact at:
 
 ```text
-reports/runtime/eight-domain-production-readiness/20261016/<domain>/<runKey>/isolated-real-ingestion.json
+reports/runtime/eight-domain-production-readiness/20261017/<domain>/<runKey>/isolated-real-ingestion.json
 ```
 
 The artifact must contain:
@@ -244,25 +254,28 @@ The artifact must contain:
 {
   "domainId": "items",
   "runId": "...",
-  "source": {"provider": "terraria.wiki.gg", "revision": "...", "rawSha256": "sha256:...", "bundleSha256": "sha256:..."},
-  "isolatedTarget": {"mysql": {"host": "127.0.0.1", "port": 0, "serverUuid": "...", "databases": {"local": "...", "maint": "...", "relation": "..."}}, "redis": {"host": "...", "port": 0, "logicalDb": 0, "serverIdentity": "...", "allocationManifestHash": "sha256:..."}, "api": {"host": "127.0.0.1", "port": 0, "jarSha256": "sha256:...", "configHash": "sha256:...", "stoppedAfterReadback": true}, "objectStore": {"mode": "none|metadata-link-only|isolated-binary|read-only", "allocationManifestHash": "sha256:...", "endpoint": "...", "bucket": "...", "objectPrefix": "...", "beforeHash": "sha256:...", "afterHash": "sha256:..."}},
+  "source": {"mode": "repository-frozen|bounded-live-capture|hybrid", "provider": "terraria.wiki.gg", "paths": [], "revision": "...", "rawSha256": "sha256:...", "bundleSha256": "sha256:...", "recordCount": 0},
+  "isolatedTarget": {"mysql": {"host": "127.0.0.1", "port": 13306, "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf", "databases": {"local": "...", "maint": "...", "relation": "..."}}, "redis": {"host": "127.0.0.1", "port": 16380, "logicalDb": 0, "serverIdentity": "...", "allocationManifestHash": "sha256:..."}, "api": {"host": "127.0.0.1", "port": 18280, "jarSha256": "sha256:...", "configHash": "sha256:...", "stoppedAfterReadback": true}, "objectStore": {"mode": "none|metadata-link-only|isolated-binary", "allocationManifestHash": "sha256:...", "endpoint": "http://127.0.0.1:19100", "bucket": "...", "objectPrefix": "...", "beforeHash": "sha256:...", "afterHash": "sha256:..."}},
   "accounts": {"provisioner": "...", "formalReadonly": "...", "apiReadonly": "...", "cleanupVerified": true},
   "formalDatabaseWrites": false,
   "maintainedEntrypoints": ["..."],
   "dependencySeeds": {"manifestSha256": "sha256:...", "rowsByTable": {}, "readbackVerified": true},
   "before": {"tables": {}, "api": {}},
-  "write": {"transactionCommitted": true, "rollbackProbePassed": true, "readbackVerified": true},
+  "write": {"transactionCommitted": true, "rollbackProbePassed": true, "readbackVerified": true, "domainOwnedRowsWritten": 0},
+  "automaticAttempt": {"fixtureMode": false, "artifactRoot": "reports/runtime/eight-domain-production-readiness/20261017/items/<runKey>/automatic/", "sweepBodySha256": "sha256:...", "stateStoreEpoch": "...", "queueId": "...", "attemptId": "...", "sourceDispatchIdentity": {}, "runnerCodeBundleSha256": "sha256:...", "workerExitCode": 0, "terminalStatus": "COMPLETED", "v2QueueAcknowledged": true, "wikiSourceManifestAcknowledged": false},
   "after": {"tables": {}, "api": {}},
   "unresolved": [],
   "cleanup": {"schemas": 0, "accounts": 0, "redisKeys": 0, "apiOwnedRedisKeys": 0, "childProcesses": 0, "apiProcesses": 0, "apiPorts": 0, "ephemeralSecrets": 0, "passed": true},
-  "isolatedIngestionStatus": "passed",
+  "basicFunctionStatus": "passed|blocked",
+  "maintainedChainStatus": "passed|blocked|unverified",
+  "v2AutomaticIngestionStatus": "passed|blocked|unverified",
   "localSourceCompatibilityStatus": "not-applicable|passed|blocked",
   "errorHandlingStatus": "passed|blocked|unverified",
   "productionReadinessStatus": "blocked"
 }
 ```
 
-Use separate statuses: `isolatedIngestionStatus` describes whether the maintained chain genuinely wrote and read back in the disposable target; `productionReadinessStatus` describes unresolved source, ownership, and consumer blockers. An isolated pass is forbidden when formal schemas were written, the maintained chain was bypassed, dependency seeds were incomplete, unresolved data was silently dropped, API verification used a different DB binding, or cleanup is unknown.
+Use separate statuses: `maintainedChainStatus` describes the T1 maintained importer/sync lane; `v2AutomaticIngestionStatus` describes the real V2 attempt/worker/ack lane; `productionReadinessStatus` describes unresolved source, ownership, current authorization, and consumer blockers. V2 may pass only with a non-fixture attempt, source/attempt identity agreement, nonzero domain-owned writes, independent SQL and API readback, successful acknowledgement, and verified cleanup. Either isolated lane is blocked when formal schemas were written, dependencies were incomplete, data was silently dropped, the API used another DB binding, or cleanup is unknown.
 
 ## 4. Execution Order
 
@@ -277,26 +290,27 @@ Run serially in this order to reduce shared-table and dependency ambiguity:
 7. Buffs
 8. Shimmer
 
-The order is operational, not a permission to write formal databases. A failed child stops only its child lane, but the master plan cannot advance to production sign-off until the failure is repaired and re-run with a new run identity.
+The order is operational, not a permission to write formal databases. Run all eight domains serially in this execution worktree and one coordinator session. A source/identity/target/cleanup conflict stops the full run without prompting; a domain code/data failure blocks that domain and the aggregate until the repair passes focused tests and is rerun under a new run identity. A source interruption resumes only where the child contract explicitly supports resume; no unknown database commit is retried before independent reconciliation.
 
 ## 5. Master Tasks
 
-### Task 0: Decide and prove isolated Redis resource ownership
+### Task 0: Freeze and preflight the fixed resource allocation
 
 **Files:**
-- Create: `reports/runtime/eight-domain-production-readiness/20261016/redis-resource-inventory.json`
-- Create: `reports/runtime/eight-domain-production-readiness/20261016/redis-allocation-manifest.json`
-- Modify: `pipelines/automation/automation-database-contract.mjs` only if the chosen model needs shared-contract changes
-- Modify: `pipelines/monitor/crawler-queue-v2-scheduler-system-driver.mjs` only if its isolated test boundary must align
+- Create: `reports/runtime/eight-domain-production-readiness/20261017/redis-resource-inventory.json`
+- Create: `reports/runtime/eight-domain-production-readiness/20261017/redis-allocation-manifest.json`
+- Create: `reports/runtime/eight-domain-production-readiness/20261017/object-store-allocation-manifest.json`
+- Create: `reports/runtime/eight-domain-production-readiness/20261017/source-manifest.json`
+- Modify: `pipelines/automation/automation-database-contract.mjs`
 - Test: `pipelines/automation/automation-database-contract.test.mjs`
 - Test: `pipelines/monitor/crawler-queue-v2-scheduler-lifecycle.test.mjs`
 
-- [ ] Complete the read-only inventory in Section 2.2 and record the live configuration and process ownership.
-- [ ] Choose either the allowlisted logical-DB model or the run-owned disposable Redis model; record why the other option does not fit the observed environment.
-- [ ] Define exactly eight sequential-run allocations from verified available resources. Record domain, endpoint, DB, owner, preflight evidence, and cleanup procedure; no candidate IDs from this plan are authoritative.
-- [ ] Add RED/GREEN contract tests for the selected allocation model, including production/historical DB rejection, occupied resource rejection, endpoint drift, exact owner cleanup, and failure before provisioning.
-- [ ] Verify the shared acceptance adapter, each domain wrapper, and the scheduler fixture driver use the same allocation decision or document their distinct validated contract.
-- [ ] Do not start MySQL schemas, create temporary accounts, launch Redis, or run a source capture until this task is reviewed and the allocation manifest passes.
+- [x] Fix the MySQL server UUID/port, run IDs, schema-derivation contract, Redis binary/port/DB map, MinIO binary/ports/buckets/prefixes, API port, private roots, and fail-closed policy in the execution manifest.
+- [ ] Revalidate current MySQL UUID/formal schema set, credential availability, ports, binary hashes, private-root emptiness, and active writers before installing dependencies. Record each check and command result; only statuses from this fresh preflight may become `ready`.
+- [ ] Create eight `planned` Redis allocation entries from the fixed DB1-8 map, two exact MinIO entries, and one serial API port lease. Include process owner, private root, expected hash, preflight result, cleanup method, and no-fallback policy.
+- [ ] Keep secrets out of manifests. Generate private mode-`0600` Redis/MinIO/API credentials at runtime; use a pre-existing protected MySQL credential source only. Credential lookup failure stops automatically without prompting.
+- [ ] Add RED/GREEN tests for the fixed allocations, formal/historical database and Redis rejection, occupied port/root, binary/identity drift, no-fallback behavior, owner-bound cleanup, and failure before schema creation.
+- [ ] Do not create schemas/accounts, start Redis/MinIO/API, install dependencies, or run a source capture until this task's static allocation contract tests pass.
 
 ### Task 1: Build and validate the isolated allocation harness
 
@@ -327,18 +341,21 @@ The order is operational, not a permission to write formal databases. A failed c
 
 - [ ] Accept only a reviewed allocation manifest entry, run-derived three-database names, a unique loopback port, and an explicit run directory; reject formal schemas, production ports, inherited `TERRAPEDIA_DB_URL`, and missing maint/relation bindings before starting Java.
 - [ ] Before API startup, apply/verify the required migration SQL set against only the three run-derived schemas using the run provisioner account; record the ordered migration file list/hash and post-migration schema fingerprints. The API process itself uses the distinct `apiReadonly` account and must set `SPRING_FLYWAY_ENABLED=false` after the migration check so startup cannot require DDL privileges.
-- [ ] Generate a private mode-`0600` environment file that binds `TERRAPEDIA_DB_URL` to the run-derived local schema and sets `TERRAPEDIA_DB_MAINT`/`TERRAPEDIA_DB_RELATION` to the matching schemas. Use only the `apiReadonly` MySQL account for API reads. Bind `APP_PORT` and Redis host/port/logical DB from the allocation manifest, set `SPRING_TASK_SCHEDULING_ENABLED=false`, `TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY=true`, `TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED=false`, `MANAGEMENT_HEALTH_MAIL_ENABLED=false`, and when object storage is enabled bind `TERRAPEDIA_MINIO_ENABLED`, `TERRAPEDIA_MINIO_ENDPOINT`, `TERRAPEDIA_MINIO_PUBLIC_ENDPOINT`, `TERRAPEDIA_MINIO_BUCKET`, `TERRAPEDIA_MINIO_OBJECT_PREFIX`, and run-only credentials from the object-store entry. Generate distinct run-only `TERRAPEDIA_AUTH_TOKEN_SECRET` and `TERRAPEDIA_USER_TOKEN_SECRET` values, plus the admin username/password, and record only a hash of the redacted configuration.
+- [ ] Generate private mode-`0600` environment files for each API mode. Both bind `TERRAPEDIA_DB_URL`, `TERRAPEDIA_DB_MAINT`, `TERRAPEDIA_DB_RELATION`, `APP_PORT`, and Redis identity from the exact manifest; set `SPRING_TASK_SCHEDULING_ENABLED=false`, `TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED=false`, and `MANAGEMENT_HEALTH_MAIL_ENABLED=false`. Consumer-readback uses `apiReadonly` and `TERRAPEDIA_CRAWLER_AUTOMATION_READ_ONLY=true`; isolated V2 mode uses `apiV2Test` and sets read-only false only after its isolation flag/manifest/envelope validate. When object storage is enabled, bind MinIO endpoint, bucket, object prefix, and run-only credentials. Generate distinct run-only auth/user token secrets and admin credentials; record only redacted config hashes.
 - [ ] Reject a formal-schema migration target, a missing migration manifest/hash, or a migration result that changes any schema outside the three run schemas; treat it as an immediate stop. Do not assume a Flyway history row exists when migrations are applied through the shared acceptance adapter.
 - [ ] Generate a run-owned admin credential/token secret for admin route readback; never reuse the ordinary local-stack admin token or a production secret. Record only a hash and expiry in the artifact.
-- [ ] Create and verify the `apiReadonly` account and exact grants before API startup; include it in the manifest/account inventory and drop/read back its absence during cleanup.
+- [ ] Create and verify separate `apiReadonly` and `apiV2Test` accounts before API startup. `apiReadonly` is SELECT-only; `apiV2Test` receives only the exact run-schema/control-table grants needed for the one isolated attempt. Record account identities, then drop both and read back their absence during cleanup.
 - [ ] Bind all temporary MySQL accounts to the loopback/required host identity or, if the existing adapter retains a wildcard host grant, prove MySQL is loopback-only before provisioning and record that limitation as a blocker for any non-loopback environment.
 - [ ] Build/package the current catalog API source revision, record the exact JAR SHA-256, then start only that artifact with the run-owned environment. Set `SPRING_FLYWAY_ENABLED=false` only after the schema provisioner has applied required migrations to all three run-derived schemas; poll `/api/actuator/health` and expose `started`, JAR hash, migration hash, database fingerprint, Redis fingerprint, port, and PID.
-- [ ] Provide a bounded `readback` command that accepts only route names declared by the child plan, records HTTP status/body hash, and fails when the API reports the formal database identity, the wrong Redis endpoint, scheduler enabled, or crawler automation not read-only.
+- [ ] Provide a bounded `readback` command that accepts only route names declared by the child plan and records HTTP status/body hash. In consumer-readback mode it must fail if scheduler/automation is writable; in isolated V2 mode it must fail unless the explicit manifest/envelope is valid and scheduler timers remain disabled.
 - [ ] Authenticate admin route samples only through `/api/auth/login` using the run-owned admin username/password, record the token only in a mode-`0600` ephemeral file, and remove it before cleanup. Public routes must also be read without an admin token where applicable.
 - [ ] Provide a `stop`/`cleanup` path that verifies the exact PID and port, stops only the run-owned process, removes the private environment file, and proves the port/process are absent. Cleanup failure blocks the child artifact.
-- [ ] Add tests for formal database rejection, inherited-config rejection, wrong schema binding, wrong Redis endpoint, port collision, API health failure, PID mismatch, and successful stop/readback.
+- [ ] Add tests for formal database rejection, inherited-config rejection, wrong schema binding, wrong Redis endpoint, port collision, API health failure, PID mismatch, V2 attempt limit, fixture-mode rejection, and successful stop/readback.
 - [ ] Run API readback inside the child acceptance executor while run-derived schemas/accounts still exist; stop the run-owned API and verify its PID/port before the executor returns and the shared T1 harness drops schemas/accounts.
 - [ ] Capture Redis keys created by the API login/rate-limit/readback path, prove they belong to the run allocation, delete only those exact keys before releasing the Redis reservation, and fail cleanup if any foreign key is present.
+- [ ] Add API `consumer-readback` mode (scheduler disabled, automation read-only) and `isolated-v2-attempt` mode (one allowed domain/run, synthetic authorization confined to run schemas, scheduler timer disabled, authenticated one-shot sweep only). Require distinct allowlisted environments and reject ambiguous mode selection.
+- [ ] In isolated V2 mode, pass `TERRAPEDIA_EIGHT_DOMAIN_SOURCE_PROBE_MODE=frozen-run-manifest` and a private run-local source-state path. Do not spawn the default all-domain `check-source-updates.mjs` network probe from this mode. Production mode must keep the current online source check unchanged.
+- [ ] In V2 mode, validate the current manifest and exact run schema/Redis binding before dispatch. Dispatch at most one non-fixture attempt for the allowlisted domain, then return the terminal attempt identity for independent API/Redis readback.
 
 ```bash
 node --test platform/local/run-eight-domain-isolated-api.test.mjs
@@ -372,11 +389,11 @@ node --test pipelines/automation/eight-domain-dependency-seeder.test.mjs
 **Files:**
 - Create: `platform/local/run-eight-domain-isolated-object-store.mjs`
 - Test: `platform/local/run-eight-domain-isolated-object-store.test.mjs`
-- Create: `reports/runtime/eight-domain-production-readiness/20261016/object-store-allocation-manifest.json`
+- Create: `reports/runtime/eight-domain-production-readiness/20261017/object-store-allocation-manifest.json`
 - Read/verify: `services/catalog-api/src/main/resources/application.yml`
 - Read/verify: `platform/local/start-local-stack.sh`
 
-- [ ] Accept only the object-store entry declared for Armor/Boss/Audio, reject the formal bucket, production endpoint, inherited credentials, and an object prefix outside the run identity.
+- [ ] Accept only the object-store entries declared for Armor and Bosses; reject the formal bucket, production endpoint, inherited credentials, and an object prefix outside the run identity. Audio is metadata-link-only and must not start MinIO or upload binaries.
 - [ ] Start or bind a run-owned MinIO endpoint only when the child declares `isolated-binary`; otherwise expose a read-only metadata/source-cache mode and record that binary upload was not tested.
 - [ ] Record endpoint, bucket, prefix, access identity hash, process/data-root identity, before/after object-list hashes, allocation-manifest hash, and cleanup status without persisting secrets.
 - [ ] Remove only the run-owned prefix/bucket, stop only the run-owned process, and prove endpoint/process/data-root cleanup before the child artifact can pass.
@@ -393,7 +410,7 @@ node --test platform/local/run-eight-domain-isolated-object-store.test.mjs
 - Test: `pipelines/automation/eight-domain-failure-injection.test.mjs`
 - Modify: each child runner to expose deterministic dependency injection points.
 
-- [ ] Provide named injections for source hash drift, missing dependency, Redis reservation conflict, migration failure, first-DML failure, post-commit readback failure, API wrong-binding/start failure, NPC/Boss fence conflict, object-store conflict, process interruption, and cleanup failure.
+- [ ] Provide named injections for source hash drift, missing dependency, Redis reservation conflict, migration failure, V2 worker exit before DML, first-DML failure, commit-outcome uncertainty, post-commit readback failure, acknowledgement failure, API wrong-binding/start failure, NPC/Boss fence conflict, object-store conflict, process interruption, and cleanup failure.
 - [ ] Require every injection to emit a terminal artifact with `expectedFailure`, observed state, rollback/compensation state, cleanup state, and whether any business mutation survived.
 - [ ] Reject a test that only asserts a thrown error; the harness must independently read database counts/hashes, Redis keys, API process/port, accounts, and object-store state after the failure.
 - [ ] Run the shared failure matrix once against the Item local-source fast lane and once against one full maintained-chain representative; each other child must run domain-specific identity/fence/object-store injections named in its plan.
@@ -402,19 +419,72 @@ node --test platform/local/run-eight-domain-isolated-object-store.test.mjs
 node --test pipelines/automation/eight-domain-failure-injection.test.mjs
 ```
 
-### Task 2: Refresh the eight real source bundles
+### Task 1E: Bind production V2 automatic runners to an explicit isolated profile
+
+**Files:**
+- Create: `pipelines/automation/eight-domain-v2-isolated-acceptance.mjs`
+- Test: `pipelines/automation/eight-domain-v2-isolated-acceptance.test.mjs`
+- Modify: `pipelines/automation/run-base-domain-automatic-operation.mjs`
+- Test: `pipelines/automation/run-base-domain-automatic-operation.test.mjs`
+- Modify: `pipelines/automation/run-supplementary-domain-automatic-operation.mjs`
+- Test: `pipelines/automation/run-supplementary-domain-automatic-operation.test.mjs`
+- Modify: `pipelines/automation/run-supplementary-domain-l1-operation.mjs`
+- Test: `pipelines/automation/run-supplementary-domain-l1-operation.test.mjs`
+- Modify: `pipelines/automation/run-armor-automatic-operation.mjs`
+- Test: `pipelines/automation/run-armor-automatic-operation.test.mjs`
+- Modify: `pipelines/automation/automatic-execution-artifacts.mjs`
+- Test: `pipelines/automation/automatic-execution-artifacts.test.mjs`
+- Modify: `pipelines/automation/prepare-supplementary-domain-l1-preview.mjs`
+- Test: `pipelines/automation/prepare-supplementary-domain-l1-preview.test.mjs`
+- Modify/Test: `pipelines/automation/run-live-automation-acceptance.mjs` only where it consumes the reviewed allocation/source manifest
+- Modify: `services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
+- Test: `services/catalog-api/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java`
+- Modify: `services/catalog-api/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java`
+- Test: `services/catalog-api/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java`
+- Modify: `services/catalog-api/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisor.java`
+- Test: `services/catalog-api/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisorTest.java`
+
+- [ ] Trace and record one registered automatic runner per domain from the pinned code bundle; reject a domain without an exact source-to-runner mapping.
+- [ ] Keep production defaults pinned to `terria_v1_local`. Permit run-derived schemas only when `TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE=true` and a hash-valid private manifest binds code commit, domain/run ID, schema triple, MySQL UUID, Redis `16380/DB1-8`, and isolated authorization envelope. Explicitly reject the formal databases and `terria_v1_v55_rehearsal`.
+- [ ] In isolated mode, have `CrawlerMonitorActionRegistry` pass `--source-mode=local` and a per-run private `--manifest-path` to Base/Supplementary runners. Modify `run-armor-automatic-operation.mjs` to accept the same isolated local-source profile, skip its live `fetch-wiki-armorsetbonuses` subprocess, and bind the exact captured set/attribute/image bundle. Production worker commands retain their current live-source behavior.
+- [ ] Bind each automatic runner to `.local/tmp/eight-domain-production-readiness/20261017/source-manifests/<domain>.json`; no isolated run may read or write `data/generated/wiki-source-manifest.latest.json`. In isolated mode, skip Wiki source-manifest acknowledgement and record `wikiSourceManifestAcknowledged=false`; only the V2 queue's post-commit terminal acknowledgement can be true.
+- [ ] Bind every automatic source/bundle/preview/reconciliation/test-authorization artifact to `reports/runtime/eight-domain-production-readiness/20261017/<domain>/<runKey>/automatic/`. Reject writes to `reports/authorization/canonical/automatic`, canonical proposal/packet/permit paths, sibling run roots, and paths outside the exact execution worktree.
+- [ ] Revalidate target identity before preview, before DML, before COMMIT, and before V2 queue acknowledgement. Reject formal schemas, `TERRAPEDIA_DB_NAME` drift, wrong endpoint/DB, missing run identity, fixture mode, attempts outside the one-domain allowlist, and any write to the default Wiki source manifest.
+- [ ] Keep synthetic test authorization and activation rows only in the run-derived schema. Prove production mode cannot accept these rows as a production decision, permit, packet, or H8 authorization.
+- [ ] In isolated V2 mode only, build a private source-monitor state with exactly these eight source keys: `wiki.module.iteminfo`, `wiki.module.npcinfo`, `wiki.module.projectileinfo`, `wiki.module.armorsetbonuses`, `wiki.page.template_getbuffinfo`, `wiki.audio_assets.catalog`, `wiki.bosses.catalog`, and `wiki.shimmer.page_and_langlinks`. Use one shared `checkedAt`, healthy `status=ok` entries, and valid content identities. Compute each `currentValue` using the registered automatic runner's source-fingerprint function over its bound source manifest; set `changed=true` only for the current domain when its run-derived schema has no acknowledgement. Treat this as sandbox initial import, keep `productionSourceDelta=false`, and never rewrite the production source state.
+- [ ] Bind the exact private source-state path through the API and `CrawlerAttemptSupervisor` into `TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH`; reject symlinks, state outside the execution root, missing/duplicate/extra domain keys, timestamp or hash drift, and default-path fallback. Test that Java and Node compute the same source-content identity. The existing production source-check subprocess remains enabled outside isolated mode.
+- [ ] In isolated V2 mode, do not spawn `check-source-updates.mjs` or fall back to it on source-state failure. A missing or invalid run-local source state blocks the sweep before queue mutation; the production online source check remains unchanged.
+- [ ] Route exactly one authenticated sweep through the isolated API. Independently verify V2 epoch/namespace, queue ID, attempt ID, source dispatch triple, worker command/code hash and arguments (`source-mode=local`, run-local manifest), terminal state, V2 queue acknowledgement, nonzero owned-table rows, API response hashes, and exact cleanup.
+- [ ] If the current V2 service cannot dispatch the actual registered runner from the isolated source state and schema binding, record `v2AutomaticIngestionStatus=blocked`; do not substitute fixture mode or a direct runner invocation.
+- [ ] Add negative tests proving production mode remains restricted to the formal target, isolated mode rejects every wrong manifest/target, and T1 or fixture-only runs never report V2 automatic success.
+- [ ] Run all V2 runner and API contract tests before provisioning any isolated schema or starting the API.
+
+```bash
+node --test pipelines/automation/eight-domain-v2-isolated-acceptance.test.mjs \
+  pipelines/automation/run-base-domain-automatic-operation.test.mjs \
+  pipelines/automation/run-supplementary-domain-automatic-operation.test.mjs \
+  pipelines/automation/run-supplementary-domain-l1-operation.test.mjs \
+  pipelines/automation/run-armor-automatic-operation.test.mjs
+```
+
+```bash
+cd services/catalog-api && mvn -Dtest=CrawlerMonitorServiceImplTest,CrawlerMonitorActionRegistryTest,CrawlerAttemptSupervisorTest test
+```
+
+### Task 2: Freeze and bind the eight source inputs
 
 **Files:**
 - Modify only the source/progress files named by the relevant child plan.
-- Create: `reports/runtime/eight-domain-production-readiness/20261016/source-manifest.json` and bind it to the eight child run IDs and the allocation-manifest hash.
+- Create: `reports/runtime/eight-domain-production-readiness/20261017/source-manifest.json` and bind it to all eight run IDs, source hashes, allocation-manifest hashes, and V2 runner mappings.
 
-- [ ] Each child Task 1 performs its one real source capture with a new run identity and emits a source submanifest; this master task only aggregates those submanifests and must not trigger a second fetch.
-- [ ] Verify each source revision/hash, progress terminal, and non-empty/empty semantics; source errors cannot be converted into unchanged or empty success.
-- [ ] If a source is unchanged, retain its fresh capture as isolated evidence; do not fabricate a production change event.
+- [ ] Record repository-frozen file/tree hashes and derived sample identities for Items, NPCs, Projectiles, Buffs, Bosses, and Shimmer without rewriting those tracked files.
+- [ ] Capture only the declared bounded Audio metadata sample and missing Armor attribute/image inputs; use registered monitor-visible action IDs and private output/report paths.
+- [ ] Verify revision/hash, progress terminal state, expected record counts, and empty/non-empty semantics before DML; source errors cannot become unchanged or empty success.
+- [ ] A frozen or unchanged source can prove isolated execution only. It cannot set `productionSourceDelta=true` or be reported as a fresh production change.
 
 ### Task 3: Execute the eight child plans
 
-- [ ] Complete each child plan in Section 7 serially, loading its Redis and API allocation from the reviewed manifest; no child may contain a hard-coded resource allocation.
+- [ ] Complete each child plan in Section 7 serially, running its maintained-chain lane and one isolated V2 automatic attempt from the reviewed manifest; no child may choose or hard-code a resource allocation.
 - [ ] Store the artifact, test output summary, and cleanup readback under the master evidence root.
 - [ ] Reject a child pass if it uses a pseudo-adapter, unresolved allowlist not named in the child contract, or formal target resource.
 
@@ -427,8 +497,8 @@ node --test pipelines/automation/eight-domain-failure-injection.test.mjs
 - [ ] Load exactly eight child artifacts and fail on missing, malformed, stale, or duplicate run identities.
 - [ ] Recompute the domain set, source hashes, owned-table declarations, cleanup status, and formal-write flags.
 - [ ] Run cross-DB referential integrity, relation health, domain acceptance freshness, and API parity checks against the isolated readbacks.
-- [ ] Produce `reports/runtime/eight-domain-production-readiness/20261016/aggregate.json` with `passedDomains`, `blockedDomains`, and explicit blocker reasons.
-- [ ] Produce separate `isolatedIngestionStatus` and `productionReadinessStatus` counts; never summarize an isolated pass with unresolved production blockers as an overall production pass.
+- [ ] Produce `reports/runtime/eight-domain-production-readiness/20261017/aggregate.json` with basic-function, maintained-chain, V2 automatic, error-handling, and production-readiness statuses plus explicit blocker reasons.
+- [ ] Report maintained-chain and V2 automatic counts separately; never summarize T1 or fixture success as automatic ingestion or as an overall production pass.
 - [ ] Require each child artifact to contain `api.stoppedAfterReadback=true`, JAR/config/dependency-manifest hashes, and independent post-stop port/process checks.
 
 ```bash
@@ -441,13 +511,12 @@ node --test pipelines/workflow/domain-acceptance-report-manifest.test.mjs \
 ### Task 5: Formal production-readiness packet without production mutation
 
 **Files:**
-- Create: `reports/authorization/canonical/eight-domain-production-readiness-20261016.proposal.json`
-- Create: `docs/devlog/entries/2026-10-16-eight-domain-production-readiness.md`
+- Create: `reports/authorization/canonical/eight-domain-production-readiness-20261017.proposal.json`
 
 - [ ] Bind the aggregate report to the current server fingerprint, V2 epoch/namespace, policy H8, code bundle, source manifests, and all eight child artifacts.
 - [ ] Record Armor ownership blockers, Buff unresolved identities, Shimmer unresolved references, and any remaining five-domain gaps as explicit blockers rather than waivers.
-- [ ] Keep scheduler control disabled and do not create a production permit, decision, formal import, or `/sweep` call in this task.
-- [ ] A production release task may be opened only after the aggregate report has eight passing child artifacts and all formal target preconditions are freshly read.
+- [ ] Keep production scheduler control unchanged and do not create a production permit, decision, formal import, or `/sweep` call against production. The isolated one-shot V2 sweep is allowed only under Task 1E's run-bound API mode.
+- [ ] A production release task may be opened only after the aggregate report has eight passing basic-function, maintained-chain, V2 automatic, and error-handling child artifacts and all formal target preconditions are freshly read.
 
 The formal release task must not reuse the isolated API environment file, Redis allocation, MySQL accounts, or child run IDs; it needs a fresh formal-target preflight and new authorization identities.
 
@@ -457,6 +526,7 @@ The formal release task must not reuse the isolated API environment file, Redis 
 - [ ] Run `git diff --check`, `git status --short`, and inspect the staged scope if this plan is committed.
 - [ ] Update `docs/devlog/current.md` with the aggregate verdict and residual blockers.
 - [ ] Keep this plan active if any domain is blocked; close only when the isolated eight-domain acceptance is complete and the production packet explicitly records the next authorization boundary.
+- [ ] Keep `exec/eight-domain-production-readiness` and its worktree open through the eight runs; do not merge, push, or remove it until all eight artifacts and the aggregate review are complete. This planning checkpoint does not authorize merge or production release.
 
 ## 6. Production Release Gate After This Plan
 
