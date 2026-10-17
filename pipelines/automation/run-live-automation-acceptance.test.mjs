@@ -89,6 +89,78 @@ test('live acceptance rejects DB14 before creating or announcing isolated resour
   assert.equal(fs.existsSync(privateDirectory), false);
 });
 
+test('eight-domain isolated allocation rejects a drifted Redis DB before creating or announcing resources', async () => {
+  const privateDirectory = path.join(
+    process.cwd(),
+    'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic/acceptance-runtime',
+  );
+  let resourcesAnnounced = false;
+  let adapterCreated = false;
+  await assert.rejects(() => liveAcceptance.runLiveAutomationAcceptance({
+    profile: 't1',
+    runId: 'e8pr-items-20261017-v1',
+    privateDirectory,
+    mysql: { host: '127.0.0.1', port: 13306, username: 'writer', password: 'secret' },
+    redis: { host: '127.0.0.1', port: 16380, logicalDb: 2 },
+    isolatedAllocation: {
+      domain: 'items',
+      runId: 'e8pr-items-20261017-v1',
+      runKey: 'e8p_547b4e28fb4004a0',
+      executionRoot: process.cwd(),
+      evidenceRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0',
+      automaticArtifactRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic',
+      mysql: {
+        host: '127.0.0.1', port: 13306, serverUuid: 'b4ae6728-4f72-11f1-bcc9-00155d37eadf',
+        databases: {
+          local: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_local',
+          maint: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_maint',
+          relation: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_relation',
+        },
+      },
+      redis: { host: '127.0.0.1', port: 16380, logicalDb: 1 },
+      api: { host: '127.0.0.1', port: 18280 },
+      preflight: { status: 'ready', observedAt: new Date().toISOString() },
+    },
+    createAdapterImpl: async () => { adapterCreated = true; throw new Error('adapter must not be created'); },
+    onResources: () => { resourcesAnnounced = true; },
+  }), /Redis.*(logical DB|allocation|identity)/i);
+  assert.equal(resourcesAnnounced, false);
+  assert.equal(adapterCreated, false);
+  assert.equal(fs.existsSync(privateDirectory), false);
+});
+
+test('eight-domain isolated acceptance rejects a missing or stale live preflight before adapter creation', async () => {
+  const privateDirectory = path.join(
+    process.cwd(),
+    'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic/stale-preflight',
+  );
+  const allocation = {
+    domain: 'items',
+    runId: 'e8pr-items-20261017-v1',
+    runKey: 'e8p_547b4e28fb4004a0',
+    executionRoot: process.cwd(),
+    evidenceRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0',
+    automaticArtifactRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic',
+    mysql: { host: '127.0.0.1', port: 13306, serverUuid: 'b4ae6728-4f72-11f1-bcc9-00155d37eadf', databases: {
+      local: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_local',
+      maint: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_maint',
+      relation: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_relation',
+    } },
+    redis: { host: '127.0.0.1', port: 16380, logicalDb: 1 },
+    api: { host: '127.0.0.1', port: 18280 },
+    preflight: { status: 'ready', observedAt: new Date(Date.now() - 180_000).toISOString() },
+  };
+  let adapterCreated = false;
+  await assert.rejects(() => liveAcceptance.runLiveAutomationAcceptance({
+    profile: 't1', runId: allocation.runId, privateDirectory,
+    mysql: { host: '127.0.0.1', port: 13306, username: 'writer', password: 'secret' },
+    redis: { host: '127.0.0.1', port: 16380, logicalDb: 1 }, isolatedAllocation: allocation,
+    createAdapterImpl: async () => { adapterCreated = true; throw new Error('adapter must not be created'); },
+  }), /stale|preflight/i);
+  assert.equal(adapterCreated, false);
+  assert.equal(fs.existsSync(privateDirectory), false);
+});
+
 test('probe SQL touches only the exact isolated three-database set and covers rollback commit restore', () => {
   const resources = buildLiveResourceNames({ profile: 't0', runKey: 'abc_0123456789abcdef' });
   const sql = buildAcceptanceProbeSql(resources.databases, 'probe_123');

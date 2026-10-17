@@ -37,6 +37,7 @@ import { runBossCanonicalT1Acceptance } from '../boss/boss-canonical-t1-acceptan
 import { runProjectileCanonicalT1Acceptance } from '../projectile/projectile-canonical-t1-acceptance.mjs';
 import { runBuffCanonicalT1Acceptance } from '../buff/buff-canonical-t1-acceptance.mjs';
 import { runBiomeCanonicalT1Acceptance } from '../biome/biome-canonical-t1-acceptance.mjs';
+import { assertEightDomainAcceptanceBinding } from './eight-domain-isolated-allocation.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PROBE_TABLE = '__automation_acceptance_probe';
@@ -171,10 +172,24 @@ export async function runLiveAutomationAcceptance({
   scope,
   acceptanceExecutor,
   completion,
-  onResources = () => {}
+  onResources = () => {},
+  isolatedAllocation = null,
 } = {}) {
   if (!['t0', 't1'].includes(profile)) throw new Error('live acceptance profile must be t0 or t1');
   if (!runId || !privateDirectory) throw new Error('runId and privateDirectory are required');
+  const isolatedBinding = isolatedAllocation == null
+    ? null
+    : assertEightDomainAcceptanceBinding({ profile, runId, mysql, redis, allocation: isolatedAllocation });
+  if (isolatedAllocation != null) {
+    const expectedPrivateDirectory = path.resolve(
+      ROOT,
+      isolatedAllocation.automaticArtifactRoot,
+      'acceptance-runtime',
+    );
+    if (path.resolve(privateDirectory) !== expectedPrivateDirectory) {
+      throw new Error('isolated acceptance private directory must be inside its run-owned automatic artifact root');
+    }
+  }
   const logicalDb = assertAutomationRedisLogicalDb(redis?.logicalDb, 'Redis logical DB');
   const scopedExecutor = resolveAcceptanceScope(scope, acceptanceExecutor);
   const npcT1Completion = profile === 't1' && scope === 'npc-canonical'
@@ -185,6 +200,10 @@ export async function runLiveAutomationAcceptance({
   const mappings = openDurableRunKeyRegistry(path.join(privateDirectory, 'run-keys.json'));
   const names = buildAutomationDatabaseNames({ profile, runId, mappings });
   const resources = buildLiveResourceNames({ profile, runKey: names.runKey });
+  if (isolatedBinding != null && (isolatedBinding.runKey !== names.runKey
+      || JSON.stringify(resources.databases) !== JSON.stringify(isolatedAllocation.mysql.databases))) {
+    throw new Error('isolated acceptance derived runKey/databases disagree with the fixed allocation');
+  }
   if (JSON.stringify(resources.databases) !== JSON.stringify({ local: names.local, maint: names.maint, relation: names.relation })) {
     throw new Error('derived live resource names disagree with the durable runKey contract');
   }
