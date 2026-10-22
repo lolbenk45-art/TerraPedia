@@ -2,6 +2,7 @@
 
 import path from 'node:path';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
@@ -26,7 +27,7 @@ import { buildItemGroupRelationProjection } from '../item-groups/item-group-cano
 import { buildItemSourceRelations } from './item-source-relation-processor.mjs';
 import { buildNpcCrawlerFactItemSourceRows } from './item-source-relation-processor.mjs';
 import { mergeNpcCrawlerFactsIntoMaintBuffRows } from './sync-buffs-to-relation.mjs';
-import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
+import { buildBuffSourceNpcRelations, buildSecondaryRelations } from './secondary-relation-processor.mjs';
 import { buildBossSeriesRelations } from './boss-series-processor.mjs';
 import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
 import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
@@ -50,6 +51,58 @@ import {
 const repoRoot = getProjectRoot();
 const moduleRequire = createRequire(import.meta.url);
 let mysqlModule = null;
+
+const BUFF_ONLY_CLEAR_TABLES = Object.freeze([
+  'item_buff_relations',
+  'npc_buff_relations',
+  'relation_buff_images',
+  'projection_buffs',
+  'relation_buffs',
+]);
+const BUFF_ONLY_WRITE_ENTRIES = Object.freeze([
+  Object.freeze(['relation_buffs', 'relationBuffs']),
+  Object.freeze(['item_buff_relations', 'itemBuffRelations']),
+  Object.freeze(['npc_buff_relations', 'npcBuffRelations']),
+  Object.freeze(['relation_buff_images', 'relationBuffImages']),
+  Object.freeze(['projection_buffs', 'projectionBuffs']),
+]);
+const ARMOR_ONLY_CLEAR_TABLES = Object.freeze([
+  'relation_armor_set_images',
+  'relation_equipment_effect_attributes',
+  'relation_armor_attribute_rows',
+  'relation_armor_set_items',
+  'relation_armor_sets',
+  'projection_armor_sets',
+  'projection_item_armor_attributes',
+  'projection_equipment_effect_attributes',
+]);
+const ARMOR_ONLY_WRITE_ENTRIES = Object.freeze([
+  Object.freeze(['relation_armor_sets', 'relationArmorSets']),
+  Object.freeze(['relation_armor_set_items', 'relationArmorSetItems']),
+  Object.freeze(['relation_armor_attribute_rows', 'relationArmorAttributeRows']),
+  Object.freeze(['relation_equipment_effect_attributes', 'relationEquipmentEffectAttributes']),
+  Object.freeze(['relation_armor_set_images', 'relationArmorSetImages']),
+  Object.freeze(['projection_armor_sets', 'projectionArmorSets']),
+  Object.freeze(['projection_item_armor_attributes', 'projectionItemArmorAttributes']),
+  Object.freeze(['projection_equipment_effect_attributes', 'projectionEquipmentEffectAttributes']),
+]);
+
+export function buildRelationApplyPlan(scopes) {
+  const normalized = Array.isArray(scopes)
+    ? scopes.map((scope) => String(scope).trim()).filter(Boolean)
+    : String(scopes ?? '').split(',').map((scope) => scope.trim()).filter(Boolean);
+  const buffOnly = normalized.length === 1 && normalized[0] === 'buff';
+  const armorOnly = normalized.length === 1 && normalized[0] === 'armor';
+  return Object.freeze({
+    buffOnly,
+    ...(armorOnly ? { armorOnly: true } : {}),
+    clearTables: buffOnly ? [...BUFF_ONLY_CLEAR_TABLES] : armorOnly ? [...ARMOR_ONLY_CLEAR_TABLES] : [],
+    writeEntries: buffOnly
+      ? BUFF_ONLY_WRITE_ENTRIES.map(([table, key]) => [table, key])
+      : armorOnly ? ARMOR_ONLY_WRITE_ENTRIES.map(([table, key]) => [table, key]) : [],
+    runPostApplyProjectionReconciliation: !buffOnly && !armorOnly,
+  });
+}
 
 function loadMysqlModule() {
   if (mysqlModule) {
@@ -89,6 +142,27 @@ const ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS = new Set([
   'item_group_requires_expansion',
   'legacy_only_item_not_in_current_corpus',
 ]);
+
+export const ITEM_ONLY_RELATION_TABLE_ALLOWLIST = Object.freeze([
+  'relation_items',
+  'relation_item_images',
+  'relation_item_rarities',
+  'category_nodes',
+  'item_category_assignments',
+  'item_recipe_heads',
+  'item_recipe_ingredients',
+  'item_recipe_stations',
+  'item_source_facts',
+  'item_source_details',
+  'item_npc_shop_relations',
+  'item_npc_loot_relations',
+  'item_npc_relation_audits',
+  'item_biome_relations',
+  'projection_items',
+]);
+
+const ITEM_ONLY_DATABASE_PATTERN = /^terria_v1_automation_acceptance_(e8p_[0-9a-f]{16})_(local|maint|relation)$/;
+const FORMAL_DATABASE_NAMES = new Set(['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation']);
 
 export const buildCanonicalItemGroupRelationProjection = buildItemGroupRelationProjection;
 
@@ -668,10 +742,23 @@ INSERT INTO \`${tableName}\` (${columns.map((column) => `\`${column}\``).join(',
 VALUES (${placeholders})
 ON DUPLICATE KEY UPDATE ${updates || '`record_key` = VALUES(`record_key`)'}
 `.trim();
-    await connection.execute(sql, columns.map((column) => mapped[column]));
+    await connection.execute(sql, columns.map((column) => normalizeMysqlPersistenceValue(column, mapped[column])));
     total += 1;
   }
   return total;
+}
+
+const MYSQL_DATETIME_COLUMN_PATTERN = /(?:_at|_timestamp)$/;
+
+export function normalizeMysqlPersistenceValue(column, value) {
+  if (typeof value !== 'string' || !MYSQL_DATETIME_COLUMN_PATTERN.test(String(column ?? ''))
+      || !/T/.test(value)) {
+    return value;
+  }
+  const normalizedInput = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+  const parsed = new Date(normalizedInput);
+  if (!Number.isFinite(parsed.getTime())) return value;
+  return parsed.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 async function reconcileItemStackSizeFromMaint(connection, maintDatabase) {
@@ -1040,6 +1127,413 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
       ...npcSeries.issues,
       ...armorSet.issues
     ]
+  };
+}
+
+function requireItemOnlyIds(itemIds) {
+  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+    throw new TypeError('Item-only relation sync requires a non-empty itemIds array');
+  }
+  const seen = new Set();
+  for (const itemId of itemIds) {
+    if (!Number.isSafeInteger(itemId) || itemId <= 0 || seen.has(itemId)) {
+      throw new TypeError('Item-only relation sync itemIds must be unique positive safe integers');
+    }
+    seen.add(itemId);
+  }
+  return [...itemIds];
+}
+
+function assertItemOnlyDatabases(databases) {
+  if (!databases || typeof databases !== 'object' || Array.isArray(databases)) {
+    throw new Error('Item-only relation sync requires exact isolated local, maint, and relation databases');
+  }
+  if (Object.keys(databases).sort().join(',') !== 'local,maint,relation') {
+    throw new Error('Item-only relation sync requires exact local, maint, and relation database roles');
+  }
+  const runKeys = new Set();
+  for (const role of ['local', 'maint', 'relation']) {
+    const database = String(databases[role] ?? '');
+    if (FORMAL_DATABASE_NAMES.has(database)) throw new Error('Item-only relation sync cannot target formal databases');
+    const match = database.match(ITEM_ONLY_DATABASE_PATTERN);
+    if (!match || match[2] !== role) throw new Error(`Item-only relation sync ${role} database is not an exact run-derived T1 schema`);
+    runKeys.add(match[1]);
+  }
+  if (runKeys.size !== 1) throw new Error('Item-only relation sync database roles do not share one run identity');
+  return [...runKeys][0];
+}
+
+function normalizeItemRelationItemRow(row) {
+  const sourceId = Number(row?.source_id ?? row?.sourceId ?? row?.id);
+  const internalName = String(row?.internal_name ?? row?.internalName ?? '').trim();
+  if (!Number.isSafeInteger(sourceId) || sourceId <= 0 || !internalName) {
+    throw new Error('Item-only relation sync requires stable Item ID and internal_name rows');
+  }
+  return {
+    ...row,
+    source_id: sourceId,
+    internal_name: internalName,
+    english_name: row.english_name ?? row.englishName ?? row.name ?? internalName,
+    raw_json: row.raw_json ?? row.rawJson ?? '{}',
+  };
+}
+
+function itemRelationTrace(group, row, index, sourceBinding) {
+  const sourceMaintRecordKey = createRecordKey({ type: 'e8pr_item_relation', group, index, row });
+  return {
+    record_key: sourceMaintRecordKey,
+    source_maint_table: `standardized_item_relations_${group}`,
+    source_maint_record_key: sourceMaintRecordKey,
+    source_maint_id: null,
+    landing_source_id: sourceBinding?.sourceId ?? null,
+    landing_source_key: sourceBinding?.sourceKey ?? 'repository-frozen:item_relations',
+    landing_source_page: sourceBinding?.sourcePage ?? 'data/standardized-view/item_relations',
+    landing_content_hash: sourceBinding?.contentHash ?? null,
+    source_provider: row?.sourceProvider ?? row?.provider ?? 'wiki_gg',
+    source_page: row?.sourcePage ?? null,
+    source_revision_timestamp: row?.sourceRevisionTimestamp ?? null,
+  };
+}
+
+function mapItemOnlyRecipeRow(row, index, sourceBinding) {
+  return {
+    ...itemRelationTrace('recipes', row, index, sourceBinding),
+    result_internal_name: row.resultInternalName ?? row.result_internal_name ?? null,
+    result_name: row.resultName ?? row.result_name ?? null,
+    result_quantity: row.resultQuantity ?? row.result_quantity ?? null,
+    version_scope: row.versionScope ?? row.version_scope ?? null,
+    ingredients_json: JSON.stringify(row.ingredients ?? parseJsonArrayOrObject(row.ingredients_json, [])),
+    stations_json: JSON.stringify(row.stations ?? parseJsonArrayOrObject(row.stations_json, [])),
+    source_context_page: row.sourceContextPage ?? row.source_context_page ?? null,
+  };
+}
+
+function mapItemOnlyImageRow(row, index, sourceBinding) {
+  return {
+    ...itemRelationTrace('itemImages', row, index, sourceBinding),
+    item_internal_name: row.itemInternalName ?? row.item_internal_name ?? null,
+    item_name: row.itemName ?? row.item_name ?? null,
+    role: row.role ?? 'icon',
+    source_file_title: row.sourceFileTitle ?? row.source_file_title ?? null,
+    original_url: row.originalUrl ?? row.original_url ?? null,
+    cached_url: row.cachedUrl ?? row.cached_url ?? null,
+    width: row.width ?? null,
+    height: row.height ?? null,
+    content_type: row.contentType ?? row.content_type ?? null,
+    is_primary: row.isPrimary ?? row.is_primary ?? false,
+    sort_order: row.sortOrder ?? row.sort_order ?? index,
+    raw_json: JSON.stringify(row),
+  };
+}
+
+function mapItemOnlySourceRow(row, index, sourceBinding) {
+  return {
+    ...itemRelationTrace('itemSources', row, index, sourceBinding),
+    item_internal_name: row.itemInternalName ?? row.item_internal_name ?? null,
+    item_name: row.itemName ?? row.item_name ?? null,
+    source_type: row.sourceType ?? row.source_type ?? null,
+    source_ref_type: row.sourceRefType ?? row.source_ref_type ?? null,
+    source_ref_name: row.sourceRefName ?? row.source_ref_name ?? null,
+    sort_order: row.sortOrder ?? row.sort_order ?? index,
+    biome_code: row.biomeCode ?? row.biome_code ?? null,
+    raw_json: JSON.stringify(row),
+  };
+}
+
+function mapItemOnlyBiomeRow(row, index, itemByName, sourceBinding) {
+  const itemInternalName = row.itemInternalName ?? row.item_internal_name ?? null;
+  const item = itemByName.get(String(itemInternalName ?? '').trim().toLowerCase());
+  return {
+    ...itemRelationTrace('itemBiomes', row, index, sourceBinding),
+    item_source_id: item?.source_id ?? null,
+    item_internal_name: itemInternalName,
+    biome_code: row.biomeCode ?? row.biome_code ?? null,
+    relation_type: row.relationType ?? row.relation_type ?? 'relevant_to',
+    raw_json: JSON.stringify(row),
+  };
+}
+
+function canonicalItemRelationValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalItemRelationValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalItemRelationValue(value[key])]));
+  }
+  return value;
+}
+
+function canonicalItemRelationHash(value) {
+  return `sha256:${createHash('sha256').update(JSON.stringify(canonicalItemRelationValue(value))).digest('hex')}`;
+}
+
+function readMaintRawRelation(row, group) {
+  const raw = row?.raw_json ?? row?.rawJson;
+  if (typeof raw !== 'string' || raw.length === 0) throw new Error(`maintained Item ${group} row is missing raw_json source evidence`);
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (error) { throw new Error(`maintained Item ${group} row has malformed raw_json`, { cause: error }); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`maintained Item ${group} row raw_json must contain an object`);
+  }
+  return parsed;
+}
+
+function assertMaintainedRelationGroup({ rows, sourceRows, group, sourceBinding }) {
+  if (!Array.isArray(rows) || rows.length !== sourceRows.length) {
+    throw new Error(`maintained Item ${group} count differs from the manifest-bound source group`);
+  }
+  const expected = sourceRows.map(canonicalItemRelationHash).sort();
+  const actual = rows.map((row) => {
+    if (Number(row.landing_source_id ?? row.landingSourceId) !== Number(sourceBinding.sourceId)
+        || String(row.landing_content_hash ?? row.landingContentHash ?? '').replace(/^sha256:/, '')
+          !== String(sourceBinding.contentHash).replace(/^sha256:/, '')) {
+      throw new Error(`maintained Item ${group} row has a different source landing binding`);
+    }
+    return canonicalItemRelationHash(readMaintRawRelation(row, group));
+  }).sort();
+  if (expected.join(',') !== actual.join(',')) {
+    throw new Error(`maintained Item ${group} rows differ from the manifest-bound source rows`);
+  }
+}
+
+function buildStableNpcIndex(rows) {
+  if (!Array.isArray(rows)) throw new Error('stable Item source NPC dependencies must be an array');
+  const index = new Map();
+  const ids = new Set();
+  for (const row of rows) {
+    const sourceId = Number(row?.source_id ?? row?.sourceId);
+    const internalName = String(row?.internal_name ?? row?.internalName ?? '').trim();
+    if (!Number.isSafeInteger(sourceId) || sourceId <= 0 || !internalName) {
+      throw new Error('stable Item source NPC dependency requires source_id and internal_name');
+    }
+    if (ids.has(sourceId) || index.has(internalName.toLowerCase())) {
+      throw new Error('stable Item source NPC dependencies contain duplicate IDs or internal names');
+    }
+    ids.add(sourceId);
+    index.set(internalName, row);
+  }
+  return index;
+}
+
+export function buildItemOnlyRelationResults({
+  itemIds,
+  maintItems = [],
+  referenceItems = [],
+  referenceNpcs = [],
+  maintItemCategories = [],
+  maintItemRecipes = [],
+  maintItemImages = [],
+  maintItemSources = [],
+  maintItemBiomes = [],
+  relationRows = {},
+  sourceBinding = null,
+  managedImageUrlPrefixes = [],
+} = {}) {
+  const selectedIds = requireItemOnlyIds(itemIds);
+  const selectedIdSet = new Set(selectedIds);
+  if (relationRows == null || typeof relationRows !== 'object' || Array.isArray(relationRows)) {
+    throw new Error('Item-only relation sync requires declared relationRows');
+  }
+  if (Array.isArray(relationRows.snapshots) && relationRows.snapshots.length > 0) {
+    throw new Error('Item-only relation sync excludes entity source snapshots');
+  }
+  const selectedMaintItems = maintItems.map(normalizeItemRelationItemRow);
+  const selectedMaintIds = new Set(selectedMaintItems.map((row) => row.source_id));
+  if (selectedMaintIds.size !== selectedIds.length || selectedIds.some((id) => !selectedMaintIds.has(id))) {
+    throw new Error('Item-only relation sync maint Item IDs do not exactly match the selected manifest IDs');
+  }
+  const allReferenceItems = [...new Map(
+    [...referenceItems, ...selectedMaintItems]
+      .map((row) => normalizeItemRelationItemRow(row))
+      .map((row) => [row.source_id, row]),
+  ).values()];
+  const itemByName = new Map(allReferenceItems.map((row) => [row.internal_name.trim().toLowerCase(), row]));
+  const ensureSelectedName = (row, label) => {
+    const name = String(row?.itemInternalName ?? row?.item_internal_name ?? '').trim().toLowerCase();
+    const item = itemByName.get(name);
+    if (!item || !selectedIdSet.has(item.source_id)) throw new Error(`${label} references an undeclared selected Item identity`);
+    return item;
+  };
+  const raw = {
+    biomes: Array.isArray(relationRows.biomes) ? relationRows.biomes : [],
+    itemBiomes: Array.isArray(relationRows.itemBiomes) ? relationRows.itemBiomes : [],
+    itemImages: Array.isArray(relationRows.itemImages) ? relationRows.itemImages : [],
+    itemSources: Array.isArray(relationRows.itemSources) ? relationRows.itemSources : [],
+    recipes: Array.isArray(relationRows.recipes) ? relationRows.recipes : [],
+  };
+  raw.itemBiomes.forEach((row) => ensureSelectedName(row, 'Item biome relation'));
+  raw.itemImages.forEach((row) => ensureSelectedName(row, 'Item image relation'));
+  raw.itemSources.forEach((row) => ensureSelectedName(row, 'Item source relation'));
+  if (!sourceBinding || !Number.isSafeInteger(Number(sourceBinding.sourceId)) || Number(sourceBinding.sourceId) <= 0
+      || !/^sha256:[a-f0-9]{64}$/.test(String(sourceBinding.contentHash ?? ''))) {
+    throw new Error('Item-only relation sync requires the exact generated source landing identity and hash');
+  }
+  assertMaintainedRelationGroup({ rows: maintItemRecipes, sourceRows: raw.recipes, group: 'recipes', sourceBinding });
+  assertMaintainedRelationGroup({ rows: maintItemImages, sourceRows: raw.itemImages, group: 'itemImages', sourceBinding });
+  assertMaintainedRelationGroup({ rows: maintItemSources, sourceRows: raw.itemSources, group: 'itemSources', sourceBinding });
+  assertMaintainedRelationGroup({ rows: maintItemBiomes, sourceRows: raw.itemBiomes, group: 'itemBiomes', sourceBinding });
+  const selectedNameSet = new Set(selectedMaintItems.map((row) => row.internal_name.trim().toLowerCase()));
+  if (!Array.isArray(maintItemCategories) || maintItemCategories.some((row) => (
+    !selectedNameSet.has(String(row?.item_internal_name ?? row?.itemInternalName ?? '').trim().toLowerCase())
+  ))) {
+    throw new Error('maintained Item category rows reference an undeclared selected identity');
+  }
+  const itemRecipes = raw.recipes.map((row, index) => {
+    const resultName = String(row?.resultInternalName ?? row?.result_internal_name ?? '').trim().toLowerCase();
+    const resultItem = itemByName.get(resultName);
+    if (!resultItem) throw new Error('Item recipe result has no stable Item ID');
+    if (!selectedIdSet.has(resultItem.source_id)) {
+      const ingredientSelected = (row.ingredients ?? []).some((ingredient) => selectedIdSet.has(itemByName.get(String(ingredient?.ingredientInternalName ?? '').trim().toLowerCase())?.source_id));
+      if (!ingredientSelected) throw new Error('Item recipe result is outside the selected Item relation scope');
+    }
+    for (const ingredient of row.ingredients ?? []) {
+      if (String(ingredient?.ingredientGroupType ?? 'item').toLowerCase() !== 'item') continue;
+      const ingredientItem = itemByName.get(String(ingredient?.ingredientInternalName ?? ingredient?.internalName ?? '').trim().toLowerCase());
+      if (!ingredientItem) throw new Error('Item recipe ingredient has no stable Item ID');
+    }
+    if (canonicalItemRelationHash(readMaintRawRelation(maintItemRecipes[index], 'recipes')) !== canonicalItemRelationHash(row)) {
+      throw new Error('maintained Item recipe row order differs from the source manifest');
+    }
+    return maintItemRecipes[index];
+  });
+  const itemImages = maintItemImages;
+  const itemSources = maintItemSources;
+  const itemBiomes = maintItemBiomes;
+  const relationItems = buildBaseEntityRelations({ maintItems: selectedMaintItems }).relationItems;
+  const itemIndex = buildItemIndex(allReferenceItems);
+  const recipe = buildRecipeRelations({ itemRecipes, itemIndex });
+  const itemSource = buildItemSourceRelations({ itemSourceRows: itemSources, itemIndex, npcIndex: buildStableNpcIndex(referenceNpcs) });
+  const category = buildCategoryRelations({ itemCategoryRows: maintItemCategories });
+  const secondary = buildSecondaryRelations({ itemBiomeRows: itemBiomes, maintItemRows: allReferenceItems });
+  const images = buildImageRelations({ maintItemImages: itemImages });
+  const relationItemRarities = buildRelationItemRarities();
+  const projection = buildProjectionPayload({
+    relationItems,
+    relationItemImages: images.relationItemImages,
+    relationItemRarities,
+    itemNpcShopRelations: itemSource.npcShopRelations,
+    itemNpcLootRelations: itemSource.npcLootRelations,
+    managedImageUrlPrefixes,
+  });
+  return {
+    relationItems,
+    relationItemImages: images.relationItemImages,
+    relationItemRarities,
+    categoryNodes: category.categoryNodes,
+    itemCategoryAssignments: category.itemCategoryAssignments,
+    itemRecipeHeads: recipe.recipeHeads,
+    itemRecipeIngredients: recipe.recipeIngredients,
+    itemRecipeStations: recipe.recipeStations,
+    itemSourceFacts: itemSource.sourceFacts,
+    itemSourceDetails: itemSource.sourceDetails,
+    itemNpcShopRelations: itemSource.npcShopRelations,
+    itemNpcLootRelations: itemSource.npcLootRelations,
+    itemNpcRelationAudits: itemSource.itemNpcRelationAudits,
+    itemBiomeRelations: secondary.itemBiomeRelations,
+    projectionItems: projection.projectionItems,
+    issues: [...category.issues, ...recipe.issues, ...itemSource.issues, ...(secondary.issues ?? [])],
+    nonItemTableRows: 0,
+  };
+}
+
+function countQueryResult(result) {
+  const rows = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : result;
+  const row = Array.isArray(rows) ? rows[0] : null;
+  return Number(row?.total ?? row?.['COUNT(*)'] ?? 0);
+}
+
+export async function runItemOnlySync(options = {}, dependencies = {}) {
+  if (options.itemOnly !== true) throw new Error('runItemOnlySync requires itemOnly=true');
+  if (Array.isArray(options.scopes) && (options.scopes.length !== 1 || options.scopes[0] !== 'items')) {
+    throw new Error("Item-only relation sync scopes must be exactly ['items']");
+  }
+  const databases = {
+    local: options.localDatabase,
+    maint: options.maintDatabase,
+    relation: options.relationDatabase,
+  };
+  assertItemOnlyDatabases(databases);
+  const itemIds = requireItemOnlyIds(options.itemIds);
+  if (dependencies.queryMaint != null && typeof dependencies.queryMaint !== 'function') {
+    throw new Error('Item-only relation sync maint reader is invalid');
+  }
+  const inputs = dependencies.itemOnlyInputs;
+  if (!inputs || typeof inputs !== 'object' || Array.isArray(inputs)) {
+    throw new Error('Item-only relation sync requires exact maintained Item input arrays');
+  }
+  const relationResults = buildItemOnlyRelationResults({
+    itemIds,
+    maintItems: inputs.maintItems,
+    referenceItems: inputs.referenceItems,
+    referenceNpcs: inputs.referenceNpcs ?? [],
+    maintItemCategories: inputs.maintItemCategories,
+    maintItemRecipes: inputs.maintItemRecipes,
+    maintItemImages: inputs.maintItemImages,
+    maintItemSources: inputs.maintItemSources,
+    maintItemBiomes: inputs.maintItemBiomes,
+    relationRows: inputs.relationRows,
+    sourceBinding: inputs.sourceBinding,
+    managedImageUrlPrefixes: dependencies.managedImageUrlPrefixes ?? [],
+  });
+  const tableRows = {
+    relation_items: relationResults.relationItems,
+    relation_item_images: relationResults.relationItemImages,
+    relation_item_rarities: relationResults.relationItemRarities,
+    category_nodes: relationResults.categoryNodes,
+    item_category_assignments: relationResults.itemCategoryAssignments,
+    item_recipe_heads: relationResults.itemRecipeHeads,
+    item_recipe_ingredients: relationResults.itemRecipeIngredients,
+    item_recipe_stations: relationResults.itemRecipeStations,
+    item_source_facts: relationResults.itemSourceFacts,
+    item_source_details: relationResults.itemSourceDetails,
+    item_npc_shop_relations: relationResults.itemNpcShopRelations,
+    item_npc_loot_relations: relationResults.itemNpcLootRelations,
+    item_npc_relation_audits: relationResults.itemNpcRelationAudits,
+    item_biome_relations: relationResults.itemBiomeRelations,
+    projection_items: relationResults.projectionItems,
+  };
+  let rowsWritten = 0;
+  if (options.apply) {
+    const executeRelation = dependencies.executeRelation ?? (async (fn) => {
+      const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
+      const connection = await loadMysqlModule().createConnection({
+        host: config.database?.host ?? '127.0.0.1',
+        port: Number(config.database?.port ?? 3306),
+        user: config.database?.username ?? 'root',
+        password: config.database?.password ?? 'root',
+        database: options.relationDatabase,
+      });
+      try { return await fn(connection); } finally { await connection.end(); }
+    });
+    await executeRelation(async (connection) => {
+      if (typeof connection.beginTransaction === 'function') await connection.beginTransaction();
+      try {
+        for (const tableName of ITEM_ONLY_RELATION_TABLE_ALLOWLIST) {
+          const count = countQueryResult(await connection.query(`SELECT COUNT(*) AS total FROM \`${tableName}\``));
+          if (!Number.isSafeInteger(count) || count !== 0) throw new Error(`Item-only relation target ${tableName} is not empty`);
+        }
+        for (const [tableName, rows] of Object.entries(tableRows)) rowsWritten += await upsertRows(connection, tableName, rows);
+        if (typeof connection.commit === 'function') await connection.commit();
+      } catch (error) {
+        if (typeof connection.rollback === 'function') await connection.rollback();
+        throw error;
+      }
+    });
+  }
+  return {
+    apply: Boolean(options.apply),
+    relationWriteMode: 'items-only',
+    itemIds,
+    tableRows,
+    rowsWritten,
+    summary: {
+      relationItems: relationResults.relationItems.length,
+      projectionItems: relationResults.projectionItems.length,
+      recipeHeads: relationResults.itemRecipeHeads.length,
+      recipeIngredients: relationResults.itemRecipeIngredients.length,
+      itemSourceFacts: relationResults.itemSourceFacts.length,
+      itemBiomeRelations: relationResults.itemBiomeRelations.length,
+      issues: relationResults.issues.length,
+    },
+    results: relationResults,
   };
 }
 
@@ -1433,6 +1927,9 @@ export function buildArmorAttributeDispatch({
 }
 
 export async function runSync(options, dependencies = {}) {
+  if (options?.itemOnly === true) {
+    return runItemOnlySync(options, dependencies);
+  }
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const managedImageUrlPrefixes = normalizeManagedImageUrlPrefixes(
     dependencies.managedImageUrlPrefixes ?? resolveManagedImageUrlPrefixes()
@@ -1603,7 +2100,7 @@ export async function runSync(options, dependencies = {}) {
     reviewedNonNpcSourceExclusions,
     reviewedSourceOnlyItemExclusions,
   });
-  const secondary = buildSecondaryRelations({
+  let secondary = buildSecondaryRelations({
     itemBiomeRows,
     maintBuffRows,
     maintProjectileRows: maintProjectiles,
@@ -1611,6 +2108,15 @@ export async function runSync(options, dependencies = {}) {
     maintNpcRows: maintNpcs,
     itemImageRows
   });
+  if (options.buffSourceNpcRelationMode === 'source-bound') {
+    if (!buildRelationApplyPlan(options.scopes).buffOnly) {
+      throw new Error('source-bound Buff NPC relations require the Buff-only apply scope');
+    }
+    secondary = {
+      ...secondary,
+      npcBuffRelations: buildBuffSourceNpcRelations({ maintBuffRows, maintNpcRows: maintNpcs }),
+    };
+  }
   const bossSeries = buildBossSeriesRelations({
     maintBossRows,
     localBossGroupRows,
@@ -1832,7 +2338,14 @@ export async function runSync(options, dependencies = {}) {
         status: 'running'
       });
 
-      await clearRelationSnapshotTables(connection, [
+      const applyPlan = buildRelationApplyPlan(options.scopes);
+      if (applyPlan.buffOnly || applyPlan.armorOnly) {
+        await clearRelationSnapshotTables(connection, applyPlan.clearTables);
+        for (const [tableName, resultKey] of applyPlan.writeEntries) {
+          await upsertRows(connection, tableName, results[resultKey]);
+        }
+      } else {
+        await clearRelationSnapshotTables(connection, [
         'item_recipe_group_expansions',
         'item_recipe_ingredients',
         'item_recipe_stations',
@@ -1881,7 +2394,7 @@ export async function runSync(options, dependencies = {}) {
         'relation_buffs'
       ]);
 
-      await upsertRows(connection, 'relation_items', results.relationItems);
+        await upsertRows(connection, 'relation_items', results.relationItems);
       await upsertRows(connection, 'relation_npcs', results.relationNpcs);
       await upsertRows(connection, 'relation_projectiles', results.relationProjectiles);
       await upsertRows(connection, 'relation_buffs', results.relationBuffs);
@@ -1933,13 +2446,14 @@ export async function runSync(options, dependencies = {}) {
         options.maintDatabase,
         managedImageUrlPrefixes
       );
-      summary.bridgeBreakdown.localArmorSetRelatedItemImageFallbackRows =
+        summary.bridgeBreakdown.localArmorSetRelatedItemImageFallbackRows =
         await reconcileProjectionArmorSetRelatedItemImagesFromLocal(
           connection,
           options.localDatabase,
           options.allowLocalItemImageFallback,
           managedImageUrlPrefixes
         );
+      }
     });
   }
 

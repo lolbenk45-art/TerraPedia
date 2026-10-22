@@ -44,6 +44,7 @@ import {
   createCrawlerProgressHeartbeat,
   writeJsonFile,
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import { connectionOptions as isolatedConnectionOptions, loadIsolatedAcceptanceManifest } from './eight-domain-v2-isolated-acceptance.mjs';
 
 const SCHEDULER_ACTIVATION_DOMAIN = 'crawler_v2_scheduler';
 const AUTOMATIC_PREVIEW_ROOT = path.join(
@@ -69,9 +70,14 @@ export async function runSupplementaryDomainAutomaticOperation({
   const startTime = requireTimestamp(now ?? nowProvider(), 'operation start time');
   const domain = requireSupplementaryDomain(args.domain);
   if (args['run-id']) throw new Error('--run-id is not allowed for automatic operations');
-  const sourceMode = args['source-mode'] ?? 'live';
-  if (!['live', 'local'].includes(sourceMode)) throw new Error('--source-mode must be live or local');
   const repoRoot = path.resolve(env.WORKTREE_ROOT ?? process.cwd());
+  const isolatedMode = String(env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE ?? '').trim() === 'true';
+  const isolatedManifestPath = env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH;
+  const isolatedManifest = isolatedMode
+    ? loadIsolatedAcceptanceManifest({ repoRoot, manifestPath: isolatedManifestPath, domain, env })
+    : null;
+  const effectiveSourceMode = args['source-mode'] ?? (isolatedMode ? 'local' : 'live');
+  if (!['live', 'local'].includes(effectiveSourceMode)) throw new Error('--source-mode must be live or local');
   const runnerProgress = createRunnerProgress({ args, env, domain, heartbeatIntervalMs });
   let sourceDispatchIdentity;
   let automaticAttemptIdentity;
@@ -115,13 +121,17 @@ export async function runSupplementaryDomainAutomaticOperation({
     ...(args['manifest-path'] ? [`--manifest-path=${args['manifest-path']}`] : []),
     '--defer-source-acknowledgement=true',
     ...(domain === 'shimmer' ? ['--persist-canonical-shimmer-proposal=false'] : []),
-    ...(sourceMode === 'local' ? ['--reuse-current-source=true'] : []),
-    ...(sourceMode === 'local' && domain === 'shimmer' ? ['--reuse-current-generation=true'] : []),
+    ...(effectiveSourceMode === 'local' ? ['--reuse-current-source=true'] : []),
+    ...(effectiveSourceMode === 'local' && domain === 'shimmer' ? ['--reuse-current-generation=true'] : []),
   ];
   let activation;
   let activationConnection;
   try {
-    activationConnection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env));
+    activationConnection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env, {
+      domain,
+      repoRoot,
+      manifestPath: isolatedManifestPath,
+    }));
     const [rows] = await activationConnection.query(
       'SELECT decision_identity AS decisionIdentity, packet_hash AS packetHash,'
       + ' policy_set_hash AS policySetHash, actor, reason, authorization_reference AS authorizationReference,'
@@ -254,7 +264,11 @@ export async function runSupplementaryDomainAutomaticOperation({
   runnerProgress.publish({ status: 'running', phase: 'database-apply', message: `applying frozen ${domain} bundle` });
   let connection;
   try {
-    connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env));
+    connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env, {
+      domain,
+      repoRoot,
+      manifestPath: isolatedManifestPath,
+    }));
   } catch (error) {
     runnerProgress.publish({ status: 'failed', phase: 'database-apply', message: error?.message ?? String(error) });
     runnerProgress.stop();
@@ -347,7 +361,7 @@ export async function runSupplementaryDomainAutomaticOperation({
       activationPacketHash: latestActivation.packetHash,
       activationPolicySetHash: latestActivation.policySetHash,
     };
-    const acknowledgeSource = sourceMode === 'live'
+    const acknowledgeSource = effectiveSourceMode === 'live'
       ? async () => {
           assertCurrentSourceMonitorStateMatchesDispatchIdentity({
             identity: sourceDispatchIdentity,
@@ -402,7 +416,7 @@ export async function runSupplementaryDomainAutomaticOperation({
       previewBundlePath,
       operationBundlePath,
     };
-    return sourceMode === 'live'
+    return effectiveSourceMode === 'live'
       ? operationResult
       : {
           ...operationResult,
@@ -1099,19 +1113,8 @@ function requireSafeSegment(value, label) {
   return segment;
 }
 
-function connectionOptions(env) {
-  const port = Number(requireText(env.TERRAPEDIA_DB_PORT, 'TERRAPEDIA_DB_PORT'));
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('invalid TERRAPEDIA_DB_PORT');
-  if (env.TERRAPEDIA_DB_NAME !== 'terria_v1_local') throw new Error('TERRAPEDIA_DB_NAME must be terria_v1_local');
-  return {
-    host: requireText(env.TERRAPEDIA_DB_HOST, 'TERRAPEDIA_DB_HOST'),
-    port,
-    user: requireText(env.TERRAPEDIA_DB_USERNAME, 'TERRAPEDIA_DB_USERNAME'),
-    password: requireText(env.TERRAPEDIA_DB_PASSWORD, 'TERRAPEDIA_DB_PASSWORD'),
-    database: 'terria_v1_local',
-    multipleStatements: false,
-    dateStrings: true,
-  };
+function connectionOptions(env, context = {}) {
+  return isolatedConnectionOptions(env, context);
 }
 
 function parseArgs(argv) {

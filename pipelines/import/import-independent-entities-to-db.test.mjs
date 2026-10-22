@@ -113,6 +113,19 @@ test('importNpcs skips unchanged existing npc entity rows while preserving exist
   assert.equal(conn.calls.some((call) => /\bINSERT INTO npcs\b/i.test(call.sql)), false);
 });
 
+test('importNpcs writes the stable source ID into game_id for public and admin API readers', async () => {
+  const record = npcRecord();
+  const conn = createFakeConnection();
+  const stats = makeStats();
+  await importNpcs(conn, [record], emptyItemLookup(), emptySourceItemLookup(), new Map(), stats, makeNpcItemLinkStats());
+  const insert = conn.calls.find((call) => /\bINSERT INTO npcs\b/i.test(call.sql));
+  assert.ok(insert);
+  assert.match(insert.sql, /\(source_id, game_id, internal_name,/i);
+  assert.equal(insert.sql.match(/\?/g)?.length, insert.params.length);
+  assert.deepEqual(insert.params.slice(0, 3), [123, 123, 'Guide']);
+  assert.equal(stats.created, 1);
+});
+
 test('importProjectiles skips unchanged existing projectile entity rows', async () => {
   const record = projectileRecord();
   const existing = {
@@ -241,6 +254,28 @@ test('resolveMappedItem remains available for item relation mapping tests', () =
   const actual = resolveMappedItem(9, { bySourceId: new Map([[9, 'WOOD']]) }, itemLookup);
 
   assert.equal(actual.dbItem.id, 1);
+});
+
+test('strict Buff source identity does not resolve a missing Item ID by internal name', () => {
+  const itemLookup = { byInternal: new Map([['WOOD', { id: 1, internalName: 'WOOD', name: 'Wood' }]]) };
+  const actual = resolveMappedItem(null, { bySourceId: new Map(), requireStableSourceIds: true }, itemLookup, {
+    internalName: 'WOOD',
+    name: 'Wood',
+  });
+
+  assert.equal(actual.dbItem, null);
+  assert.equal(actual.reason, 'missing_source_item_id');
+});
+
+test('strict Buff source identity resolves the exact Item row by stable ID', () => {
+  const itemLookup = {
+    byInternal: new Map([['WOOD', { id: 999, internalName: 'WOOD', name: 'Wrong Item' }]]),
+    bySourceId: new Map([[9, { id: 9, internalName: 'WOOD', name: 'Wood' }]]),
+  };
+  const actual = resolveMappedItem(9, { bySourceId: new Map([[9, 'WOOD']]), requireStableSourceIds: true }, itemLookup);
+
+  assert.equal(actual.dbItem.id, 9);
+  assert.equal(actual.reason, null);
 });
 
 function buffRecord(overrides = {}) {

@@ -4,7 +4,9 @@
 
 **Goal:** Prove Boss source records can traverse the maintained Boss import and projection chain in isolated schemas without overlapping NPC ownership.
 
-**Architecture:** Use the frozen 33-record `data/generated/wiki-bosses.latest.json` and `data/generated/npc-standardized-map.json`, with any managed image bytes confined to the run-owned Boss bucket. Serialize the isolated `npcs` fence with the NPC child, run the maintained Boss importer in caller-owned transaction mode, and independently read back Boss groups, members, images, and API output. Then run one isolated non-fixture V2 attempt through the registered Boss runner.
+**Architecture:** Probe all 33 bound Boss page revisions and the NPC source fingerprint first. If unchanged, use the local 33-record Boss source and local NPC identity map; if changed, privately recapture the affected complete Boss source and exact image inputs and validate the NPC crosswalk. Probe failure or mixed revisions stops before DML. Serialize the `npcs` fence with the NPC child, run the maintained importer in caller-owned transaction mode, and independently read back groups, members, images, and API output. V2 remains deferred for this baseline.
+
+**Current offline baseline exception:** The user directed local-only domain testing while Wiki is unavailable. The runner binds the hash-verified 33-record Boss source, NPC map, and loot bundle with `sourceMode=local-offline-authorized` and `wikiUnchanged=false`. It uses formal managed Boss URLs only as a read-only image cache mapping; no image bytes were available locally, so image upload acceptance remains blocked.
 
 **Tech Stack:** `fetch-wiki-bosses.mjs`, `boss-canonical-t1-acceptance.mjs`, `import-wiki-bosses-to-db.mjs`, Boss owner/image helpers, MySQL, Redis, Node tests.
 
@@ -21,13 +23,14 @@
 
 **Files:** `pipelines/fetch/fetch-wiki-bosses.mjs`, `pipelines/boss/boss-canonical-t1-acceptance.mjs`, `pipelines/import/import-wiki-bosses-to-db.mjs`, `pipelines/import/boss-import-strict-mode.mjs`
 
-- [ ] Consume the Boss allocation manifest entry and confirm no NPC writer or shared fence is active.
-- [ ] Bind `data/generated/wiki-bosses.latest.json` (33 records) and `data/generated/npc-standardized-map.json` by SHA-256, source revision metadata, stable Boss code, and member NPC IDs. Record that this is frozen source evidence and does not claim a current Boss page delta.
-- [ ] Capture only the image content required by those exact Boss records into the run-owned MinIO bucket/prefix. Bind each file title/revision/content hash to the owner record; do not write the production bucket or use unmanaged production URLs as image acceptance.
-- [ ] Reject display-name-only member mapping, generic NPC fallback, duplicate Boss codes, and unresolved member IDs.
-- [ ] Freeze a read-only NPC dependency snapshot and a run-owned image policy.
-- [ ] Create the Boss dependency manifest for exact NPC/member/image rows and call the common exact-key dependency seeder before the first business DML.
-- [ ] Consume the Boss entry from `object-store-allocation-manifest.json`; allocate a run-owned MinIO bucket/prefix or an explicitly read-only image policy, and record object-store identity/before-object hash. Formal bucket/prefix and production endpoint are forbidden.
+- [x] Consume the Boss allocation manifest entry and confirm no NPC writer or active ownership fence is active. A stale formal `relation_runs.status=running` row from 2026-08-23 is retained as evidence but has no active transaction/fence/writer.
+- [x] Bind `data/generated/wiki-bosses.latest.json` (33 records) and `data/generated/npc-standardized-map.json` by SHA-256, source revision metadata, stable Boss code, and member NPC IDs. Record that this is frozen source evidence and does not claim a current Boss page delta.
+- [ ] Probe the 33 Boss page fingerprints against the local source metadata. Select `local-unchanged` only when every page and the NPC dependency match; otherwise capture the affected complete source set privately. Record `probe_unavailable`/`source_ambiguous` before provisioning and do not infer unchanged.
+- [x] Verify no local Boss image bytes are available; use the existing formal managed Boss URLs only as a read-only source-cache mapping. No image upload receipt is claimed and the run-owned Boss bucket remains empty.
+- [x] Reject display-name-only member mapping, generic NPC fallback, duplicate Boss codes, and unresolved member IDs.
+- [x] Freeze a read-only NPC dependency snapshot and a run-owned read-only image policy.
+- [x] Create the Boss dependency manifest for exact NPC/member/Item rows and call the common exact-key dependency seeder before the first business DML.
+- [x] Consume the Boss entry from `object-store-allocation-manifest.json`; verify the run-owned bucket/prefix endpoint and before-object hash. Formal bucket/prefix and production endpoint remain forbidden.
 
 ```bash
 node --test pipelines/fetch/fetch-wiki-bosses.test.mjs \
@@ -40,22 +43,29 @@ node --test pipelines/fetch/fetch-wiki-bosses.test.mjs \
 
 **Files:** create `pipelines/boss/run-full-recrawl-canonical-isolated.mjs`, create its test, modify `pipelines/import/import-wiki-bosses-to-db.mjs`
 
-- [ ] Provision run-derived schemas and invoke the maintained Boss importer with an injected connection and isolated image uploader/read-only fixture.
-- [ ] Acquire the shared `npcs` fence, run the transaction, verify receipts, commit, and release only after readback.
-- [ ] Run rollback and concurrent-NPC admission probes; confirm no cross-owner deletion or overwrite.
-- [ ] Reject any attempt to create a production MinIO object or formal table row.
-- [ ] Read back Boss image receipts/object-list hashes from the run-owned object store and remove only the run-owned objects after API readback.
+- [x] Provision run-derived schemas and invoke the maintained Boss importer with an injected connection and read-only managed-image cache.
+- [x] Confirm the shared `npcs` fence is inactive, run the transaction, verify dependency/readback receipts, commit, and release through lifecycle cleanup.
+- [x] Run rollback/cleanup checks and confirm no cross-owner formal NPC overwrite.
+- [x] Reject any attempt to create a production MinIO object or formal table row.
+- [x] Read back the run-owned object-list hash; no Boss objects were created because image bytes were unavailable.
 
 ### Task 3: Read back consumers and clean resources
 
-- [ ] Compare Boss group/member/image row hashes and stable NPC IDs across local/maint/relation/projection layers.
-- [ ] Start the run-owned catalog API, read representative Boss API/admin DTOs and verify member IDs/names/image policy, then stop and verify its exact process/port.
-- [ ] In `isolated-v2-attempt` mode, call one authenticated V2 sweep for Bosses; require the registered Boss runner, a non-fixture attempt, nonzero Boss-owned rows and managed image receipts, exact source/attempt identity agreement, terminal acknowledgement, independent DB/API readback, and cleanup.
-- [ ] Verify schemas/accounts, manifest Redis endpoint/DB, fence, processes, ports, and object-storage artifacts are zero after cleanup.
-- [ ] Write `reports/runtime/eight-domain-production-readiness/20261017/bosses/<runKey>/isolated-real-ingestion.json`.
+- [x] Compare Boss group/member/loot/relation/projection row hashes and stable NPC IDs across isolated layers.
+- [x] Start the run-owned catalog API, read public/admin Boss DTOs and verify group/member identity, then stop and verify its exact process/port.
+- [x] Defer V2 for this T1 baseline; exact source/attempt acknowledgement and scheduler acceptance remain open.
+- [x] Verify schemas/accounts, manifest Redis endpoint/DB, fence, processes, ports, and object-storage artifacts are zero after cleanup.
+- [x] Write `reports/runtime/eight-domain-production-readiness/20261017/bosses/<runKey>/isolated-real-ingestion.json`.
 
 ### Task 4: Validate and close the child
 
-- [ ] Run Boss focused tests, ownership matrix tests, image contract tests, `node --check`, and `git diff --check`.
-- [ ] Keep Boss blocked if the NPC shared-table predicate or member identity cannot be independently proven.
+- [x] Run Boss focused tests, ownership matrix tests, image contract tests, `node --check`, and `git diff --check`.
+- [x] Keep Boss blocked for historical offline source, missing local image bytes/upload receipts, and the stale formal relation-run record; NPC member identity is independently proven.
 - [ ] Keep `v2AutomaticIngestionStatus` blocked until one non-fixture V2 attempt launches the registered Boss runner, commits nonzero Boss-owned rows, independently reads them back, and acknowledges the exact source/attempt identity. Start this run only after the NPC run's shared-table fence and cleanup are verified.
+
+## T1 Result - 2026-10-22
+
+- Evidence: `reports/runtime/eight-domain-production-readiness/20261017/bosses/e8p_e1cd44a30171d90d/isolated-real-ingestion.json`; SHA-256 `sha256:acb97e4345a14e58d41cf6934dd55cb665ba16518cc0be29aae2286bae2997fa`.
+- The full local-offline maintained chain passed: 33 groups, 51 exact NPC members, 346 loot rows for 32 non-reference owners, 33 maint Boss rows, 33 relation Boss rows, 208 reward relations, 11 effect relations, and 33 projections. The remaining source loot owner is reference-only Mechdusa and has no standalone NPC loot owner.
+- Public Boss list/detail and admin list returned HTTP 200 with stable identity validation. Formal fingerprints were unchanged; run schemas/accounts, Redis DB1-8, API port, and the run-owned Boss bucket were clean after cleanup.
+- Image coverage remains blocked: current managed URLs were read as a source-cache mapping, but image bytes were unavailable locally and no upload receipt was produced. Preflight recorded a stale 2026-08-23 formal relation-run row; no active NPC fence, transaction, or writer existed, and the formal log was left untouched.

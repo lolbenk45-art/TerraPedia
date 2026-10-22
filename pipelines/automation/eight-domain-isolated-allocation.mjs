@@ -15,7 +15,7 @@ export const EIGHT_DOMAIN_RUN_IDS = Object.freeze({
   bosses: 'e8pr-bosses-20261017-v1',
   armor_sets: 'e8pr-armor_sets-20261017-v1',
   buffs: 'e8pr-buffs-20261017-v1',
-  shimmer: 'e8pr-shimmer-20261017-v1',
+  shimmer: 'e8pr-shimmer-20261022-v4',
 });
 
 const REDIS_DATABASES = Object.freeze({

@@ -75,6 +75,12 @@ export async function runBossCanonicalT1Acceptance({
     });
     let dependencySeed;
     try {
+      // T1 provisioning may copy bounded representative business rows. The Boss
+      // fixture owns an exact NPC/Item dependency closure, so remove those
+      // run-local representatives before seeding the declared identities.
+      await targetConnection.query('DELETE FROM `npcs`');
+      await targetConnection.query('DELETE FROM `items`');
+      await targetConnection.query('DELETE FROM `boss_groups`');
       dependencySeed = await seedDependenciesImpl({
         sourceConnection,
         targetConnection,
@@ -105,6 +111,8 @@ export async function runBossCanonicalT1Acceptance({
     });
     let maintDependencySeed;
     try {
+      await maintTargetConnection.query('DELETE FROM `maint_npcs`');
+      await maintTargetConnection.query('DELETE FROM `maint_items`');
       maintDependencySeed = await seedMaintDependenciesImpl({
         sourceConnection: maintSourceConnection,
         targetConnection: maintTargetConnection,

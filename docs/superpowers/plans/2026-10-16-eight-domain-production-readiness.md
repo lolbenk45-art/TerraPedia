@@ -4,6 +4,14 @@
 
 **Goal:** For Items, NPCs, Projectiles, Armor Sets, Buffs, Audio, Bosses, and Shimmer, prove basic functions, maintained writes, and one real V2-dispatched automatic ingestion attempt per domain in isolated databases, with independent consumer readback and failure recovery evidence.
 
+## Current User-Directed Baseline Scope - 2026-10-21
+
+- Priority is a source-bound isolated maintained-chain baseline for every domain, using the exact source and bounds in Section 1 and each child plan. A fixture run may validate a harness, but it does not satisfy a domain baseline when the plan names a larger repository-frozen or bounded-live source input.
+- For this baseline phase, defer V2 automatic attempts, scheduler activation, formal publication, and other release gates. They remain separate outcomes and must not block completion of maintained-chain write/readback evidence.
+- Preserve explicit plan bounds: Items selects 100 identities (no full 6,131-page crawl), Audio captures at most 150 metadata records with downloads disabled, Armor binds 64 standardized sets and its exact bounded evidence inputs; the other repository-frozen domains use the full source artifact identified in Section 1.
+- Before each write-bearing run, freshly verify manifest-bound schema/Redis/object-store identities and emptiness, seed only exact read-only dependencies, read back run-owned writes independently, and clean run-owned resources. Formal schemas remain read-only.
+- Apply the same hybrid source decision to every domain: probe the live Wiki source fingerprint(s) first; use the bound local source only when every required fingerprint matches; when any fingerprint changes, capture the affected complete source set into the private run root and validate it before DML. A timeout, missing identity, missing local baseline, or mixed fingerprint is `probe_unavailable`/`source_ambiguous` and stops before provisioning or business writes by default. A domain-specific user authorization may permit a local-offline baseline after an unavailable probe; that run must record `sourceMode=local-offline-authorized` and `wikiUnchanged=false`, and cannot establish Wiki freshness or parity. No probe may mutate the canonical shared source manifest.
+
 **Architecture:** Use one dedicated execution worktree and run the eight domains serially from fixed, hash-bound source inputs into manifest-derived `local/maint/relation` schemas. Keep the maintained-chain T1 check separate from an isolated one-shot V2 sweep that must create a real queue attempt, launch the domain automatic runner, write nonzero business rows, and acknowledge the exact source dispatch identity. A run-owned API, Redis, and MinIO are bound only to the isolated run; formal databases and production Redis remain read-only. The plan does not enable unattended scheduling or authorize a formal production write.
 
 **Tech Stack:** Node.js ESM pipelines, Spring Boot catalog API and V2 queue, MySQL/InnoDB run-derived schemas, run-owned Redis, isolated MinIO, `node:test`, Maven, Nuxt checks, JSON evidence under `reports/runtime/eight-domain-production-readiness/`.
@@ -14,7 +22,7 @@
 
 ### 0.1 Install the exact code in the specified directory
 
-- [x] Execution root is fixed at `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; code ref is `exec/eight-domain-production-readiness`, commit `756ae8bf96f58e6a3e6c7edb256c57bdeb65967c`, archive SHA-256 `sha256:5a8498768aac9d503463fa3481d989cdc98355dbe27fd0dc21dd287994a7d68a`. Source and install root are this same worktree; no fallback to the dirty coordinator worktree is allowed.
+- [x] Execution root is fixed at `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; the installed baseline was commit `756ae8bf96f58e6a3e6c7edb256c57bdeb65967c` with archive SHA-256 `sha256:5a8498768aac9d503463fa3481d989cdc98355dbe27fd0dc21dd287994a7d68a`. The branch has since advanced to HEAD `43d6fabf7e806a459b58aba3feadd04edee8a630`; the working tree is dirty. Shimmer T1 must record the actual HEAD, relevant execution-file hashes, and catalog JAR hash in its report. The original archive hash identifies the installed baseline only, not the current dirty execution tree. No fallback to the dirty coordinator worktree is allowed.
 - [x] Toolchain is fixed: Node `/home/lolben/.nvm/versions/node/v22.23.0/bin/node` v22.23.0 with pnpm 9.0.0, Java 17.0.18, Maven 3.8.7, MySQL CLI 9.2.0, Redis server/CLI 7.0.15, MinIO RELEASE.2025-09-07T16-13-09Z, and mc 2025-08-13. Binary hashes are recorded in the ignored execution manifest.
 - [x] Install exact locked dependencies only in this execution worktree. Do not use the coordinator's `node_modules`, Maven target, admin/runtime environment, or cached Redis/MinIO credentials. The sole MySQL credential source is fixed in Section 2.2 and may be read in-memory for a protected one-shot query/provisioner bootstrap. Evidence: `reports/runtime/eight-domain-production-readiness/20261017/install-manifest.json`.
 
@@ -37,9 +45,10 @@ Every child declares one of these modes in its source manifest:
 | `repository-frozen` | Uses an existing repository-tracked/generated source artifact with hash and revision metadata; no network fetch | Parser, maintained import, isolated DB write/readback, and error handling. It does not prove a new upstream fingerprint. |
 | `bounded-live-capture` | Performs a bounded real Wiki capture with revision/hash binding | Source fetch plus maintained import; still does not prove production scheduler dispatch unless the scheduler lane is separately run. |
 | `hybrid` | Uses repository-frozen full input plus a bounded live probe/representative page | Full-chain time control plus current-source compatibility evidence. |
+| `local-offline-authorized` | A domain-specific user instruction permits the bound local source after Wiki unavailability; record `wikiUnchanged=false` and do not probe or fetch during that run | A maintained isolated baseline against the frozen local source only; it does not prove current Wiki freshness or parity. |
 
 - [ ] The master source manifest records mode, exact relative paths, SHA-256, revision/fetched-at metadata, input count, and whether network access occurred.
-- [ ] A child cannot claim `productionSourceDelta=true` when its mode is `repository-frozen` or `hybrid` without a separately verified changed fingerprint.
+- [ ] A child cannot claim `productionSourceDelta=true` when its mode is `repository-frozen`, `local-offline-authorized`, or `hybrid` without a separately verified changed fingerprint.
 
 ### 0.3 Cross-test matrix
 
@@ -59,14 +68,14 @@ Source-crawl resume and database-import retry are separate contracts:
 
 | Domain | Current source interruption behavior | Required validation behavior |
 | --- | --- | --- |
-| Items | The detached Item page crawler supports `--resume-from-progress=true`; this plan's import uses frozen data and does not crawl the full corpus | Use a deterministic mock for the 100-page selector, interrupt after 50 records, resume with the same fingerprint, and reject drift. No live 6k-page crawl. |
-| NPCs | No keyed resume contract is used by this frozen-source lane | Inject failed terminal progress, then prove a fresh run ID can restart from the immutable standardized input without duplicating rows. |
-| Projectiles | No keyed resume contract is used by this frozen-source lane | Same fresh-rerun policy; stable source identity prevents duplicate relation rows. |
+| Items | The detached Item page crawler supports `--resume-from-progress=true`; the maintained import remains bounded to 100 selected identities | Probe module and selected-page fingerprints first; resume/capture only with a matching source decision, interrupt after 50 records, and reject drift. No live 6k-page crawl. |
+| NPCs | No keyed resume contract is used by this hybrid source lane | Probe first; use local 762 rows only on an exact match, otherwise capture privately; failed terminal progress requires a new run ID and no duplicate rows. |
+| Projectiles | No keyed resume contract is used by this hybrid source lane | Probe first; use local 1,111 rows only on an exact match, otherwise capture the complete module privately; fresh-rerun policy prevents duplicate relation rows. |
 | Armor Sets | The attribute/image fetches are bounded source actions; any interruption is terminal and starts a new capture run | Simulate failure with the registered progress action, retain failed evidence, and retry only with a new run ID after source hashes are rechecked. |
-| Buffs | The fetcher supports keyed item resume with source-fingerprint validation; its resume state is generated per run, not assumed to exist in the repository | Use a private temp resume path, interrupt before/after completion marking, resume only with the same fingerprint, and reject drift. The primary 388-row run uses frozen data. |
+| Buffs | The fetcher supports keyed item resume with source-fingerprint validation; its resume state is generated per run, not assumed to exist in the repository | Probe all bound source pages first; use local 388 rows only on an exact match, capture changed sources privately, and resume only with the same fingerprint. |
 | Audio | Asset-download phase resumes from a manifest and skips only verified existing files; metadata discovery is not a general whole-crawl resume | Test verified-file skip, size/hash mismatch, transient retry, and non-retryable failure with downloads isolated; the primary run disables downloads. |
-| Bosses | The fetcher supports keyed resume with fingerprint validation; its resume state is generated per run | Use a private temp state path, interrupt before/after completion marking, resume matching pages, and reject changed seed sets. The primary run uses frozen metadata. |
-| Shimmer | No keyed resume contract is used by this frozen-generation lane | Simulate failed progress and rerun the immutable generation under a new run ID; preserve all unresolved rows. |
+| Bosses | The fetcher supports keyed resume with fingerprint validation; its resume state is generated per run | Probe all 33 page fingerprints first; capture changed pages/images privately, interrupt before/after completion marking, and reject changed seed sets. |
+| Shimmer | No keyed resume contract is used by this local-offline generation lane | Use only the user-authorized pinned local generation; interruption creates a failed attempt and requires a fresh run identity after cleanup. Do not probe or fetch Wiki in this lane. |
 
 For database import interruption, no child may blindly continue from an unknown commit point. The runner must classify the outcome as `rolled_back`, `committed_and_readback_verified`, or `commit_outcome_uncertain`; the uncertain state requires independent reconciliation and a new governed run identity before retry. A new source crawl is not required when the frozen source bundle is still hash-valid.
 
@@ -108,14 +117,14 @@ The current baseline is:
 
 | Domain | Existing evidence | Current blocker before production sign-off |
 | --- | --- | --- |
-| Items | Historical local L1 and recorded T1 contracts | Fresh maintained full-chain isolated run and consumer readback are not recorded in the current handoff |
-| NPCs | Historical local L1/T1 and source readiness | Shared `npcs` ownership predicate and fresh isolated full-chain evidence |
-| Projectiles | Historical local apply and T1 contract | Fresh nonzero/full-chain isolated run; strong item/NPC source identity only |
-| Armor Sets | Fresh maintained isolated run exists | Canonical ownership admission for `maint_items`, complete attribute/effect source contracts |
-| Buffs | Fresh maintained isolated run exists | 13 unresolved source-item identities and remaining source/maint consistency issues |
-| Audio | Source/import code and historical L1 evidence | Fresh isolated importer, asset/link readback, and storage/reference checks |
-| Bosses | Historical T1 and L2 evidence | Fresh isolated importer and NPC shared-table ownership/readback |
-| Shimmer | Fresh maintained isolated run exists | 796 unresolved references were allowed only by the isolated harness; strict formal import remains blocked |
+| Items | Bounded 100-identity repository-frozen T1 maintained chain passed with local/maint/relation/projection `100/100/100/100`, Item API/admin readback, formal writes false, and cleanup verified | This is the approved 100-identity baseline, not a 6,131-page/full-corpus import; full relation source coverage, Wiki freshness, V2 and production release remain separate |
+| NPCs | Full 762-record local-offline T1 baseline passed; evidence binds `wikiUnchanged=false` | Wiki freshness and shared `npcs` ownership predicate; V2 remains separate |
+| Projectiles | Full 1,111-record local-offline T1 maintained chain and API identity readback passed | Six absent explicit Item references remain audited; no relation-backed API route, Wiki freshness, and V2 are separate |
+| Armor Sets | Full 64-set local-offline T1 maintained-chain and API identity readback passed; 243 exact local/maint Item dependencies read back; 175 image metadata rows cover 33/64 stable set keys | The 31 missing image keys, image binaries, Wiki freshness/parity, ownership/source admission, V2, and production readiness remain separate |
+| Buffs | 388-record user-authorized local-offline maintained T1 passed with exact dependencies, Buff-only relation apply, direct 8-table row-hash readback, and public/admin API identity checks | 27 source Item facts lack stable IDs; 586 NPC facts remain unresolved, including 16 duplicate stable-ID facts. Wiki freshness and V2 remain unverified |
+| Audio | 150-row local-offline T1 assets/links and public/admin API readback passed | Historical source dates, 100 unmatched NPC/BGM links, one missing BGM label, binary coverage, and V2 remain blocked |
+| Bosses | Full 33-record local-offline T1 groups/members/loot/relation/API readback passed | Historical source decision, image bytes/upload receipts, stale formal relation-run record, and V2 remain blocked |
+| Shimmer | Pinned generation `379f…` local-offline T1 passed under `e8pr-shimmer-20261022-v4`; six-scope SQL row hashes and all 11 public/admin API reads passed. The 510 exact Item/NPC dependency rows were independently verified. Report: `reports/runtime/eight-domain-production-readiness/20261017/shimmer/e8p_8deac87b8d22c5c3/isolated-real-ingestion.json` | Wiki freshness/parity, formal six-scope ownership, the typed `item_group`/`none` admission policy, V2 and production release remain separate. Historical 796 belongs to generation `51608…`. |
 
 The historical counts in older plans are not reused as current source counts. Every run must bind the exact source manifest and record its own count and hash.
 
@@ -123,14 +132,14 @@ The planned time-bounded source strategy is:
 
 | Domain | Source strategy for this validation | Required interpretation |
 | --- | --- | --- |
-| Items | `repository-frozen`: `data/standardized/items.standardized.json`, `data/standardized/item_pages.standardized.json`, and their view manifests; exactly 100 equal-rank records selected by the child-plan rule | Full 6,131-page crawl is out of scope. Run the recorded compatibility lane and a separate maintained-import subset from the same 100 identities. |
-| NPCs | `repository-frozen`: `data/standardized/npcs.standardized.json`, `data/standardized-view/npcs/_meta.json`, and `data/generated/npc-standardized-map.json` | No `data/wiki-crawler/canonical/npc/*.latest.json` source exists in this worktree; do not reference it. No fresh upstream delta claim. |
-| Projectiles | `repository-frozen` `data/standardized/projectiles.standardized.json` and standardized-view metadata with explicit source-relation fields | Real isolated relation/import test; no `aiStyle` inference. |
-| Audio | `bounded-live-capture`: four Wiki audio prefixes, at most five API pages per prefix and 150 metadata records total; downloads disabled | The generated audio catalog and BGM display-name files are absent from this execution worktree. Metadata/link ingestion only; no binary-upload claim. |
-| Bosses | `hybrid`: frozen `data/generated/wiki-bosses.latest.json` plus `data/generated/npc-standardized-map.json`; current image bytes use the run-owned object store if the importer requires them | The tracked Boss source has 33 records. No fresh Boss page-delta claim; NPC/Boss writes remain serial. |
-| Armor Sets | `hybrid`: frozen `data/standardized/armor_sets.standardized.json` and `data/generated/wiki-armor-sets.latest.json`; capture the missing attribute page and at most 64 set images to private run outputs | `wiki-armor-attributes.latest.json` and a frozen set-image catalog are absent. Do not claim those inputs are frozen. Formal ownership blockers remain. |
-| Buffs | `repository-frozen`: `data/standardized/buffs.standardized.json` (388 records) plus `data/generated/buff-standardized-map.json` | The claimed 400-record Iteminfo/page-evidence bundle is absent from this worktree. Do not use 400 as the expected count or treat the historical 13 unresolved Item identities as a permanent allowlist. No source-delta claim. |
-| Shimmer | `repository-frozen`: generation `379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761`, selected by `data/generated/shimmer/wiki-shimmer-current-generation.json` | Six-scope isolated transaction test; 796 known unresolved references remain an explicit production blocker. |
+| Items | `hybrid`: probe `Module:Iteminfo/data` plus the selected 100 item-page revision identities; when unchanged use the bound 6,131 local standardized/page/view inputs and current read-only landing, otherwise capture only the changed selected page/source set privately and revalidate the 100-ID closure | Full 6,131-page crawl remains out of scope. Any missing local fingerprint baseline or failed probe blocks; never infer unchanged from a timeout. |
+| NPCs | `hybrid`: first query live `Module:Npcinfo/data` revision metadata; when unchanged against the bound local manifest, use `data/standardized/npcs.standardized.json` (762 records), standardized-view metadata, and `data/generated/npc-standardized-map.json`; when changed, capture and validate the complete module privately before import | This run used the user's explicit local-offline authorization after two HTTP 502 maintenance responses. It passed the isolated maintained chain with `sourceMode=local-offline-authorized` and `wikiUnchanged=false`; this proves the frozen local baseline only. A changed probe still requires a private revision-bound capture. No formal or canonical source-manifest mutation occurred. |
+| Projectiles | `hybrid`: probe `Module:Projectileinfo/data`; when unchanged use the bound 1,111-record standardized source and view metadata, otherwise privately capture and validate the complete module before explicit relation resolution | No `aiStyle` inference; probe failure or source drift blocks before DML. |
+| Audio | Normally `hybrid`: probe the four audio prefixes and BGM page metadata; use a bound local catalog on exact identity match or privately capture at most five pages/prefix and 150 metadata records with downloads disabled. For this user-directed offline baseline, bind the historical source report and BGM name snapshot separately, then select exactly 50 BGM, 50 NPC_Hit, and 50 Item records | Record `sourceMode=local-offline-authorized` and `wikiUnchanged=false`; these historical snapshots do not establish current Wiki parity. Preserve unmatched owner links and metadata-link-only status. |
+| Bosses | Normally `hybrid`: probe the 33 bound Boss page revisions plus the NPC identity source; for this user-directed offline baseline bind the hash-verified 33 Boss source, 762-row NPC map, and 347-drop loot bundle, and use a read-only managed Boss-image cache | Records `sourceMode=local-offline-authorized` and `wikiUnchanged=false`; 33 groups, 51 members, 346 loot rows, relation/projection, and API readback passed. No local Boss image bytes or upload receipt is claimed. A stale 2026-08-23 relation-run row is recorded; no active fence/transaction/writer was present. |
+| Armor Sets | For the current user-directed offline baseline, bind the 64-record standardized source, 88-record Wiki page bundle, 151-row definition map, and local parsed image artifact by exact SHA-256; use all 64 core set facts and only the 175 exact image rows matching 33/64 stable keys | Record `sourceMode=local-offline-authorized` and `wikiUnchanged=false`. Do not fetch Wiki or image URLs. Null cached URLs outside the run allocation, report the 31 missing image keys, and do not claim binary receipts, freshness, or parity. |
+| Buffs | `hybrid`: probe `Template:GetBuffInfo` and the source pages represented by the 388-record standardized map; when unchanged use the bound 388-record local source, otherwise privately recapture the affected source bundle and recompute Item/NPC identity lineage | For the current baseline, the user authorized the local-offline branch after Wiki API unavailability; the run records `sourceMode=local-offline-authorized` and `wikiUnchanged=false`. Historical unresolved counts are not reused, and probe failure does not imply unchanged. |
+| Shimmer | For this user-directed offline baseline, bind the fixed current pointer to generation `379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761`; verify page revision, langlink, all six scope descriptors, bundle hashes, and current reference inventory locally. Do not probe/fetch Wiki or rebuild the generation. | Record `sourceMode=local-offline-authorized` and `wikiUnchanged=false`. Exact local reference lookup is `438/438` Item names and `72/72` NPC names; nonzero signed NPC variant IDs are valid. Preserve 279 `item_group` and 4 `none` source facts without guessing IDs; this run cannot establish Wiki freshness/parity or formal ownership readiness. |
 
 This table is the execution default. A child may switch to `bounded-live-capture` only with a new source manifest and no silent replacement of the frozen artifact.
 
@@ -160,7 +169,7 @@ The resource identities are fixed by `reports/runtime/eight-domain-production-re
 - [x] Redis is a dedicated loopback instance `/usr/bin/redis-server` v7.0.15 at `127.0.0.1:16380`, databases 1-8 mapped in domain order in the execution manifest, persistence disabled, with private data/config/auth under `.local/tmp/eight-domain-production-readiness/20261017/redis`. Shared Redis `6380`, production DB14/DB15, and historical DB16/DB18 are forbidden.
 - [x] MinIO is `/home/lolben/.local/bin/minio` RELEASE.2025-09-07T16-13-09Z at API `127.0.0.1:19100` and console `127.0.0.1:19101`, with a private data root under `.local/tmp/eight-domain-production-readiness/20261017/minio`. Buckets are `tp-e8pr-armor-20261017` and `tp-e8pr-bosses-20261017`; object prefixes are `e8pr/armor_sets/<runId>/` and `e8pr/bosses/<runId>/`. Audio is metadata-link-only and uses no MinIO bucket.
 - [x] API is loopback port `18280`, reused only after exact PID/port absence is verified. The same API launch wrapper has separate read-only consumer-readback and explicitly isolated V2-attempt modes.
-- [x] Fixed run IDs are `e8pr-items-20261017-v1`, `e8pr-npcs-20261017-v1`, `e8pr-projectiles-20261017-v1`, `e8pr-audio-20261017-v1`, `e8pr-bosses-20261017-v1`, `e8pr-armor_sets-20261017-v1`, `e8pr-buffs-20261017-v1`, and `e8pr-shimmer-20261017-v1`.
+- [x] Fixed run IDs are `e8pr-items-20261017-v1`, `e8pr-npcs-20261017-v1`, `e8pr-projectiles-20261017-v1`, `e8pr-audio-20261017-v1`, `e8pr-bosses-20261017-v1`, `e8pr-armor_sets-20261017-v1`, `e8pr-buffs-20261017-v1`, and `e8pr-shimmer-20261022-v4`. The Shimmer v4 identity supersedes the three cleaned failed attempts `e8pr-shimmer-20261017-v1`, `e8pr-shimmer-20261022-v2`, and `e8pr-shimmer-20261022-v3`.
 - [x] Each `<runKey>` path segment is the exact `runKey` returned by `buildAutomationDatabaseNames({ profile: 't1', runId })`, not the readable `runId`. Expected run keys and the resulting local/maint/relation schema names are recorded in the execution manifest.
 - [ ] Before dependency installation, re-probe every fixed port, MySQL UUID, Redis/MinIO binary hash, private data-root emptiness, MySQL formal schema identity, and active crawler/automation writer. Reserve each entry as `planned`, then mark it `ready` only after exact endpoint identity and emptiness are independently read back.
 - [ ] If MySQL is unavailable, credentials are unavailable, any port/root is occupied, a binary hash differs, or an active writer conflicts, write a blocked preflight artifact and stop. Do not start or stop shared services, change ports/DBs, reuse credentials, clean foreign state, or prompt the user for a choice.
@@ -177,7 +186,7 @@ node --test pipelines/automation/automation-database-contract.test.mjs \
 
 - [ ] Every isolated child consumes only its reviewed manifest entry. Before opening a connection it rejects `terria_v1_local`, `terria_v1_maint`, `terria_v1_relation`, historical `terria_v1_v55_rehearsal`, any MySQL target other than the fixed server UUID plus that run's derived schema triple, any Redis target other than its assigned `16380/DB1-8`, and any API port other than the run-owned `18280` process.
 - [ ] Formal schemas are available only through a read-only snapshot account for dependency seeding. The run-derived schemas are the only write targets.
-- [ ] The current Base and Supplementary automatic runners hard-reject `TERRAPEDIA_DB_NAME` values other than `terria_v1_local`. Add an explicit `eight-domain-isolated-acceptance` execution mode that accepts only the signed/current run manifest, exact derived schema triple, fixed MySQL UUID, exact Redis allocation, and `source-mode=local|bounded-live`. Keep the default production mode's `terria_v1_local` guard unchanged.
+- [ ] The current Base and Supplementary automatic runners hard-reject `TERRAPEDIA_DB_NAME` values other than `terria_v1_local`. The new `eight-domain-v2-isolated-acceptance` manifest/connection guard now preserves that production default and validates an exact run-derived schema triple, fixed MySQL UUID, Redis `16380/DB1-8`, private source hash, and `source-mode=local`; the API envelope, registry command injection, and Java source-state handoff remain open before V2 dispatch.
 - [ ] Exercise the V2 attempt through a run-owned API's authenticated `/api/admin/crawler-monitor/v2/automation/sweep` endpoint. The test API may dispatch only the single domain/run named by its isolated authorization envelope. It must set `SPRING_TASK_SCHEDULING_ENABLED=false`, keep the production API/Redis unreachable, and stop immediately after the attempt reaches terminal state; a fixture queue or direct runner call is not a V2 pass.
 - [ ] The isolated authorization envelope and any scheduler activation rows are synthetic test records stored only in the run-derived schema, bound to the code hash, source hash, domain allowlist, and run ID. They must be rejected by production-mode code and cannot create a production permit, decision, packet, or Owner authorization.
 - [ ] For the V2 pass, require exactly one non-fixture queue attempt per domain, worker launch of the registered production automatic entrypoint in isolated local-source mode, nonzero domain-owned writes, independent readback, and V2 queue terminal acknowledgement bound to the same `(epoch, queueId, attemptId)` and source dispatch identity. Do not acknowledge or mutate the shared Wiki source manifest. Fixture mode, missing attempt identity, a direct manual importer, or a T1-only result cannot set `v2AutomaticIngestionStatus=passed`.
@@ -209,12 +218,13 @@ Each child must provide all of the following before maintained import or V2 disp
 - [ ] NPC and Boss runs serialize ownership of `npcs`; no concurrent run may write the shared table.
 - [ ] Items and Projectiles may use NPC rows for read-only relation resolution but may not infer identity from display names or `aiStyle`.
 - [ ] Armor and Buff source-item dependencies must prove stable Item IDs; unresolved identities remain explicit and block production readiness.
-- [ ] Shimmer `world_contexts` and `entity_source_snapshots` ownership must be part of the isolated scope, not silently seeded as pre-existing business rows.
+- [ ] Shimmer `world_contexts.SHIMMER` and all seven `entity_source_snapshots` rows must be T1 business writes inside the run-owned schema, not seeded dependencies. This isolated boundary does not claim the real enforced formal six-scope partition required before any formal cross-owner execution.
 
 ### 2.6A Object-storage boundary
 
 - [ ] Any child whose maintained importer uploads or resolves managed images must consume an object-storage entry from `object-store-allocation-manifest.json`: endpoint, bucket, object prefix, access identity, data root, owner PID, and cleanup method.
-- [ ] Armor and Boss image lanes must use a run-owned disposable MinIO bucket/prefix or an explicitly read-only source-cache mode; the formal bucket, production endpoint, and production object prefix are forbidden.
+- [ ] The Armor T1 baseline is metadata-only: it nulls cached URLs outside the run allocation and performs no object-store reads or writes. Any later Armor binary/image acceptance must use a run-owned disposable MinIO bucket/prefix; the formal bucket, production endpoint, and production object prefix are forbidden.
+- [ ] Boss image lanes must use a run-owned disposable MinIO bucket/prefix or an explicitly read-only source-cache mode; the formal bucket, production endpoint, and production object prefix are forbidden.
 - [ ] Record object-store before/after object-list hashes and remove only run-owned objects/buckets after API readback. A production object URL or unmanaged cache hit cannot count as isolated image evidence.
 - [ ] Audio must declare whether its run is metadata/link-only or uses object storage; a link-only run must not claim binary asset upload acceptance.
 
@@ -287,8 +297,8 @@ Run serially in this order to reduce shared-table and dependency ambiguity:
 3. Projectiles
 4. Audio
 5. Bosses
-6. Armor Sets
-7. Buffs
+6. Buffs
+7. Armor Sets
 8. Shimmer
 
 The order is operational, not a permission to write formal databases. Run all eight domains serially in this execution worktree and one coordinator session. A source/identity/target/cleanup conflict stops the full run without prompting; a domain code/data failure blocks that domain and the aggregate until the repair passes focused tests and is rerun under a new run identity. A source interruption resumes only where the child contract explicitly supports resume; no unknown database commit is retried before independent reconciliation.
@@ -448,7 +458,7 @@ node --test pipelines/automation/eight-domain-failure-injection.test.mjs
 - Test: `services/catalog-api/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisorTest.java`
 
 - [ ] Trace and record one registered automatic runner per domain from the pinned code bundle; reject a domain without an exact source-to-runner mapping.
-- [ ] Keep production defaults pinned to `terria_v1_local`. Permit run-derived schemas only when `TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE=true` and a hash-valid private manifest binds code commit, domain/run ID, schema triple, MySQL UUID, Redis `16380/DB1-8`, and isolated authorization envelope. Explicitly reject the formal databases and `terria_v1_v55_rehearsal`.
+- [ ] Keep production defaults pinned to `terria_v1_local`. The isolated runner contract now permits run-derived schemas only when `TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE=true` and a hash-valid private manifest binds code commit, domain/run ID, schema triple, MySQL UUID, Redis `16380/DB1-8`, source hash, and local authorization envelope. Explicitly reject the formal databases and `terria_v1_v55_rehearsal`. Complete API envelope/registry/Java handoff remains required before the V2 sweep.
 - [ ] In isolated mode, have `CrawlerMonitorActionRegistry` pass `--source-mode=local` and a per-run private `--manifest-path` to Base/Supplementary runners. Modify `run-armor-automatic-operation.mjs` to accept the same isolated local-source profile, skip its live `fetch-wiki-armorsetbonuses` subprocess, and bind the exact captured set/attribute/image bundle. Production worker commands retain their current live-source behavior.
 - [ ] Bind each automatic runner to `.local/tmp/eight-domain-production-readiness/20261017/source-manifests/<domain>.json`; no isolated run may read or write `data/generated/wiki-source-manifest.latest.json`. In isolated mode, skip Wiki source-manifest acknowledgement and record `wikiSourceManifestAcknowledged=false`; only the V2 queue's post-commit terminal acknowledgement can be true.
 - [ ] Bind every automatic source/bundle/preview/reconciliation/test-authorization artifact to `reports/runtime/eight-domain-production-readiness/20261017/<domain>/<runKey>/automatic/`. Reject writes to `reports/authorization/canonical/automatic`, canonical proposal/packet/permit paths, sibling run roots, and paths outside the exact execution worktree.
@@ -481,14 +491,15 @@ cd services/catalog-api && mvn -Dtest=CrawlerMonitorServiceImplTest,CrawlerMonit
 - Create: `reports/runtime/eight-domain-production-readiness/20261017/source-manifest.json` and bind it to all eight run IDs, source hashes, allocation-manifest hashes, and V2 runner mappings.
 
 - [ ] Record repository-frozen file/tree hashes and derived sample identities for Items, NPCs, Projectiles, Buffs, Bosses, and Shimmer without rewriting those tracked files.
-- [ ] Capture only the declared bounded Audio metadata sample and missing Armor attribute/image inputs; use registered monitor-visible action IDs and private output/report paths.
+- [ ] Bind the declared bounded Audio local-offline sample, unless a later successful probe resumes the normal hybrid capture path; for the current Armor baseline, bind the exact local 64/88/151 source bundle and 175-row partial image metadata set without invoking crawler actions.
 - [ ] Verify revision/hash, progress terminal state, expected record counts, and empty/non-empty semantics before DML; source errors cannot become unchanged or empty success.
 - [ ] A frozen or unchanged source can prove isolated execution only. It cannot set `productionSourceDelta=true` or be reported as a fresh production change.
 
 ### Task 3: Execute the eight child plans
 
-- [ ] Complete each child plan in Section 7 serially, running its maintained-chain lane and one isolated V2 automatic attempt from the reviewed manifest; no child may choose or hard-code a resource allocation.
-- [ ] Store the artifact, test output summary, and cleanup readback under the master evidence root.
+- [ ] Complete each child plan in Section 7 serially for the current isolated maintained-chain T1 baseline phase; no child may choose or hard-code a resource allocation.
+- [ ] Store each T1 artifact, focused test summary, independent DB/API readback, formal fingerprint comparison, and cleanup readback under the master evidence root.
+- [ ] Defer isolated V2 automatic attempts, scheduler activation, and formal publication to a separate follow-up phase; do not make them prerequisites for current T1 baseline completion.
 - [ ] Reject a child pass if it uses a pseudo-adapter, unresolved allowlist not named in the child contract, or formal target resource.
 
 ### Task 4: Cross-domain reconciliation
@@ -517,7 +528,7 @@ node --test pipelines/workflow/domain-acceptance-report-manifest.test.mjs \
 - Create: `reports/authorization/canonical/eight-domain-production-readiness-20261017.proposal.json`
 
 - [ ] Bind the aggregate report to the current server fingerprint, V2 epoch/namespace, policy H8, code bundle, source manifests, and all eight child artifacts.
-- [ ] Record Armor ownership blockers, Buff unresolved identities, Shimmer unresolved references, and any remaining five-domain gaps as explicit blockers rather than waivers.
+- [ ] Record Armor ownership blockers, Buff unresolved identities, Shimmer typed group/none admission and formal ownership blockers, and any remaining five-domain gaps as explicit blockers rather than waivers.
 - [ ] Keep production scheduler control unchanged and do not create a production permit, decision, formal import, or `/sweep` call against production. The isolated one-shot V2 sweep is allowed only under Task 1E's run-bound API mode.
 - [ ] A production release task may be opened only after the aggregate report has eight passing basic-function, maintained-chain, V2 automatic, and error-handling child artifacts and all formal target preconditions are freshly read.
 
@@ -529,7 +540,7 @@ The formal release task must not reuse the isolated API environment file, Redis 
 - [ ] Run `git diff --check`, `git status --short`, and inspect the staged scope if this plan is committed.
 - [ ] Update `docs/devlog/current.md` with the aggregate verdict and residual blockers.
 - [ ] Keep this plan active if any domain is blocked; close only when the isolated eight-domain acceptance is complete and the production packet explicitly records the next authorization boundary.
-- [ ] Keep `exec/eight-domain-production-readiness` and its worktree open through the eight runs; do not merge, push, or remove it until all eight artifacts and the aggregate review are complete. This planning checkpoint does not authorize merge or production release.
+- [x] Keep the execution branch/worktree through all eight T1 runs and aggregate review; all eight final T1 artifacts are now recorded. Per the user's T1 closeout instruction, integrate this verified baseline into local `main` before discussing V2. Do not push, execute V2, or treat this merge as production release authorization.
 
 ## 6. Production Release Gate After This Plan
 
@@ -547,14 +558,14 @@ Unattended multi-cycle soak, expiry/renewal, and restart are intentionally outsi
 
 ## 7. Child Plans
 
-- [ ] [Items](2026-10-16-eight-domain-production-readiness-items.md)
-- [ ] [NPCs](2026-10-16-eight-domain-production-readiness-npcs.md)
-- [ ] [Projectiles](2026-10-16-eight-domain-production-readiness-projectiles.md)
-- [ ] [Audio](2026-10-16-eight-domain-production-readiness-audio.md)
-- [ ] [Bosses](2026-10-16-eight-domain-production-readiness-bosses.md)
-- [ ] [Armor Sets](2026-10-16-eight-domain-production-readiness-armor-sets.md)
-- [ ] [Buffs](2026-10-16-eight-domain-production-readiness-buffs.md)
-- [ ] [Shimmer](2026-10-16-eight-domain-production-readiness-shimmer.md)
+- [x] [Items](2026-10-16-eight-domain-production-readiness-items.md) T1 isolated maintained-chain baseline complete; V2 and release gates remain open.
+- [x] [NPCs](2026-10-16-eight-domain-production-readiness-npcs.md) T1 isolated maintained-chain baseline complete; ownership, V2, and release gates remain open.
+- [x] [Projectiles](2026-10-16-eight-domain-production-readiness-projectiles.md) T1 isolated maintained-chain baseline complete; V2 and release gates remain open.
+- [x] [Audio](2026-10-16-eight-domain-production-readiness-audio.md) Metadata-only T1 isolated maintained-chain baseline complete; media and release gates remain open.
+- [x] [Bosses](2026-10-16-eight-domain-production-readiness-bosses.md) T1 isolated maintained-chain baseline complete; image, V2, and release gates remain open.
+- [x] [Armor Sets](2026-10-16-eight-domain-production-readiness-armor-sets.md) T1 isolated maintained-chain baseline complete; image, ownership, V2, and release gates remain open.
+- [x] [Buffs](2026-10-16-eight-domain-production-readiness-buffs.md) T1 isolated maintained-chain baseline complete; unresolved identities, V2, and release gates remain open.
+- [x] [Shimmer](2026-10-16-eight-domain-production-readiness-shimmer.md) T1 local-offline baseline complete; V2, error matrix and release readiness remain open in the parent plan.
 
 ## 8. Stop Conditions
 

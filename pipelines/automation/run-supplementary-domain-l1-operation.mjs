@@ -50,6 +50,7 @@ import {
   automaticReconciliationRoot,
   assertAutomaticAttemptMatches,
 } from './automatic-execution-artifacts.mjs';
+import { connectionOptions as isolatedConnectionOptions } from './eight-domain-v2-isolated-acceptance.mjs';
 
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const CRITICAL_ALERT_RETRY_ROOT = 'reports/runtime/automation-alert-retry';
@@ -2165,7 +2166,11 @@ export async function runSupplementaryL1OperationCli({
   assertCliBundleArtifact({ repoRoot, inputPath, bundle });
   assertCliResultOutputPath({ repoRoot, inputPath, outputPath, bundle });
   const authorizationContext = loadAuthorizationContextImpl({ env, operationId, now });
-  const connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env));
+  const connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env, {
+    domain: bundle.domainId,
+    repoRoot,
+    manifestPath: env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH,
+  }));
   try {
     const result = await executeSupplementaryL1Operation({
         adapter: createMysqlSupplementaryL1Adapter(connection, {
@@ -2810,23 +2815,8 @@ function parseArgs(argv) {
   }));
 }
 
-export function connectionOptions(env) {
-  const port = Number(requireText(env.TERRAPEDIA_DB_PORT, 'TERRAPEDIA_DB_PORT'));
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error('TERRAPEDIA_DB_PORT must be an integer from 1 to 65535');
-  }
-  if (env.TERRAPEDIA_DB_NAME !== 'terria_v1_local') {
-    throw new Error('TERRAPEDIA_DB_NAME must be exactly terria_v1_local');
-  }
-  return {
-    host: requireText(env.TERRAPEDIA_DB_HOST, 'TERRAPEDIA_DB_HOST'),
-    port,
-    user: requireText(env.TERRAPEDIA_DB_USERNAME, 'TERRAPEDIA_DB_USERNAME'),
-    password: requireText(env.TERRAPEDIA_DB_PASSWORD, 'TERRAPEDIA_DB_PASSWORD'),
-    database: 'terria_v1_local',
-    multipleStatements: false,
-    dateStrings: true,
-  };
+export function connectionOptions(env, context = {}) {
+  return isolatedConnectionOptions(env, context);
 }
 
 function generationScopeHash(scope) {

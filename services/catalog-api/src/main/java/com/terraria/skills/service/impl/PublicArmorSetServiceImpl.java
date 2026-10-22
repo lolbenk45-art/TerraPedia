@@ -12,6 +12,7 @@ import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.PublicArmorSetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -26,7 +27,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
-    private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
     private static final String PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE = "projection_item_armor_attributes";
     private static final String PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE = "projection_equipment_effect_attributes";
@@ -34,6 +34,8 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
+    @Value("${terraria.crawler.cross-db.relation-database:terria_v1_relation}")
+    private String relationDatabaseName;
 
     @Override
     public Page<PublicArmorSetListDTO> getPublicArmorSets(PublicArmorSetQuery query) {
@@ -116,15 +118,19 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
     }
 
     private String qualifiedProjectionTable() {
-        return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
+        return "`" + relationDatabaseName() + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
     }
 
     private String qualifiedEquipmentEffectTable() {
-        return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE + "`";
+        return "`" + relationDatabaseName() + "`.`" + PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE + "`";
     }
 
     private String qualifiedItemArmorAttributeTable() {
-        return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE + "`";
+        return "`" + relationDatabaseName() + "`.`" + PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE + "`";
+    }
+
+    private String relationDatabaseName() {
+        return relationDatabaseName == null || relationDatabaseName.isBlank() ? "terria_v1_relation" : relationDatabaseName;
     }
 
     private PublicArmorSetListDTO toListDto(

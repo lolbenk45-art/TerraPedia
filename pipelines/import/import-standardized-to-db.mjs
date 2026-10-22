@@ -323,7 +323,7 @@ async function ensureKnownCategories(conn, categoryByCode) {
   }
 }
 
-async function ensureItemCategories(conn, itemRecords, categoryByCode, stats) {
+async function ensureItemCategories(conn, itemRecords, categoryByCode, stats, { requireExisting = false } = {}) {
   const codes = new Set();
   const records = Array.isArray(itemRecords) ? itemRecords : [];
   for (const raw of records) {
@@ -333,6 +333,12 @@ async function ensureItemCategories(conn, itemRecords, categoryByCode, stats) {
 
   stats.input = codes.size;
   if (codes.size === 0) return;
+
+  if (requireExisting) {
+    const missingCodes = [...codes].filter((code) => !categoryByCode.has(code)).sort();
+    if (missingCodes.length > 0) throw new Error(`missing active Item categories: ${missingCodes.join(', ')}`);
+    return;
+  }
 
   await ensureKnownCategories(conn, categoryByCode);
 
@@ -483,7 +489,7 @@ async function loadBiomeCodeMap(conn) {
   return map;
 }
 
-async function importItems(conn, records, categoryByCode, stats, existingRows = null) {
+async function importItems(conn, records, categoryByCode, stats, existingRows = null, { preserveSourceIds = false } = {}) {
   stats.input = Array.isArray(records) ? records.length : 0;
   if (!Array.isArray(records) || records.length === 0) return;
 
@@ -605,12 +611,16 @@ async function importItems(conn, records, categoryByCode, stats, existingRows = 
       continue;
     }
 
-    const [result] = await conn.execute(
-      `INSERT INTO items
+    const insertSql = preserveSourceIds
+      ? `INSERT INTO items
+        (id, name, internal_name, image, category_id, description, damage, defense, knockback, use_time, width, height, buy, sell, tooltip, rarity_id, game_period_id, game_model_id, is_stackable, stack_size, status, deleted)
+       VALUES
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
+      : `INSERT INTO items
         (name, internal_name, image, category_id, description, damage, defense, knockback, use_time, width, height, buy, sell, tooltip, rarity_id, game_period_id, game_model_id, is_stackable, stack_size, status, deleted)
        VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-      [
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
+    const insertParams = [
         payload.name,
         payload.internalName,
         payload.image,
@@ -631,10 +641,14 @@ async function importItems(conn, records, categoryByCode, stats, existingRows = 
         payload.isStackable,
         payload.stackSize,
         payload.status,
-      ]
-    );
+      ];
+    if (preserveSourceIds) {
+      insertParams.unshift(Number(raw.id));
+      insertParams[1] = payload.name;
+    }
+    const [result] = await conn.execute(insertSql, insertParams);
 
-    const insertedId = Number(result.insertId);
+    const insertedId = preserveSourceIds ? Number(raw.id) : Number(result.insertId);
     existingLookup.byInternal.set(payload.internalName, insertedId);
     existingLookup.byName.set(payload.name.toLowerCase(), insertedId);
     existingLookup.byId.set(insertedId, {
@@ -1841,6 +1855,7 @@ async function main() {
 
 export async function runStandardizedImportWithConnection(conn, {
   dryRun = true,
+  preserveItemSourceIds = false,
   dataDir = null,
   wikiBiomesFile = null,
   datasets = {},
@@ -1854,6 +1869,16 @@ export async function runStandardizedImportWithConnection(conn, {
     wikiBiomesDataset = null,
   } = datasets;
 
+  if (preserveItemSourceIds) {
+    if (!Array.isArray(itemsDataset?.records) || itemsDataset.records.length === 0) {
+      throw new Error('stable Item source IDs require non-empty standardized Item records');
+    }
+    const ids = itemsDataset.records.map((record) => Number(record?.id));
+    if (ids.some((id) => !Number.isSafeInteger(id) || id <= 0) || new Set(ids).size !== ids.length) {
+      throw new Error('stable Item source IDs must be unique positive safe integers');
+    }
+  }
+
   const summary = makeSummary();
 
   await conn.query('SET NAMES utf8mb4');
@@ -1863,9 +1888,13 @@ export async function runStandardizedImportWithConnection(conn, {
   await conn.beginTransaction();
   try {
     const categoryByCode = await loadCategoryCodeMap(conn);
-    await ensureItemCategories(conn, itemsDataset.records, categoryByCode, summary.categorySync);
+    await ensureItemCategories(conn, itemsDataset.records, categoryByCode, summary.categorySync, {
+      requireExisting: preserveItemSourceIds,
+    });
 
-    await importItems(conn, itemsDataset.records, categoryByCode, summary.items);
+    await importItems(conn, itemsDataset.records, categoryByCode, summary.items, null, {
+      preserveSourceIds: preserveItemSourceIds,
+    });
     const itemLookup = await loadItemLookup(conn);
 
     const relationRecords = relationsDataset.records ?? {};

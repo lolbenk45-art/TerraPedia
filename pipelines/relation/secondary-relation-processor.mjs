@@ -225,6 +225,65 @@ function resolveBuffFactIdentities(row, options = {}) {
   return resolveReviewedBuffNpcAliases(row, options.index);
 }
 
+export function buildBuffSourceNpcRelations({ maintBuffRows = [], maintNpcRows = [] } = {}) {
+  const npcIndex = buildMaintIdentityIndex(maintNpcRows);
+  const seen = new Set();
+  return maintBuffRows.flatMap((buff) => {
+    const raw = parseJsonObject(buff.raw_json);
+    const trace = normalizeTrace('maint_buffs', buff);
+    const buffSourceId = toNullableNumber(buff.source_id);
+    const buffInternalName = normalizeText(buff.internal_name);
+    if (buffSourceId == null || buffInternalName == null) throw new Error('Buff source NPC relation parent identity is invalid');
+    const facts = [
+      ...(Array.isArray(raw.inflictingNpcs) ? raw.inflictingNpcs.map((fact, index) => ({ fact, relationType: 'inflicts', index })) : []),
+      ...(Array.isArray(raw.immuneNpcs) ? raw.immuneNpcs.map((fact, index) => ({ fact, relationType: 'immune', index })) : []),
+    ];
+    return facts.flatMap(({ fact, relationType, index }) => {
+      if (fact?.resolveStatus === 'unresolved') return [];
+      const npcSourceId = toNullableNumber(fact?.npcId ?? fact?.npcSourceId ?? fact?.sourceId);
+      const sourceInternalName = normalizeText(fact?.internalName ?? fact?.npcInternalName);
+      if (npcSourceId == null || npcSourceId === 0 || sourceInternalName == null) {
+        throw new Error(`Buff ${buffInternalName} ${relationType} fact is missing a stable NPC identity`);
+      }
+      const npc = npcIndex.bySourceId.get(npcSourceId) ?? null;
+      if (!npc) throw new Error(`Buff ${buffInternalName} ${relationType} NPC source ID ${npcSourceId} is not seeded`);
+      const aliases = REVIEWED_BUFF_NPC_ALIAS_TARGETS[sourceInternalName] ?? [];
+      if (npc.internalName !== sourceInternalName && !aliases.includes(npc.internalName)) {
+        throw new Error(`Buff ${buffInternalName} ${relationType} NPC identity drifted for source ID ${npcSourceId}`);
+      }
+      const recordKey = createRecordKey({
+        type: 'npc_buff_relation',
+        relationType,
+        buffSourceId,
+        buffInternalName,
+        npcSourceId,
+        npcInternalName: npc.internalName,
+        sortOrder: index,
+      });
+      if (seen.has(recordKey)) throw new Error(`Buff ${buffInternalName} contains duplicate ${relationType} NPC facts`);
+      seen.add(recordKey);
+      return [{
+        recordKey,
+        npcSourceId,
+        npcInternalName: npc.internalName,
+        npcName: npc.name ?? normalizeText(fact.name),
+        buffSourceId,
+        buffInternalName,
+        relationType,
+        durationTicks: relationType === 'inflicts' ? toNullableNumber(fact.buffTime) : null,
+        chanceValue: null,
+        chanceText: null,
+        conditions: null,
+        reviewStatus: relationStatus.resolved,
+        confidence: confidence.high,
+        reason: relationType === 'inflicts' ? 'maint_buff_inflicting_npc' : 'maint_buff_immune_npc',
+        rawJson: JSON.stringify(fact),
+        ...trace,
+      }];
+    });
+  });
+}
+
 function buildBuffFactIssue({
   buffRow,
   factRow,

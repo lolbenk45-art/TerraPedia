@@ -54,6 +54,8 @@ export function parseArgs(argv) {
     domains: raw.domains
       ? String(raw.domains).split(',').map((value) => value.trim()).filter(Boolean)
       : null,
+    itemIds: raw['item-ids'] ? String(raw['item-ids']).split(',').map((value) => Number(value.trim())) : null,
+    itemIds: raw['item-ids'] ? String(raw['item-ids']).split(',').map((value) => Number(value.trim())) : null,
     dateTag: raw['date-tag'] ?? raw.dateTag ?? null,
     backupSuffix: raw['backup-suffix'] ?? raw.backupSuffix ?? null
   };
@@ -182,7 +184,8 @@ export function buildUpsertProjectionSql({
   relationDatabase,
   localTable,
   projectionTable,
-  columnMappings
+  columnMappings,
+  whereClause = null,
 }) {
   if (!columnMappings.length) {
     throw new Error(`No shared columns available for ${localTable} <= ${projectionTable}`);
@@ -195,7 +198,8 @@ export function buildUpsertProjectionSql({
   const updateList = updateColumns.length > 0
     ? updateColumns.map((column) => `${quoteIdentifier(column)} = VALUES(${quoteIdentifier(column)})`).join(', ')
     : `${quoteIdentifier(localColumns[0])} = ${quoteIdentifier(localColumns[0])}`;
-  return `INSERT INTO ${qualified(localDatabase, localTable)} (${columnList}) SELECT ${projectionSelectList} FROM ${qualified(relationDatabase, projectionTable)} ON DUPLICATE KEY UPDATE ${updateList}`;
+  const whereSql = whereClause ? ` WHERE ${whereClause}` : '';
+  return `INSERT INTO ${qualified(localDatabase, localTable)} (${columnList}) SELECT ${projectionSelectList} FROM ${qualified(relationDatabase, projectionTable)}${whereSql} ON DUPLICATE KEY UPDATE ${updateList}`;
 }
 
 async function defaultListColumns(connection, database, table) {
@@ -215,6 +219,14 @@ async function defaultListColumns(connection, database, table) {
 async function defaultCountRows(connection, database, table) {
   const [rows] = await connection.query(`SELECT COUNT(*) AS total FROM ${qualified(database, table)}`);
   return Number(rows[0]?.total ?? 0);
+}
+
+async function defaultListProjectionIds(connection, relationDatabase, itemIds) {
+  const values = itemIds.join(', ');
+  const [rows] = await connection.query(
+    `SELECT id FROM ${qualified(relationDatabase, 'projection_items')} WHERE id IN (${values}) ORDER BY id`
+  );
+  return rows.map((row) => Number(row.id));
 }
 
 async function defaultWriteReport(report) {
@@ -256,7 +268,17 @@ async function backupAndApplyDomain(connection, options, domain) {
         relationDatabase: options.relationDatabase,
         localTable: domain.localTable,
         projectionTable: domain.projectionTable,
-        columnMappings: domain.columnMappings
+        columnMappings: domain.columnMappings,
+      }));
+    } else if (domain.syncStrategy === 'upsert_selected_ids_preserve_local') {
+      const ids = options.itemIds.join(', ');
+      await connection.query(buildUpsertProjectionSql({
+        localDatabase: options.localDatabase,
+        relationDatabase: options.relationDatabase,
+        localTable: domain.localTable,
+        projectionTable: domain.projectionTable,
+        columnMappings: domain.columnMappings,
+        whereClause: `\`id\` IN (${ids})`,
       }));
     } else {
       await connection.query(`DELETE FROM ${localTableName}`);
@@ -278,16 +300,30 @@ async function backupAndApplyDomain(connection, options, domain) {
 
 export async function runProjectionToLocalCoreSync(options = {}, dependencies = {}) {
   const now = dependencies.now ?? new Date();
+  const itemIds = options.itemIds == null ? null : options.itemIds;
+  if (itemIds != null) {
+    if (!Array.isArray(itemIds) || itemIds.length === 0
+        || itemIds.some((id) => !Number.isSafeInteger(id) || id < 1)
+        || new Set(itemIds).size !== itemIds.length) {
+      throw new TypeError('projection itemIds must be unique positive safe integers');
+    }
+    const domains = Array.isArray(options.domains) ? options.domains : null;
+    if (!domains || domains.length !== 1 || domains[0] !== 'items') {
+      throw new Error("projection itemIds requires domains to be exactly ['items']");
+    }
+  }
   const normalized = {
     apply: Boolean(options.apply),
     localDatabase: options.localDatabase ?? 'terria_v1_local',
     relationDatabase: options.relationDatabase ?? 'terria_v1_relation',
     domains: Array.isArray(options.domains) && options.domains.length > 0 ? options.domains : Object.keys(DOMAIN_CONFIG),
+    itemIds: itemIds == null ? null : Object.freeze([...itemIds]),
     dateTag: options.dateTag ?? toDateTag(now),
     backupSuffix: options.backupSuffix ?? toBackupSuffix(now)
   };
   const listColumns = dependencies.listColumns ?? defaultListColumns;
   const countRows = dependencies.countRows ?? defaultCountRows;
+  const listProjectionIds = dependencies.listProjectionIds ?? defaultListProjectionIds;
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
   const executeLocal = dependencies.executeLocal
     ?? ((fn) => defaultExecuteLocal(normalized.localDatabase, dependencies, fn));
@@ -302,8 +338,10 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
         countRows(connection, normalized.relationDatabase, config.projectionTable)
       ]);
       const columnSelection = selectColumnsToSync(domainName, config.localTable, localColumns, projectionColumns);
-      const syncStrategy = LOCAL_PRESERVE_COLUMNS[config.localTable]
-        ? 'upsert_preserve_local'
+      const syncStrategy = normalized.itemIds != null && domainName === 'items'
+        ? 'upsert_selected_ids_preserve_local'
+        : LOCAL_PRESERVE_COLUMNS[config.localTable]
+          ? 'upsert_preserve_local'
         : 'replace';
       domains[domainName] = {
         domain: domainName,
@@ -313,6 +351,7 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
         localRowsBefore: localRows,
         projectionRows,
         syncStrategy,
+        ...(normalized.itemIds != null && domainName === 'items' ? { itemIds: normalized.itemIds } : {}),
         columnMappings: columnSelection.columnMappings,
         columnsToSync: columnSelection.columnsToSync,
         skippedProtectedColumns: columnSelection.skippedProtectedColumns
@@ -320,6 +359,14 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
     }
 
     if (normalized.apply) {
+      if (normalized.itemIds != null) {
+        const observedIds = await listProjectionIds(connection, normalized.relationDatabase, normalized.itemIds);
+        if (!Array.isArray(observedIds)
+            || new Set(observedIds).size !== observedIds.length
+            || [...observedIds].sort((a, b) => a - b).join(',') !== [...normalized.itemIds].sort((a, b) => a - b).join(',')) {
+          throw new Error('Selected Item IDs are not exactly present in the isolated projection before local sync');
+        }
+      }
       const emptyProjectionBlockers = Object.values(domains)
         .filter((domain) => domain.localRowsBefore > 0 && domain.projectionRows === 0);
       if (emptyProjectionBlockers.length > 0) {

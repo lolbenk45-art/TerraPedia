@@ -2573,6 +2573,19 @@ class CrawlerMonitorServiceImplTest {
 
     @Test
     void shouldExposeDomainSourceSnapshotRegisteredTasksWithoutLatestBackendRefreshRun() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/domain-source-npcs-progress.latest.json"), Map.ofEntries(
+            Map.entry("actionId", "domain-source-npcs"),
+            Map.entry("status", "completed"),
+            Map.entry("phase", "decision"),
+            Map.entry("message", "selected local-unchanged"),
+            Map.entry("current", 1),
+            Map.entry("total", 1),
+            Map.entry("percent", 100),
+            Map.entry("outputPath", ".local/tmp/eight-domain-production-readiness/20261017/npcs/source-decision.json"),
+            Map.entry("childStatusPath", "data/generated/domain-source-npcs-progress.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-05-24T01:02:00Z"),
+            Map.entry("generatedAt", "2026-05-24T01:02:00Z")
+        ));
         Path bossesProgressPath = repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json");
         writeJson(bossesProgressPath, Map.ofEntries(
             Map.entry("actionId", "domain-source-bosses"),
@@ -2651,6 +2664,13 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("2026-05-24T01:00:00Z", bosses.getProgressHeartbeatAt());
         assertEquals(300_000L, bosses.getProgressHeartbeatAgeMs());
         assertFalse(bosses.isProgressStale());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO npcProbe = taskById(overview.getRegisteredTasks(), "domain-source-npcs");
+        assertEquals("NPC source fingerprint probe", npcProbe.getLabel());
+        assertEquals("completed", npcProbe.getStatus());
+        assertEquals("data/generated/domain-source-npcs-progress.latest.json", npcProbe.getProgressPath());
+        assertEquals(".local/tmp/eight-domain-production-readiness/20261017/npcs/source-decision.json", npcProbe.getOutputPath());
+        assertEquals("selected local-unchanged", npcProbe.getQueueState());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO armorSets = taskById(overview.getRegisteredTasks(), "domain-source-armor-sets");
         assertEquals("Domain source: Armor sets", armorSets.getLabel());

@@ -512,7 +512,9 @@ export async function fetchWikiApiJson({
   headers = {},
   body,
   profile = 'revision',
-  sourceKey = null
+  sourceKey = null,
+  timeoutMs = 20_000,
+  maxAttempts = null
 } = {}) {
   if (!url) {
     throw new Error('url is required');
@@ -525,7 +527,9 @@ export async function fetchWikiApiJson({
     headers,
     body,
     profile,
-    sourceKey
+    sourceKey,
+    timeoutMs,
+    maxAttempts
   });
 }
 
@@ -740,6 +744,8 @@ export async function fetchWikiPageMetadataBatch({
   includeLanglinks = false,
   langlinksLanguage = 'zh',
   batchSize = 50,
+  timeoutMs = 20_000,
+  maxAttempts = null,
   fetchWikiApiJsonImpl = fetchWikiApiJson
 } = {}) {
   const requestedTitles = [...new Set((Array.isArray(titles) ? titles : []).map((title) => String(title ?? '').trim()).filter(Boolean))];
@@ -764,7 +770,9 @@ export async function fetchWikiPageMetadataBatch({
     const body = await fetchWikiApiJsonImpl({
       url,
       profile: 'revision',
-      sourceKey: batch[0]
+      sourceKey: batch[0],
+      timeoutMs,
+      maxAttempts
     });
     const rawPages = Array.isArray(body?.query?.pages) ? body.query.pages : [];
     const redirectTargetBySource = new Map(

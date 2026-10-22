@@ -12,24 +12,39 @@ test('isolated allocation contract module is available', () => {
   assert.ok(allocationModule, 'eight-domain isolated allocation contract must be implemented before provisioning');
 });
 
-test('runtime allocation manifests match the fixed eight-domain execution manifest and remain planned', () => {
+test('runtime allocation manifests match the fixed eight-domain execution manifest and have valid states', () => {
   const root = path.resolve(process.cwd());
   const runtimeRoot = path.join(root, 'reports/runtime/eight-domain-production-readiness/20261017');
   const execution = JSON.parse(fs.readFileSync(path.join(runtimeRoot, 'execution-manifest.json'), 'utf8'));
   const redis = JSON.parse(fs.readFileSync(path.join(runtimeRoot, 'redis-allocation-manifest.json'), 'utf8'));
   const objectStore = JSON.parse(fs.readFileSync(path.join(runtimeRoot, 'object-store-allocation-manifest.json'), 'utf8'));
-  assert.deepEqual(redis.allocations.map(({ domain, runId, runKey, logicalDb, status }) => ({ domain, runId, runKey, logicalDb, status })),
+  assert.deepEqual(redis.allocations.map(({ domain, runId, runKey, logicalDb }) => ({ domain, runId, runKey, logicalDb })),
     Object.entries(execution.runIds).map(([domain, runId]) => ({
       domain,
       runId,
       runKey: execution.mysql.runKeys[domain],
       logicalDb: execution.redis.allocatedDatabases[domain],
-      status: 'planned',
     })));
-  assert.deepEqual(objectStore.allocations.map(({ domain, runId, bucket, status }) => ({ domain, runId, bucket, status })), [
-    { domain: 'armor_sets', runId: execution.runIds.armor_sets, bucket: execution.objectStore.buckets.armor_sets, status: 'planned' },
-    { domain: 'bosses', runId: execution.runIds.bosses, bucket: execution.objectStore.buckets.bosses, status: 'planned' },
+  assert.deepEqual(objectStore.allocations.map(({ domain, runId, bucket }) => ({ domain, runId, bucket })), [
+    { domain: 'armor_sets', runId: execution.runIds.armor_sets, bucket: execution.objectStore.buckets.armor_sets },
+    { domain: 'bosses', runId: execution.runIds.bosses, bucket: execution.objectStore.buckets.bosses },
   ]);
+  for (const entry of redis.allocations) {
+    assert.ok(['planned', 'ready'].includes(entry.status));
+    if (entry.status === 'ready') {
+      assert.equal(entry.readiness?.logicalDb, entry.logicalDb);
+      assert.equal(entry.readiness?.dbSize, 0);
+      assert.match(entry.readiness?.processStartIdentity ?? '', /^\d+$/);
+    }
+  }
+  for (const entry of objectStore.allocations) {
+    assert.ok(['planned', 'ready'].includes(entry.status));
+    if (entry.status === 'ready') {
+      assert.equal(entry.readiness?.bucketPresent, true);
+      assert.equal(entry.readiness?.objectCount, 0);
+      assert.match(entry.readiness?.objectListingSha256 ?? '', /^sha256:[a-f0-9]{64}$/);
+    }
+  }
   assert.equal(execution.preflight.status, 'read_only_identity_and_occupancy_passed');
   assert.equal(execution.preflight.allocationEntriesReady, false);
 });
@@ -44,7 +59,7 @@ if (allocationModule) {
     bosses: 'e8pr-bosses-20261017-v1',
     armor_sets: 'e8pr-armor_sets-20261017-v1',
     buffs: 'e8pr-buffs-20261017-v1',
-    shimmer: 'e8pr-shimmer-20261017-v1',
+    shimmer: 'e8pr-shimmer-20261022-v4',
   });
 
   function createFixture(t, root = path.join(os.tmpdir(), 'terrapedia-eight-domain-fixture')) {

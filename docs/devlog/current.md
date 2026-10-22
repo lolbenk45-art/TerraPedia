@@ -1,9 +1,13 @@
 # Current Devlog
 
-Last updated: 2026-10-17 by Codex
+Last updated: 2026-10-22 15:50 CST by Codex
 
 Active branch: `exec/eight-domain-production-readiness`
-Active focus: Lock the eight-domain isolated acceptance plan and resources before execution. Each domain must separately prove basic function, maintained-chain writes, and one real non-fixture V2 attempt; formal production writes and unattended soak remain out of scope.
+Active focus: All eight domains have a completed isolated maintained-chain T1 baseline, and the results and evidence index are recorded. This closes T1 only; V2, Wiki freshness/parity, full production readiness, and formal publication remain open. Pre-merge review recorded three V2 launch/identity blockers in the active parent entry; no V2 run is ready. Next action: commit the T1 closeout, merge this branch into local `main`, then resume the separate V2 design discussion. Latest evidence is Shimmer `e8pr-shimmer-20261022-v4` / `e8p_8deac87b8d22c5c3`. Validation: Node `v26.1.0` `423 passed / 1 skipped`, Maven `403/403`, syntax and whitespace checks passed.
+
+## Open Work
+
+- Eight-domain production readiness: owner Codex; status `active`; branch `exec/eight-domain-production-readiness`; worktree `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; parent entry `docs/devlog/entries/2026-10-16-eight-domain-production-readiness-plan.md`; T1 closeout child entry `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`; dependency: T1 closeout commit; blocked-by: none; contract handoff: T1 proves isolated maintained-chain writes/readback only. Next: merge into local `main`, then discuss V2 source/runner binding and exact attempt acknowledgement; no V2 run or production release is part of this closeout.
 
 ## Isolated real automation ingestion - 2026-10-14
 
@@ -27,6 +31,8 @@ Active focus: Lock the eight-domain isolated acceptance plan and resources befor
 - Next agent start point: use the recorded source reports for delivery; obtain a fresh authorization context after the next Wiki/game-version fingerprint update before any production six-scope import. Natural-tick, soak, and update-repair work remain separate follow-ups.
 
 ## Recently closed
+
+- Eight-domain isolated maintained-chain T1 baseline: all eight domain reports passed; closeout record `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`.
 
 - Three-domain full-recrawl handoff: isolated automated-ingestion acceptance passed; production authorization and future source-delta work remain separate.
 - Local worktree archive: five archived worktrees verified and removed while retaining branch refs and recovery bundles.
@@ -245,9 +251,11 @@ This was an interim runtime reassignment. Later user direction and the current r
 - The durable marker still has the interim DB15 epoch `epoch-ecad0546-cc45-40f7-b374-a115e4b3067b` while retaining the irreversible first-mutation timestamp. Reuse the existing DB16 reset identity and verify its returned epoch; never create a third epoch or manually edit the marker.
 - Pending: build current backend, start only Buff at `18105/DB16`, perform authenticated idempotent recovery, verify marker/API/Redis agreement, scheduler disabled and zero live work/fences, then refresh Phase 0 and continue AUTH-04 decisions serially. Natural source change and data-visible ingestion remain unproven.
 
-## Open work
+## Historical Open Work Snapshot (Superseded By Main Entry Above)
 
-- Owner: Codex coordinator; status `active`; branch `exec/eight-domain-production-readiness`; worktree `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; parent plan [Eight-domain production readiness](../superpowers/plans/2026-10-16-eight-domain-production-readiness.md); entry [Eight-domain production readiness plan](entries/2026-10-16-eight-domain-production-readiness-plan.md). Fixed resources and all eight run IDs remain in `reports/runtime/eight-domain-production-readiness/20261017/execution-manifest.json`; dependencies are installed and static allocation/acceptance contracts pass, but Redis/MinIO/API are not started and no schema/account/business write occurred. Next: build isolated API lifecycle against actual Spring scheduling, migration, and health contracts, then exact dependency seeder, object-store/failure harness, and V2 worker binding. Blockers retained: production runners need isolated local-source mode; bounded Audio/Armor capture and V2 binding need implementation; Armor ownership, Buff identity/source consistency, and Shimmer unresolved references remain production blockers.
+- Latest code-bundle readback supersedes the hash in the owner handoff below: base commit `43d6fabf7e806a459b58aba3feadd04edee8a630`, bundle `sha256:94c2bceac37b6ba4765858ffb94dece5c4c236727c87f22b8ac32eb1910b6166`, 1,304 runtime files. The fixed execution manifest remains pinned to `756ae8bf96f58e6a3c6e7edb256c57bdeb65967c`.
+
+- Owner: Codex coordinator; status `active`; branch `exec/eight-domain-production-readiness`; worktree `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`; parent plan [Eight-domain production readiness](../superpowers/plans/2026-10-16-eight-domain-production-readiness.md); child [Items](../superpowers/plans/2026-10-16-eight-domain-production-readiness-items.md); entry [Eight-domain production readiness plan](entries/2026-10-16-eight-domain-production-readiness-plan.md). Recorded local-source compatibility and crawler interruption/resume gates are passed. The V2 runner target guard, API environment binding, and Java supervisor local-source command injection are implemented and tested, but no run-local source state, source manifest, acceptance manifest, or synthetic activation envelope exists; no sweep has run. The fixed execution manifest still pins `756ae8bf96f58e6a3e6c7edb256c57bdeb65967c`, while the verified current bundle is `sha256:3c70f38a09a638600c0de0e3379862cac653307e790058f3685677d66f598b85` at `43d6fabf7e806a459b58aba3feadd04edee8a630`. Contract handoff: Items T1 proves only the maintained chain; it does not satisfy V2. Use fixed resources MySQL `13306`, Redis `16380` DB1-8, MinIO `19100/19101`; start API `18280` only through the run-bound child lifecycle after its schemas, accounts, and migration evidence exist. Formal publication, unattended scheduler, full-corpus crawl, and other domain children remain open.
 
 - Owner: Codex coordinator, deferred Buff source-contract follow-ups and any newly scoped work.
 - Worktree: `/home/lolben/TerraPedia/.worktrees/automation-domain-buff`.
@@ -595,3 +603,10 @@ Evidence: `.local/tmp/buff-automation-retry-61-toctou-1791443579071.json`,
 and `.local/tmp/buff-automation-retry-61-disable-response-1791450308867.json`.
 Retry-61 is consumed and must not be replayed. Automatic ingestion remains
 open; the next attempt requires a new fresh preflight, packet, and approval.
+
+
+## Remaining-domain test checkpoint - 2026-10-21 12:07 CST
+
+- Audio contract tests `44/44`; bounded Wiki metadata capture stalled without heartbeat and was stopped, with progress marked failed and stale lock removed. No ingestion occurred.
+- Shimmer source/generation/import contract tests `73/73`; no isolated DB ingestion. Armor focused suite stalled and was interrupted; no test result.
+- See `docs/devlog/entries/2026-10-16-eight-domain-production-readiness-plan.md` for evidence and next action. V2 and release gates remain blocked and are not substitutes for domain baselines.

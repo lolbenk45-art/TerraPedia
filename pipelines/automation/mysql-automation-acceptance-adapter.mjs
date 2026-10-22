@@ -13,10 +13,36 @@ import { TABLE_OWNERSHIP_MATRIX } from './table-ownership-matrix.mjs';
 import { buildMaintSchemaSql } from '../maint/maint-schema.mjs';
 import { buildProjectionSchemaStatements } from '../relation/projection-schema.mjs';
 import { buildRelationSchemaStatements } from '../relation/relation-schema.mjs';
+import {
+  dependencyManifestSha256,
+  seedExactDependencies,
+  validateDependencyManifest,
+} from './eight-domain-dependency-seeder.mjs';
 
 const IDENTIFIER = /^[a-z0-9_]+$/;
 const FORMAL_REFERENCE = /terria_v1_(?:local|maint|relation)(?=[^a-z0-9_]|$)/i;
 const SENSITIVE_COLUMN = /(?:password|passwd|secret|token|email|phone|credential|session|cookie)/i;
+const TEMPORARY_MYSQL_ACCOUNT_HOST = '127.0.0.1';
+const OWNED_REDIS_KEY_PREFIXES = Object.freeze([
+  'terrapedia:crawler:wiki-monitor:v2:',
+  'terrapedia:crawler:wiki-monitor:dispatch-queue:',
+  'terrapedia:crawler:backend-refresh:',
+  'terrapedia:crawler:item-pages-refresh:',
+  'terrapedia:crawler:buff-page-immunity-refresh:',
+  'item:public:list:',
+  'item:public:detail:',
+  'item:public:suggestions:',
+  'item:detail:',
+  'item:list:',
+  'item:suggestions:',
+  'item:aggregate:',
+  'home:focus-item:',
+  'security:http-rate:',
+  'security:admin-login:',
+  'security:login:',
+  'security:admin-job-lock:'
+]);
+const AUTOMATION_REDIS_RESERVATION_KEY = 'terrapedia:automation:reservation';
 const PRE_CUTOVER_CANONICAL_TABLES = new Set([
   'local.item_groups',
   'local.item_group_members',
@@ -31,6 +57,11 @@ const PRE_CUTOVER_CANONICAL_TABLES = new Set([
   'relation.relation_item_group_members',
   'relation.relation_item_group_aliases',
 ]);
+
+function requireObject(value, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object`);
+  return value;
+}
 
 function requireIdentifier(value, label) {
   const text = String(value ?? '');
@@ -314,6 +345,7 @@ export function validateTemporaryAccountGrants({ provisionerGrants, readonlyGran
 
   const provisioner = (provisionerGrants ?? []).map(normalizedGrant)
     .filter((grant) => grant && !/^grant usage on \*\.\*/.test(grant));
+  assertLoopbackGrantTargets(provisioner, 'provisioner');
   if (provisioner.some((grant) => / on \*\.\*/.test(grant))) {
     throw new Error('provisioner global grants are forbidden');
   }
@@ -332,6 +364,7 @@ export function validateTemporaryAccountGrants({ provisionerGrants, readonlyGran
   const expectedFormal = new Set(Object.values(FORMAL_DATABASES));
   const readonly = (readonlyGrants ?? []).map(normalizedGrant)
     .filter((grant) => grant && !/^grant usage on \*\.\*/.test(grant));
+  assertLoopbackGrantTargets(readonly, 'formal read-only');
   if (readonly.length !== expectedFormal.size) throw new Error('formal read-only grant set is incomplete');
   for (const target of expectedFormal) {
     const grant = readonly.find((candidate) => candidate.includes(`on \`${target}\`.*`));
@@ -345,6 +378,135 @@ export function validateTemporaryAccountGrants({ provisionerGrants, readonlyGran
   return true;
 }
 
+function assertLoopbackGrantTargets(grants, label) {
+  for (const grant of grants) {
+    if (!/@(?:`127\.0\.0\.1`|'127\.0\.0\.1')$/.test(grant)) {
+      throw new Error(`${label} account grants must target the loopback MySQL host`);
+    }
+  }
+}
+
+const ISOLATED_API_DATABASE_ROLES = Object.freeze(['local', 'maint', 'relation']);
+const ISOLATED_API_DOMAINS = Object.freeze(['items', 'npcs', 'projectiles', 'audio', 'bosses', 'armor_sets', 'buffs', 'shimmer']);
+const ISOLATED_API_READONLY_PRIVILEGES = 'select, show view';
+const ISOLATED_API_V2_READ_PRIVILEGES = 'select, show view';
+const ISOLATED_API_V2_TABLE_PRIVILEGES = 'insert, update, delete';
+
+function validateIsolatedApiDatabaseSet(databases) {
+  if (!databases || typeof databases !== 'object' || Array.isArray(databases)
+      || Object.keys(databases).sort().join(',') !== [...ISOLATED_API_DATABASE_ROLES].sort().join(',')) {
+    throw new Error('isolated API account requires exactly local, maint, and relation databases');
+  }
+  const values = ISOLATED_API_DATABASE_ROLES.map((role) => requireIdentifier(databases[role], `${role} isolated API database`));
+  if (values.some((name) => Object.values(FORMAL_DATABASES).includes(name))) {
+    throw new Error('formal databases are forbidden for isolated API accounts');
+  }
+  const prefix = values[0].replace(/_local$/, '');
+  if (!values[0].endsWith('_local') || databases.maint !== `${prefix}_maint`
+      || databases.relation !== `${prefix}_relation`
+      || !/^terria_v1_automation_acceptance_[a-z0-9_]+$/.test(prefix)) {
+    throw new Error('isolated API schemas must be one exact run-derived T1 database set');
+  }
+  return Object.freeze(Object.fromEntries(ISOLATED_API_DATABASE_ROLES.map((role) => [role, databases[role]])));
+}
+
+function validateIsolatedApiAccountNames(accountNames) {
+  const values = requireObject(accountNames, 'isolated API account names');
+  const apiReadonly = requireIdentifier(values.apiReadonly, 'apiReadonly account');
+  const apiV2Test = requireIdentifier(values.apiV2Test, 'apiV2Test account');
+  if (apiReadonly === apiV2Test) throw new Error('isolated API account names must be distinct');
+  return Object.freeze({ apiReadonly, apiV2Test });
+}
+
+function requireIsolatedApiDomain(domain) {
+  if (!ISOLATED_API_DOMAINS.includes(domain)) throw new Error(`unsupported isolated API domain: ${String(domain)}`);
+  return domain;
+}
+
+function apiGrantSignature(grant) {
+  const normalized = normalizedGrant(grant);
+  const match = normalized.match(/^grant (.+?) on `?([a-z0-9_]+)`?\.(?:`?([a-z0-9_]+)`?|\*)/);
+  if (!match) return null;
+  const hostMatch = normalized.match(/@(?:`([^`]+)`|'([^']+)')$/);
+  return { privileges: match[1], database: match[2], table: match[3] ?? null, host: hostMatch?.[1] ?? hostMatch?.[2] ?? null };
+}
+
+function nonUsageGrants(grants) {
+  return (grants ?? []).map(normalizedGrant).filter((grant) => grant && !/^grant usage on \*\.\*/.test(grant));
+}
+
+export function buildIsolatedApiAccountGrants({ domain, databases, accountNames } = {}) {
+  const targetDomain = requireIsolatedApiDomain(domain);
+  const targetDatabases = validateIsolatedApiDatabaseSet(databases);
+  const targets = validateIsolatedApiAccountNames(accountNames);
+  const grants = [
+    ...ISOLATED_API_DATABASE_ROLES.map((role) => Object.freeze({
+      role: 'apiReadonly',
+      database: targetDatabases[role],
+      table: null,
+      privileges: Object.freeze(['SELECT', 'SHOW VIEW']),
+      sql: `GRANT SELECT, SHOW VIEW ON \`${targetDatabases[role]}\`.* TO ${sqlString(targets.apiReadonly)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}'`,
+    })),
+    ...ISOLATED_API_DATABASE_ROLES.map((role) => Object.freeze({
+      role: 'apiV2Test',
+      database: targetDatabases[role],
+      table: null,
+      privileges: Object.freeze(['SELECT', 'SHOW VIEW']),
+      sql: `GRANT SELECT, SHOW VIEW ON \`${targetDatabases[role]}\`.* TO ${sqlString(targets.apiV2Test)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}'`,
+    })),
+  ];
+  const writableTables = new Set(TABLE_OWNERSHIP_MATRIX
+    .filter((entry) => entry.capability === targetDomain && entry.writeMode === 'write')
+    .map((entry) => `${entry.databaseRole}.${entry.table}`));
+  if (writableTables.size === 0) throw new Error(`isolated API domain ${targetDomain} has no registered writable tables`);
+  writableTables.add('local.crawler_automation_alert');
+  for (const qualifiedTable of [...writableTables].sort()) {
+    const [databaseRole, table] = qualifiedTable.split('.');
+    if (!ISOLATED_API_DATABASE_ROLES.includes(databaseRole)) throw new Error('isolated API write table has an unknown database role');
+    requireIdentifier(table, 'isolated API writable table');
+    grants.push(Object.freeze({
+      role: 'apiV2Test',
+      database: targetDatabases[databaseRole],
+      table,
+      privileges: Object.freeze(['INSERT', 'UPDATE', 'DELETE']),
+      sql: `GRANT INSERT, UPDATE, DELETE ON \`${targetDatabases[databaseRole]}\`.\`${table}\` TO ${sqlString(targets.apiV2Test)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}'`,
+    }));
+  }
+  return Object.freeze(grants);
+}
+
+export function validateIsolatedApiAccountGrants({ domain, apiReadonlyGrants, apiV2TestGrants, databases, includeTablePrivileges = true } = {}) {
+  const targetDomain = requireIsolatedApiDomain(domain);
+  const targetDatabases = validateIsolatedApiDatabaseSet(databases);
+  const expectedDatabases = new Set(Object.values(targetDatabases));
+  const readonlyExpected = new Set([...expectedDatabases].map((database) => `${ISOLATED_API_READONLY_PRIVILEGES}|${database}|`));
+  const readonlyObserved = nonUsageGrants(apiReadonlyGrants).map(apiGrantSignature);
+  if (readonlyObserved.some((entry) => !entry || entry.host !== TEMPORARY_MYSQL_ACCOUNT_HOST
+      || entry.table != null || !readonlyExpected.delete(`${entry.privileges}|${entry.database}|`))
+      || readonlyExpected.size !== 0) {
+    throw new Error('apiReadonly grants exceed the exact isolated database set or privilege scope');
+  }
+
+  const v2Expected = new Set([...expectedDatabases].map((database) => `${ISOLATED_API_V2_READ_PRIVILEGES}|${database}|`));
+  if (includeTablePrivileges) {
+    const writableTables = new Set(TABLE_OWNERSHIP_MATRIX
+      .filter((entry) => entry.capability === targetDomain && entry.writeMode === 'write')
+      .map((entry) => `${targetDatabases[entry.databaseRole]}|${entry.table}`));
+    writableTables.add(`${targetDatabases.local}|crawler_automation_alert`);
+    for (const table of writableTables) v2Expected.add(`${ISOLATED_API_V2_TABLE_PRIVILEGES}|${table}`);
+  }
+  const v2Observed = nonUsageGrants(apiV2TestGrants).map(apiGrantSignature);
+  for (const entry of v2Observed) {
+    if (!entry || entry.host !== TEMPORARY_MYSQL_ACCOUNT_HOST) {
+      throw new Error('apiV2Test grant is not loopback-host and database/table scoped');
+    }
+    const key = `${entry.privileges}|${entry.database}|${entry.table ?? ''}`;
+    if (!v2Expected.delete(key)) throw new Error('apiV2Test grant exceeds the exact run database/table privilege set');
+  }
+  if (v2Expected.size !== 0) throw new Error('apiV2Test grant set is missing an exact database/table grant');
+  return true;
+}
+
 function sqlString(value) {
   const text = String(value ?? '');
   if (!/^[a-zA-Z0-9_.:@-]+$/.test(text)) throw new Error('unsafe SQL literal');
@@ -353,6 +515,33 @@ function sqlString(value) {
 
 function parseLines(value) {
   return String(value ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+async function readIsolatedSchemaFingerprint(client, database) {
+  requireIdentifier(database, 'schema fingerprint database');
+  const tables = parseLines(await client.query(
+    "SELECT table_name, table_type, COALESCE(engine, '') FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_name",
+    database,
+  ));
+  const columns = parseLines(await client.query(
+    "SELECT table_name, ordinal_position, column_name, column_type, is_nullable, COALESCE(HEX(column_default), ''), extra FROM information_schema.columns WHERE table_schema = DATABASE() ORDER BY table_name, ordinal_position",
+    database,
+  ));
+  const indexes = parseLines(await client.query(
+    "SELECT table_name, index_name, non_unique, seq_in_index, column_name, COALESCE(sub_part, 0), index_type FROM information_schema.statistics WHERE table_schema = DATABASE() ORDER BY table_name, index_name, seq_in_index",
+    database,
+  ));
+  const triggers = parseLines(await client.query(
+    "SELECT trigger_name, event_manipulation, event_object_table, action_timing, SHA2(action_statement, 256) FROM information_schema.triggers WHERE trigger_schema = DATABASE() ORDER BY trigger_name",
+    database,
+  ));
+  const shape = Object.freeze({ tables, columns, indexes, triggers });
+  return Object.freeze({
+    database,
+    tableCount: tables.length,
+    tablesSha256: sha256Text(JSON.stringify(shape)),
+    shape,
+  });
 }
 
 function createRedisCommandClient({ host, port, password = '', execute = defaultExecute } = {}) {
@@ -368,6 +557,16 @@ function createRedisCommandClient({ host, port, password = '', execute = default
         throw new Error(`redis command failed: ${String(result.stderr ?? '').trim() || `exit ${result.exitCode}`}`);
       }
       return String(result.stdout ?? '').trim();
+    },
+    async scan(logicalDb) {
+      assertAutomationRedisLogicalDb(logicalDb, 'automation Redis logical DB');
+      const args = ['--raw', '-h', host, '-p', String(port), '-n', String(logicalDb), '--scan'];
+      const env = password ? { REDISCLI_AUTH: String(password) } : {};
+      const result = await execute({ command: 'redis-cli', args, stdin: '', env });
+      if (result.exitCode !== 0) {
+        throw new Error(`redis key scan failed: ${String(result.stderr ?? '').trim() || `exit ${result.exitCode}`}`);
+      }
+      return String(result.stdout ?? '').split(/\r?\n/).map((key) => key.trim()).filter(Boolean);
     }
   });
 }
@@ -375,6 +574,44 @@ function createRedisCommandClient({ host, port, password = '', execute = default
 function migrationVersion(fileName) {
   const match = /^V(\d+)__.+\.sql$/.exec(fileName);
   return match ? Number(match[1]) : null;
+}
+
+function sha256Text(value) {
+  return `sha256:${createHash('sha256').update(String(value), 'utf8').digest('hex')}`;
+}
+
+export function buildIsolatedMigrationInputManifest({ repoRoot } = {}) {
+  const root = path.resolve(String(repoRoot ?? ''));
+  if (!root || root === path.parse(root).root) throw new Error('migration manifest repoRoot is required');
+  const sourceFiles = [
+    ['maint', path.join(root, 'pipelines/maint/maint-schema.mjs'), buildMaintSchemaSql()],
+    ['relation', path.join(root, 'pipelines/relation/relation-schema.mjs'), buildRelationSchemaStatements().join('\n')],
+    ['projection', path.join(root, 'pipelines/relation/projection-schema.mjs'), buildProjectionSchemaStatements().join('\n')],
+  ];
+  const schemaBuilders = sourceFiles.map(([id, absolutePath, output]) => {
+    if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+      throw new Error(`migration schema-builder source is missing: ${absolutePath}`);
+    }
+    return Object.freeze({
+      id,
+      path: path.relative(root, absolutePath).split(path.sep).join('/'),
+      sourceSha256: sha256Text(fs.readFileSync(absolutePath, 'utf8')),
+      outputSha256: sha256Text(output),
+    });
+  });
+  const migrationDirectory = path.join(root, 'services/catalog-api/src/main/resources/db/migration');
+  if (!fs.existsSync(migrationDirectory) || !fs.statSync(migrationDirectory).isDirectory()) {
+    throw new Error(`isolated migration directory is missing: ${migrationDirectory}`);
+  }
+  const migrationFiles = fs.readdirSync(migrationDirectory)
+    .filter((name) => migrationVersion(name) !== null)
+    .sort((left, right) => migrationVersion(left) - migrationVersion(right))
+    .map((name) => Object.freeze({
+      path: path.relative(root, path.join(migrationDirectory, name)).split(path.sep).join('/'),
+      version: migrationVersion(name),
+      sha256: sha256Text(fs.readFileSync(path.join(migrationDirectory, name), 'utf8')),
+    }));
+  return Object.freeze({ schemaVersion: 1, schemaBuilders: Object.freeze(schemaBuilders), migrationFiles: Object.freeze(migrationFiles) });
 }
 
 function localMigrationSql(repoRoot, isolatedMaintDatabase, isolatedLocalDatabase) {
@@ -423,10 +660,13 @@ export async function createLiveAutomationAdapter({
   environmentId,
   accountNames,
   accountPasswords,
+  isolatedApiDatabases = null,
+  isolatedApiDomain = null,
   execute = defaultExecute,
   maxRowsPerTable = 2
 } = {}) {
   const root = path.resolve(String(repoRoot ?? ''));
+  const migrationInputManifest = buildIsolatedMigrationInputManifest({ repoRoot: root });
   const bootstrap = createMysqlCommandClient({ ...mysql, execute });
   const provisioner = createMysqlCommandClient({
     ...mysql, username: accountNames.provisioner, password: accountPasswords.provisioner, execute
@@ -434,6 +674,27 @@ export async function createLiveAutomationAdapter({
   const readonly = createMysqlCommandClient({
     ...mysql, username: accountNames.readonly, password: accountPasswords.readonly, execute
   });
+  const isolatedApi = isolatedApiDatabases == null ? null : Object.freeze({
+    databases: validateIsolatedApiDatabaseSet(isolatedApiDatabases),
+    domain: requireIsolatedApiDomain(isolatedApiDomain),
+    accountNames: validateIsolatedApiAccountNames(accountNames),
+  });
+  if (isolatedApi) {
+    const allNames = [accountNames.provisioner, accountNames.readonly, isolatedApi.accountNames.apiReadonly, isolatedApi.accountNames.apiV2Test]
+      .map((name) => requireIdentifier(name, 'temporary account'));
+    if (new Set(allNames).size !== allNames.length) throw new Error('temporary account names must be distinct');
+    for (const role of ['apiReadonly', 'apiV2Test']) {
+      if (!String(accountPasswords?.[role] ?? '') || /[\r\n\0]/.test(accountPasswords[role])) {
+        throw new Error(`isolated API ${role} password is required`);
+      }
+    }
+  }
+  const apiReadonly = isolatedApi ? createMysqlCommandClient({
+    ...mysql, username: isolatedApi.accountNames.apiReadonly, password: accountPasswords.apiReadonly, execute
+  }) : null;
+  const apiV2Test = isolatedApi ? createMysqlCommandClient({
+    ...mysql, username: isolatedApi.accountNames.apiV2Test, password: accountPasswords.apiV2Test, execute
+  }) : null;
   const redisClient = createRedisCommandClient({ ...redis, execute });
   const snapshotDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-automation-snapshot-'));
   fs.chmodSync(snapshotDirectory, 0o700);
@@ -441,6 +702,10 @@ export async function createLiveAutomationAdapter({
   let accountsCreated = false;
   let accountsAttempted = false;
   let activeReservation = null;
+  let apiAccountGrantEvidence = null;
+  let apiTablePrivilegesGranted = false;
+  const appliedMigrations = [];
+  const schemaFingerprints = new Map();
 
   async function ensureAccounts() {
     if (accountsCreated) return;
@@ -449,10 +714,17 @@ export async function createLiveAutomationAdapter({
     const pp = sqlString(accountPasswords.provisioner);
     const rp = sqlString(accountPasswords.readonly);
     accountsAttempted = true;
-    await bootstrap.query(`CREATE USER ${sqlString(p)}@'%' IDENTIFIED BY ${pp}`);
-    await bootstrap.query(`CREATE USER ${sqlString(r)}@'%' IDENTIFIED BY ${rp}`);
+    await bootstrap.query(`CREATE USER ${sqlString(p)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}' IDENTIFIED BY ${pp}`);
+    await bootstrap.query(`CREATE USER ${sqlString(r)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}' IDENTIFIED BY ${rp}`);
+    if (isolatedApi) {
+      for (const role of ['apiReadonly', 'apiV2Test']) {
+        await bootstrap.query(
+          `CREATE USER ${sqlString(isolatedApi.accountNames[role])}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}' IDENTIFIED BY ${sqlString(accountPasswords[role])}`
+        );
+      }
+    }
     for (const name of Object.values(FORMAL_DATABASES)) {
-      await bootstrap.query(`GRANT SELECT, SHOW VIEW ON \`${name}\`.* TO ${sqlString(r)}@'%'`);
+      await bootstrap.query(`GRANT SELECT, SHOW VIEW ON \`${name}\`.* TO ${sqlString(r)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}'`);
     }
     accountsCreated = true;
   }
@@ -472,7 +744,50 @@ export async function createLiveAutomationAdapter({
     },
     async grantProvisioner({ name }) {
       requireIdentifier(name, 'isolated grant database');
-      await bootstrap.query(`GRANT ALL PRIVILEGES ON \`${name}\`.* TO ${sqlString(accountNames.provisioner)}@'%'`);
+      if (isolatedApi && !Object.values(isolatedApi.databases).includes(name)) {
+        throw new Error('isolated API grants are forbidden outside the exact run database set');
+      }
+      await bootstrap.query(`GRANT ALL PRIVILEGES ON \`${name}\`.* TO ${sqlString(accountNames.provisioner)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}'`);
+      if (isolatedApi) {
+        for (const grant of buildIsolatedApiAccountGrants({
+          domain: isolatedApi.domain,
+          databases: isolatedApi.databases,
+          accountNames: isolatedApi.accountNames,
+        }).filter((entry) => entry.database === name && entry.table == null)) {
+          await bootstrap.query(grant.sql);
+        }
+      }
+    },
+    async grantIsolatedApiTablePrivileges({ runKey } = {}) {
+      if (!isolatedApi || !accountsCreated) throw new Error('isolated API accounts must exist before table-scoped grants');
+      const expectedPrefix = `terria_v1_automation_acceptance_${runKey}_`;
+      const expectedDatabaseNames = Object.fromEntries(ISOLATED_API_DATABASE_ROLES.map((role) => [role, `${expectedPrefix}${role}`]));
+      if (Object.entries(expectedDatabaseNames).some(([role, name]) => isolatedApi.databases[role] !== name)) {
+        throw new Error('isolated API table grants differ from the exact run-derived schema set');
+      }
+      const pendingMigrations = ISOLATED_API_DATABASE_ROLES.filter((role) => !appliedMigrations.some((entry) => (
+        entry.role === role && entry.database === expectedDatabaseNames[role]
+      )));
+      if (pendingMigrations.length > 0) throw new Error(`isolated API table grants require migrations first: ${pendingMigrations.join(', ')}`);
+      const tableGrants = buildIsolatedApiAccountGrants({
+        domain: isolatedApi.domain,
+        databases: isolatedApi.databases,
+        accountNames: isolatedApi.accountNames,
+      }).filter((entry) => entry.role === 'apiV2Test' && entry.table != null);
+      const missingTables = [];
+      for (const grant of tableGrants) {
+        const count = Number((await provisioner.query(
+          `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ${sqlString(grant.table)}`,
+          grant.database,
+        )).trim());
+        if (count !== 1) missingTables.push(`${grant.database}.${grant.table}`);
+      }
+      if (missingTables.length > 0) {
+        throw new Error(`isolated API table grants require migrated schemas; missing tables: ${missingTables.slice(0, 8).join(', ')}`);
+      }
+      for (const grant of tableGrants) await bootstrap.query(grant.sql);
+      apiTablePrivilegesGranted = true;
+      return Object.freeze({ status: 'granted', runKey, tableGrantCount: tableGrants.length });
     },
     async verifyProvisionerGrants(input) {
       const provisionerGrants = parseLines(await provisioner.query('SHOW GRANTS'));
@@ -482,7 +797,42 @@ export async function createLiveAutomationAdapter({
         return match && !Object.values(FORMAL_DATABASES).includes(match[1]) ? [match[1].split('_').at(-1), match[1]] : null;
       }).filter(Boolean));
       validateTemporaryAccountGrants({ provisionerGrants, readonlyGrants, databases });
-      return { ...input, t2WriteDenied: true };
+      if (isolatedApi) {
+        const apiReadonlyGrants = parseLines(await apiReadonly.query('SHOW GRANTS'));
+        const apiV2TestGrants = parseLines(await apiV2Test.query('SHOW GRANTS'));
+        validateIsolatedApiAccountGrants({
+          domain: isolatedApi.domain,
+          apiReadonlyGrants,
+          apiV2TestGrants,
+          databases: isolatedApi.databases,
+          includeTablePrivileges: input?.apiTableGrantsPending !== true,
+        });
+        if (input?.apiTableGrantsPending !== true) {
+          if (!apiTablePrivilegesGranted) throw new Error('isolated API table privileges have not been granted after migration');
+          apiAccountGrantEvidence = Object.freeze({
+            status: 'verified',
+            domain: isolatedApi.domain,
+            databases: isolatedApi.databases,
+            apiReadonly: Object.freeze({
+              username: isolatedApi.accountNames.apiReadonly,
+              grantCount: nonUsageGrants(apiReadonlyGrants).length,
+              grantsSha256: hashGrantSet(apiReadonlyGrants),
+            }),
+            apiV2Test: Object.freeze({
+              username: isolatedApi.accountNames.apiV2Test,
+              grantCount: nonUsageGrants(apiV2TestGrants).length,
+              grantsSha256: hashGrantSet(apiV2TestGrants),
+            }),
+          });
+        }
+      }
+      return {
+        ...input,
+        t2WriteDenied: true,
+        ...(isolatedApi ? (input?.apiTableGrantsPending === true
+          ? { apiDatabaseAccountsVerified: true }
+          : { apiAccountsVerified: true }) : {}),
+      };
     },
     async allocateRedisLogicalDb({ runKey }) {
       const reservationToken = randomBytes(24).toString('hex');
@@ -491,7 +841,7 @@ export async function createLiveAutomationAdapter({
         : Array.from({ length: AUTOMATION_REDIS_LOGICAL_DB_MAX }, (_, index) => AUTOMATION_REDIS_LOGICAL_DB_MAX - index);
       for (const logicalDb of candidates) {
         if (await redisClient.command(logicalDb, 'DBSIZE') !== '0') continue;
-        const result = await redisClient.command(logicalDb, 'SET', 'terrapedia:automation:reservation',
+        const result = await redisClient.command(logicalDb, 'SET', AUTOMATION_REDIS_RESERVATION_KEY,
           `${runKey}:${reservationToken}`, 'NX');
         if (result === 'OK') {
           activeReservation = { logicalDb, runKey, reservationToken };
@@ -506,10 +856,26 @@ export async function createLiveAutomationAdapter({
       return { ...input, exclusive: true, ownerRunKey: input.runKey };
     },
     async releaseRedisLogicalDb(input) {
-      const value = await redisClient.command(input.logicalDb, 'GET', 'terrapedia:automation:reservation');
+      const value = await redisClient.command(input.logicalDb, 'GET', AUTOMATION_REDIS_RESERVATION_KEY);
       if (!value && input.ifMissing) return;
       if (value !== `${input.runKey}:${input.reservationToken}`) throw new Error('Redis cleanup token mismatch');
-      await redisClient.command(input.logicalDb, 'FLUSHDB');
+      const keys = await redisClient.scan(input.logicalDb);
+      const unownedKeys = keys.filter((key) => key !== AUTOMATION_REDIS_RESERVATION_KEY
+        && !OWNED_REDIS_KEY_PREFIXES.some((prefix) => key.startsWith(prefix)));
+      if (unownedKeys.length) {
+        throw new Error(`unregistered Redis keys block cleanup: ${unownedKeys.slice(0, 8).join(', ')}`);
+      }
+      const ownedKeys = keys.filter((key) => key !== AUTOMATION_REDIS_RESERVATION_KEY);
+      if (ownedKeys.length) await redisClient.command(input.logicalDb, 'DEL', ...ownedKeys);
+      const remainingKeys = await redisClient.scan(input.logicalDb);
+      const unremovedKeys = remainingKeys.filter((key) => key !== AUTOMATION_REDIS_RESERVATION_KEY);
+      if (unremovedKeys.length) {
+        throw new Error(`Redis keys remained after exact-key cleanup: ${unremovedKeys.slice(0, 8).join(', ')}`);
+      }
+      await redisClient.command(input.logicalDb, 'DEL', AUTOMATION_REDIS_RESERVATION_KEY);
+      if (await redisClient.command(input.logicalDb, 'DBSIZE') !== '0') {
+        throw new Error('Redis logical DB is non-empty after exact-key cleanup');
+      }
       activeReservation = null;
     },
     async createDatabase({ name }) {
@@ -520,10 +886,13 @@ export async function createLiveAutomationAdapter({
       requireIdentifier(name, 'migration database');
       const expectedPrefix = profile === 't0' ? 'terria_v1_automation_test_' : 'terria_v1_automation_acceptance_';
       if (!name.startsWith(`${expectedPrefix}${runKey}_`)) throw new Error('migration database is outside the runKey prefix');
+      const appliedSql = [];
       if (role === 'maint') {
-        await provisioner.query(rewriteSchemaForIsolatedDatabase({
+        const sql = rewriteSchemaForIsolatedDatabase({
           sql: buildMaintSchemaSql(), replacements: {}, targetDatabase: name
-        }), name);
+        });
+        await provisioner.query(sql, name);
+        appliedSql.push(sha256Text(sql));
       } else if (role === 'relation') {
         for (const statement of [...buildRelationSchemaStatements(), ...buildProjectionSchemaStatements()]) {
           const rewritten = rewriteSchemaForIsolatedDatabase({
@@ -532,6 +901,7 @@ export async function createLiveAutomationAdapter({
             targetDatabase: name
           });
           await provisioner.query(rewritten, name);
+          appliedSql.push(sha256Text(rewritten));
         }
       } else if (role === 'local') {
         const maintName = name.replace(/_local$/, '_maint');
@@ -539,14 +909,76 @@ export async function createLiveAutomationAdapter({
           const client = requiresBootstrapMigrationSession(sql) ? bootstrap : provisioner;
           const cliSql = client === bootstrap ? rewriteMysqlCliCompoundTriggerDelimiters(sql) : sql;
           await client.query(cliSql, name);
+          appliedSql.push(sha256Text(cliSql));
         }
       } else {
         throw new Error(`unknown migration role: ${role}`);
       }
+      const fingerprint = await readIsolatedSchemaFingerprint(provisioner, name);
+      const inputManifestHash = sha256Text(JSON.stringify(migrationInputManifest));
+      const evidence = Object.freeze({
+        role,
+        database: name,
+        inputManifestHash,
+        appliedSqlSha256: Object.freeze(appliedSql),
+        schemaFingerprint: fingerprint,
+      });
+      appliedMigrations.push(evidence);
+      schemaFingerprints.set(name, fingerprint);
+      return evidence;
     },
-    async verifyReadOnlySnapshot({ snapshotId }) {
+    async refreshMigrationSchemaFingerprints({ databases } = {}) {
+      if (!isolatedApi || !databases || Object.keys(databases).sort().join(',') !== 'local,maint,relation') {
+        throw new Error('schema fingerprint refresh requires the exact isolated API database set');
+      }
+      for (const [role, database] of Object.entries(databases)) {
+        const appliedIndex = appliedMigrations.findIndex((entry) => entry.role === role && entry.database === database.name);
+        if (appliedIndex < 0) throw new Error(`schema fingerprint refresh has no prior migration record for ${role}`);
+        const schemaFingerprint = await readIsolatedSchemaFingerprint(provisioner, database.name);
+        schemaFingerprints.set(database.name, schemaFingerprint);
+        appliedMigrations[appliedIndex] = Object.freeze({
+          ...appliedMigrations[appliedIndex],
+          schemaFingerprint,
+        });
+      }
+      return adapter.getMigrationEvidence();
+    },
+    async verifyReadOnlySnapshot({ snapshotId, dependencyManifest = null }) {
       await ensureAccounts();
       const serverUuid = (await readonly.query('SELECT @@server_uuid')).trim();
+      if (dependencyManifest != null) {
+        if (!isolatedApi) throw new Error('exact dependency snapshot requires an isolated API allocation');
+        const databases = Object.fromEntries(Object.entries(isolatedApi.databases).map(([role, database]) => [role, database]));
+        const validated = validateDependencyManifest(dependencyManifest, { databases });
+        if (validated.domain !== isolatedApi.domain) throw new Error('dependency manifest domain differs from the isolated API allocation');
+        const tables = validated.dependencies.map((entry) => {
+          const role = Object.entries(isolatedApi.databases).find(([, database]) => database === entry.target.database)?.[0];
+          return Object.freeze({
+            role,
+            table: entry.source.table,
+            maxRows: entry.expectedRowCount,
+            sourceCount: entry.expectedRowCount,
+            sourceAvailable: true,
+            sampleHash: sha256Text(JSON.stringify(entry.rowHashes)),
+            schemaHash: null,
+          });
+        });
+        const snapshot = {
+          snapshotId,
+          profile: 't2-readonly',
+          readOnly: true,
+          scrubbed: true,
+          snapshotHash: dependencyManifestSha256(validated),
+          credentialRole: 'automation-readonly',
+          serverFingerprints: Object.entries(FORMAL_DATABASES).map(([role, name]) => ({
+            role, name, host: mysql.host, port: mysql.port, serverUuid,
+          })),
+          databases: { ...FORMAL_DATABASES },
+          tables,
+        };
+        snapshots.set(snapshotId, { ...snapshot, privateTables: [], privateDependencyManifest: validated });
+        return snapshot;
+      }
       const plan = buildBoundedSnapshotPlan({ maxRowsPerTable });
       const tables = [];
       for (const entry of plan) {
@@ -616,6 +1048,7 @@ export async function createLiveAutomationAdapter({
       if (scrubSensitive !== true) throw new Error('snapshot copy must scrub sensitive payloads');
       const snapshot = snapshots.get(sourceSnapshot.snapshotId);
       if (!snapshot || snapshot.snapshotHash !== sourceSnapshot.snapshotHash) throw new Error('snapshot content identity mismatch');
+      if (snapshot.privateDependencyManifest) throw new Error('exact dependency snapshots cannot use bounded table sampling');
       for (const table of snapshot.privateTables) {
         const targetDatabase = targetDatabases[table.role].name;
         let columnOutput = await provisioner.query(
@@ -722,31 +1155,60 @@ export async function createLiveAutomationAdapter({
         tables: counts
       };
     },
-    async dropDatabase({ name, runKey }) {
+    async seedExactDependencies({ manifest, targetDatabases, runKey }) {
+      if (!isolatedApi) throw new Error('exact dependency seeding requires an isolated API allocation');
+      if (runKey !== undefined && manifest?.runKey !== runKey) throw new Error('dependency manifest runKey mismatch');
+      const databases = Object.fromEntries(Object.entries(targetDatabases ?? {}).map(([role, database]) => [role, database.name]));
+      return seedExactDependencies({ manifest, databases, readonlyClient: readonly, provisionerClient: provisioner });
+    },
+    async dropDatabase({ name, role, runKey, compensation = false }) {
       requireIdentifier(name, 'cleanup database');
-      if (!name.includes(`_${runKey}_`) || Object.values(FORMAL_DATABASES).includes(name)) {
-        throw new Error('cleanup database is outside the runKey boundary');
+      if (!/^[a-z0-9]{1,3}_[0-9a-f]{16}$/.test(runKey ?? '')) throw new Error('cleanup runKey is invalid');
+      if (!['local', 'maint', 'relation'].includes(role)
+          || !(name === `terria_v1_automation_acceptance_${runKey}_${role}`
+            || name === `terria_v1_automation_test_${runKey}_${role}`)
+          || Object.values(FORMAL_DATABASES).includes(name)) {
+        throw new Error('cleanup database must be the exact runKey and role tuple');
       }
-      await provisioner.query(`DROP DATABASE IF EXISTS \`${name}\``);
+      await (compensation ? bootstrap : provisioner).query(`DROP DATABASE IF EXISTS \`${name}\``);
     },
     async cleanupAccounts() {
+      const cleanupErrors = [];
       try {
         if (activeReservation) {
-          const value = await redisClient.command(activeReservation.logicalDb, 'GET', 'terrapedia:automation:reservation');
-          if (value === `${activeReservation.runKey}:${activeReservation.reservationToken}`) {
-            await redisClient.command(activeReservation.logicalDb, 'FLUSHDB');
+          try {
+            await adapter.releaseRedisLogicalDb({
+              ...activeReservation,
+              logicalDb: activeReservation.logicalDb,
+              reservationToken: activeReservation.reservationToken,
+              runKey: activeReservation.runKey,
+              ifMissing: true,
+              compensation: true,
+            });
+          } catch (error) {
+            cleanupErrors.push(error);
           }
-          activeReservation = null;
         }
         if (accountsAttempted) {
-          await bootstrap.query(`DROP USER IF EXISTS ${sqlString(accountNames.provisioner)}@'%', ${sqlString(accountNames.readonly)}@'%'`);
-          const remaining = Number((await bootstrap.query(
-            `SELECT COUNT(*) FROM mysql.user WHERE User IN (${sqlString(accountNames.provisioner)}, ${sqlString(accountNames.readonly)})`
-          )).trim());
-          if (remaining !== 0) throw new Error('temporary automation accounts still exist after cleanup');
-          accountsCreated = false;
-          accountsAttempted = false;
+          const users = [accountNames.provisioner, accountNames.readonly,
+            ...(isolatedApi ? [isolatedApi.accountNames.apiReadonly, isolatedApi.accountNames.apiV2Test] : [])]
+            .map((name) => `${sqlString(name)}@'${TEMPORARY_MYSQL_ACCOUNT_HOST}'`);
+          try {
+            await bootstrap.query(`DROP USER IF EXISTS ${users.join(', ')}`);
+            const userNames = [accountNames.provisioner, accountNames.readonly,
+              ...(isolatedApi ? [isolatedApi.accountNames.apiReadonly, isolatedApi.accountNames.apiV2Test] : [])]
+              .map(sqlString).join(', ');
+            const remaining = Number((await bootstrap.query(
+              `SELECT COUNT(*) FROM mysql.user WHERE User IN (${userNames})`
+            )).trim());
+            if (remaining !== 0) throw new Error('temporary automation accounts still exist after cleanup');
+            accountsCreated = false;
+            accountsAttempted = false;
+          } catch (error) {
+            cleanupErrors.push(error);
+          }
         }
+        if (cleanupErrors.length) throw new AggregateError(cleanupErrors, 'automation resource cleanup failed');
       } finally {
         fs.rmSync(snapshotDirectory, { recursive: true, force: true });
       }
@@ -761,7 +1223,25 @@ export async function createLiveAutomationAdapter({
       if (await redisClient.command(logicalDb, 'DBSIZE') !== '0') throw new Error('isolated Redis database remains non-empty after cleanup');
       return true;
     },
-    provisionerClient: provisioner
+    provisionerClient: provisioner,
+    readonlyClient: readonly,
+    apiAccounts: isolatedApi ? Object.freeze({
+      apiReadonly: Object.freeze({ role: 'apiReadonly', username: isolatedApi.accountNames.apiReadonly, password: accountPasswords.apiReadonly }),
+      apiV2Test: Object.freeze({ role: 'apiV2Test', username: isolatedApi.accountNames.apiV2Test, password: accountPasswords.apiV2Test }),
+    }) : null,
+    getApiAccountGrantEvidence: () => apiAccountGrantEvidence,
+    getMigrationEvidence: () => Object.freeze({
+      status: appliedMigrations.length === 3 && schemaFingerprints.size === 3 ? 'verified' : 'incomplete',
+      inputManifest: migrationInputManifest,
+      inputManifestHash: sha256Text(JSON.stringify(migrationInputManifest)),
+      applied: Object.freeze([...appliedMigrations]),
+    }),
+    migrationEvidenceRequired: isolatedApi != null,
   };
   return Object.freeze(adapter);
+}
+
+function hashGrantSet(grants) {
+  const normalized = nonUsageGrants(grants).sort();
+  return `sha256:${createHash('sha256').update(JSON.stringify(normalized)).digest('hex')}`;
 }

@@ -104,6 +104,18 @@ function loadSourceItemLookup(records) {
 
 export function resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, sourceItem = {}) {
   const rawInternalName = normalizeInternalName(sourceItem?.internalName);
+  if (sourceItemLookup?.requireStableSourceIds === true) {
+    if (sourceItemId == null) {
+      return { sourceItemId: null, internalName: rawInternalName || null, dbItem: null, reason: 'missing_source_item_id' };
+    }
+    const internalName = sourceItemLookup.bySourceId.get(sourceItemId) ?? rawInternalName;
+    if (!sourceItemLookup.bySourceId.has(sourceItemId)) {
+      return { sourceItemId, internalName: internalName || null, dbItem: null, reason: 'source_item_id_not_found_in_standardized_items' };
+    }
+    const dbItem = itemLookup.bySourceId?.get(sourceItemId) ?? null;
+    if (!dbItem) return { sourceItemId, internalName: internalName || null, dbItem: null, reason: 'source_item_id_not_found_in_db_items' };
+    return { sourceItemId, internalName, dbItem, reason: null };
+  }
   const internalName = sourceItemId == null
     ? rawInternalName
     : sourceItemLookup.bySourceId.get(sourceItemId) ?? rawInternalName;
@@ -527,9 +539,10 @@ export async function importNpcs(conn, records, itemLookup, sourceItemLookup, ca
       }
       await conn.execute(
         `INSERT INTO npcs
-          (source_id, internal_name, name, name_zh, sub_name, sub_name_zh, category_id, is_boss, is_friendly, is_town_npc, net_id, npc_type, ai_style, damage, defense, life_max, knock_back_resist, width, height, scale, value, banner_source_item_id, banner_item_id, catch_source_item_id, catch_item_id, buff_immune, raw_json, status, deleted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+          (source_id, game_id, internal_name, name, name_zh, sub_name, sub_name_zh, category_id, is_boss, is_friendly, is_town_npc, net_id, npc_type, ai_style, damage, defense, life_max, knock_back_resist, width, height, scale, value, banner_source_item_id, banner_item_id, catch_source_item_id, catch_item_id, buff_immune, raw_json, status, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
          ON DUPLICATE KEY UPDATE
+            game_id = VALUES(game_id),
             internal_name = VALUES(internal_name),
             name = VALUES(name),
             name_zh = VALUES(name_zh),
@@ -561,6 +574,7 @@ export async function importNpcs(conn, records, itemLookup, sourceItemLookup, ca
            updated_at = NOW()`,
         [
           values.source_id,
+          values.game_id,
           values.internal_name,
           values.name,
           values.name_zh,
@@ -599,6 +613,7 @@ export async function importNpcs(conn, records, itemLookup, sourceItemLookup, ca
 
 const NPC_COMPARE_COLUMNS = [
   'source_id',
+  'game_id',
   'internal_name',
   'name',
   'name_zh',
@@ -631,6 +646,7 @@ const NPC_COMPARE_COLUMNS = [
 
 const NPC_NUMERIC_COLUMNS = [
   'source_id',
+  'game_id',
   'category_id',
   'is_boss',
   'is_friendly',
@@ -776,6 +792,7 @@ export function buildIndependentNpcColumnValueMap(record, index, context = {}) {
 
   return {
     source_id: npcSourceId,
+    game_id: npcSourceId,
     internal_name: npcInternalName,
     name: toNullableString(record.name),
     name_zh: resolveNpcZhName(record, npcZhMap),

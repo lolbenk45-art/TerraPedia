@@ -112,6 +112,52 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void isolatedSourceBindingInjectsOnlyExactRunLocalManifestAndMode() throws Exception {
+        String domain = "items";
+        String runId = "e8pr-items-20261017-v1";
+        Path sourceState = repoRoot.resolve(".local/tmp/eight-domain-production-readiness/20261017/source-state/items.json");
+        Path sourceManifest = repoRoot.resolve(".local/tmp/eight-domain-production-readiness/20261017/source-manifests/items.json");
+        Path acceptanceManifest = repoRoot.resolve(".local/tmp/eight-domain-production-readiness/20261017/acceptance-manifests/items.json");
+        for (Path file : List.of(sourceState, sourceManifest, acceptanceManifest)) {
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, "{}\n");
+            Files.setPosixFilePermissions(file, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+        }
+        Map<String, String> isolatedEnvironment = Map.of(
+            "TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE", "true",
+            "TERRAPEDIA_EIGHT_DOMAIN_DOMAIN", domain,
+            "TERRAPEDIA_EIGHT_DOMAIN_RUN_ID", runId,
+            "TERRAPEDIA_EIGHT_DOMAIN_SOURCE_PROBE_MODE", "frozen-run-manifest",
+            "TERRAPEDIA_CRAWLER_SOURCE_MODE", "local",
+            "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH", sourceState.toString(),
+            "TERRAPEDIA_EIGHT_DOMAIN_SOURCE_MANIFEST_PATH", sourceManifest.toString(),
+            "TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH", acceptanceManifest.toString()
+        );
+
+        CrawlerAttemptSupervisor.IsolatedSourceBinding binding = CrawlerAttemptSupervisor.isolatedSourceBinding(isolatedEnvironment, repoRoot);
+        List<String> command = CrawlerAttemptSupervisor.bindIsolatedSourceCommand(List.of(
+            "node", "pipelines/automation/run-base-domain-automatic-operation.mjs", "--domain=items",
+            "--manifest-path=data/generated/wiki-source-manifest.latest.json"
+        ), binding, repoRoot);
+
+        assertEquals(sourceState, binding.sourceState());
+        assertEquals(sourceManifest, binding.sourceManifest());
+        assertEquals(acceptanceManifest, binding.acceptanceManifest());
+        assertTrue(command.contains("--source-mode=local"));
+        assertTrue(command.contains("--manifest-path=.local/tmp/eight-domain-production-readiness/20261017/source-manifests/items.json"));
+        assertFalse(command.contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
+        assertThrows(SecurityException.class, () -> CrawlerAttemptSupervisor.bindIsolatedSourceCommand(
+            List.of("node", "pipelines/automation/run-base-domain-automatic-operation.mjs", "--manifest-path=a", "--manifest-path=b"), binding, repoRoot
+        ));
+        assertThrows(SecurityException.class, () -> CrawlerAttemptSupervisor.isolatedSourceBinding(
+            Map.of("TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE", "true"), repoRoot
+        ));
+        assertThrows(SecurityException.class, () -> CrawlerAttemptSupervisor.bindIsolatedSourceCommand(
+            List.of("node", "pipelines/monitor/crawler-queue-v2-fixture.mjs"), binding, repoRoot
+        ));
+    }
+
+    @Test
     void armorSchedulerStartPropagatesOnlyValidatedBindingReference() throws Exception {
         SourceDispatchIdentity identity = new SourceDispatchIdentity(
             "sha256:" + "a".repeat(64), "2026-07-11T13:00:00Z", "sha256:" + "b".repeat(64)

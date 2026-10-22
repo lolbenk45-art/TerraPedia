@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
+  assertBuffFullCaptureResources,
   assertBuffT1SourceReplayResources,
   buildBuffT1InputDescriptor,
   buildBuffT1LandingRows,
@@ -117,6 +118,16 @@ test('T1 acceptance input descriptor identifies the current Wiki replay instead 
     type: 'offline_fixture',
     path: 'pipelines/buff/fixtures/custom.json',
   });
+  assert.deepEqual(buildBuffT1InputDescriptor({
+    fullCapture: {
+      buffs: [{ id: 1, internalName: 'ObsidianSkin' }],
+      sourceMetadata: { sourceRevisionTimestamp: '2026-03-01T03:21:12Z' },
+    },
+  }), {
+    type: 'repository_frozen_standardized',
+    totalBuffs: 1,
+    sourceRevisionTimestamp: '2026-03-01T03:21:12Z',
+  });
 });
 
 test('source replay accepts only the isolated T1 databases and Redis DB18', () => {
@@ -130,4 +141,37 @@ test('source replay accepts only the isolated T1 databases and Redis DB18', () =
   for (const redisLogicalDb of [13, 14, 15, 16, 17]) {
     assert.throws(() => assertBuffT1SourceReplayResources({ profile: 't1', databases, redisLogicalDb }), /DB18|Redis/i);
   }
+});
+
+test('full Buff source accepts only DB7 and binds 388 local records without weakening fixture lanes', async () => {
+  const databases = {
+    local: 'terria_v1_automation_acceptance_abc_0123456789abcdef_local',
+    maint: 'terria_v1_automation_acceptance_abc_0123456789abcdef_maint',
+    relation: 'terria_v1_automation_acceptance_abc_0123456789abcdef_relation',
+  };
+  assert.doesNotThrow(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 7 }));
+  assert.throws(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 22 }), /DB7|Redis/i);
+  const records = Array.from({ length: 388 }, (_, index) => ({
+    id: index + 1,
+    internalName: `Buff${index + 1}`,
+    sourceItems: [],
+    inflictingNpcs: [],
+    immuneNpcs: [],
+  }));
+  const landing = buildBuffT1LandingRows({
+    recordsOverride: records,
+    sourceMetadata: { sourcePage: 'Template:GetBuffInfo', sourceRevisionTimestamp: '2026-03-01T03:21:12Z' },
+  })[0];
+  assert.equal(JSON.parse(landing.payload_json).records.length, 388);
+  assert.equal(landing.source_kind, 'repository_frozen_standardized');
+  assert.doesNotMatch(`${landing.provider} ${landing.source_kind} ${landing.source_key}`, /fixture|offline/i);
+  await assert.rejects(() => runBuffCanonicalT1Acceptance({
+    profile: 't1',
+    runId: 'e8pr-buffs-20261017-v1',
+    repoRoot: process.cwd(),
+    databases,
+    mysql: { host: '127.0.0.1', port: 13306, username: 'unused', password: 'unused' },
+    fullCapture: { buffs: records },
+    redisLogicalDb: 7,
+  }), /dependency seeding evidence/i);
 });
