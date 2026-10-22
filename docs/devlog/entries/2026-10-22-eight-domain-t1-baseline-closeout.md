@@ -36,15 +36,17 @@
 
 ## Residual Risks
 
-- Runtime report files are ignored local evidence and must be preserved outside the execution worktree before that worktree is removed.
-- The task branch has no upstream; local merge does not imply a push or remote backup.
+- Runtime reports are ignored local evidence and are preserved at `reports/runtime/eight-domain-production-readiness/20261017/` in the coordinator workspace; the eight final reports were re-parsed after copying.
+- The task branch had no upstream; local merge does not imply a push or remote backup. No push was performed.
 - The independent pre-merge review found three V2 blockers, all recorded in the active parent entry: source manifest is passed where the Base runner expects the acceptance manifest; `armor_sets` is missing from the Java isolated runner map; and manifest run/queue/attempt identity is not checked against the live attempt. These findings are deferred from T1 only and must be resolved before any V2 execution.
 - V2 code/source binding, real dispatched attempt, exact acknowledgement, error-recovery matrix, Wiki freshness/parity, and release readiness remain open in the parent entry.
 
 ## Integration
 
 - T1 implementation commit: `d8303883e495cdd78b851c34c89cba808f3f605a` (`feat(automation): add isolated eight-domain T1 baselines`).
-- The branch was merged locally into `main`; the merge retained both sides' shared adapter/lifecycle behavior and kept the historical Buff/Shimmer runners under explicit `*-legacy.mjs` names. The eight-domain reports were copied into the main worktree's ignored runtime evidence root and compared against the execution worktree.
+- Local `main` merge commit: `17c8ebd478e2a41754cb6915be3519f296d3f712` (`Merge branch 'exec/eight-domain-production-readiness'`).
+- The execution branch `exec/eight-domain-production-readiness` and its worktree were removed after confirming they were clean and the commit was an ancestor of `main`. This clean `main` worktree remains at `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness-main` for the V2 discussion.
+- Merge resolution retained both sides' shared adapter/lifecycle behavior and kept the historical Buff/Shimmer runners under explicit `*-legacy.mjs` names. The eight-domain reports were copied into the ignored runtime evidence root and compared against the execution worktree.
 - Post-merge tests across changed/new files from both sides: Node `626 passed`, `1 skipped`, `0 failed`; Maven `403/403`; syntax and whitespace checks passed.
 
 ## Follow-up
@@ -54,4 +56,4 @@
 ## Commits
 
 - T1 implementation: `d8303883e495cdd78b851c34c89cba808f3f605a`.
-- Local `main` merge commit SHA pending in final response.
+- Local `main` merge: `17c8ebd478e2a41754cb6915be3519f296d3f712`.

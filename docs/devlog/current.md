@@ -1,9 +1,9 @@
 # Current Devlog
 
-Last updated: 2026-10-22 16:29 CST by Codex
+Last updated: 2026-10-22 16:35 CST by Codex
 
 Active branch: `main`
-Active focus: The eight-domain isolated maintained-chain T1 baseline is integrated into local `main`; all eight final reports and the T1-only boundary are recorded in the closeout entry. V2 remains unrun and has three reviewed blockers; Wiki freshness/parity, full production readiness, and formal publication remain open. Resume with the V2 design discussion only; no V2 run or production write is authorized by this T1 integration. Post-merge validation: Node `v26.1.0` `626 passed / 1 skipped`, Maven `403/403`, syntax and whitespace checks passed.
+Active focus: The eight-domain isolated maintained-chain T1 baseline is integrated into local `main`; all eight reports are preserved under `reports/runtime/eight-domain-production-readiness/20261017/`, and the execution branch/worktree are removed. T1 is closed; V2 remains unrun with three reviewed blockers. Wiki freshness/parity, full production readiness, and formal publication remain open. Next: discuss the V2 contract and resolve the blockers before any V2 execution. Post-merge validation: Node `v26.1.0` `626 passed / 1 skipped`, Maven `403/403`, syntax and whitespace checks passed.
 
 ## Open Work
 
