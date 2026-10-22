@@ -1412,6 +1412,60 @@ function filterRowsByScopes(rows, scopes) {
   return rows.filter((row) => scopeSet.has(row.scope));
 }
 
+function resolveItemIds(options, scopes) {
+  if (!Object.hasOwn(options, 'itemIds')) {
+    return null;
+  }
+  const requestedScopes = Array.isArray(options.scopes)
+    ? options.scopes
+    : options.scopes == null
+      ? scopes
+      : String(options.scopes).split(',').map((scope) => scope.trim());
+  if (requestedScopes.length !== 1 || requestedScopes[0] !== 'items') {
+    throw new Error("itemIds requires scopes to be exactly ['items']");
+  }
+  if (!Array.isArray(options.itemIds)) {
+    throw new TypeError('itemIds must be an array of unique positive safe integers.');
+  }
+
+  const seen = new Set();
+  for (const itemId of options.itemIds) {
+    if (!Number.isSafeInteger(itemId) || itemId <= 0) {
+      throw new TypeError('itemIds must contain only positive safe integer IDs.');
+    }
+    if (seen.has(itemId)) {
+      throw new Error(`itemIds contains duplicate ID: ${itemId}`);
+    }
+    seen.add(itemId);
+  }
+  return [...options.itemIds];
+}
+
+function filterRowsByItemIds(rows, itemIds, producedItemIds) {
+  if (itemIds == null) {
+    return rows;
+  }
+  const selectedItemIds = new Set(itemIds);
+  return rows.filter((row) => {
+    if (row.scope !== 'items') {
+      return true;
+    }
+    const sourceId = Number(row.sourceId);
+    producedItemIds.add(sourceId);
+    return selectedItemIds.has(sourceId);
+  });
+}
+
+function assertSelectedItemIdsProduced(itemIds, producedItemIds) {
+  if (itemIds == null) {
+    return;
+  }
+  const missingItemIds = itemIds.filter((itemId) => !producedItemIds.has(itemId));
+  if (missingItemIds.length > 0) {
+    throw new Error(`item IDs not produced by parsed items_raw landing: ${missingItemIds.join(', ')}`);
+  }
+}
+
 function collectRecordKeysByTable(rows) {
   const byTable = new Map();
   for (const row of rows) {
@@ -2661,6 +2715,7 @@ export async function runMaintSync(options, dependencies = {}) {
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const scopes = Array.isArray(options.scopes) ? options.scopes : resolveScopes(options.scopes);
+  const itemIds = resolveItemIds(options, scopes);
   const zhSourceIndexes = dependencies.zhSourceIndexes
     ?? (dependencies.loadZhSourceIndexes ? await dependencies.loadZhSourceIndexes() : loadZhSourceIndexes({ repoRoot }));
   const connectionConfig = {
@@ -2672,9 +2727,24 @@ export async function runMaintSync(options, dependencies = {}) {
     multipleStatements: true,
   };
 
-  const loaded = dependencies.loadLandingRows
+  let loaded = dependencies.loadLandingRows
     ? await dependencies.loadLandingRows(scopes)
-    : null;
+  : null;
+
+  if (itemIds != null && !Array.isArray(loaded)) {
+    const isIterable = (value) => value != null
+      && (isAsyncIterable(value) || typeof value[Symbol.iterator] === 'function');
+    if (dependencies.loadLandingRows) {
+      if (!isIterable(loaded)) throw new TypeError('loadLandingRows must return an array or iterable when itemIds is set.');
+      loaded = await collectRowsFromAsyncIterable(loaded);
+    } else if (dependencies.iterateLandingRows) {
+      const landingIterable = await dependencies.iterateLandingRows(scopes);
+      if (!isIterable(landingIterable)) throw new TypeError('iterateLandingRows must return an iterable when itemIds is set.');
+      loaded = await collectRowsFromAsyncIterable(landingIterable);
+    } else {
+      throw new Error('itemIds requires an explicit loadLandingRows or iterateLandingRows source binding.');
+    }
+  }
 
   const canUseArrayMode = Array.isArray(loaded);
   if (canUseArrayMode) {
@@ -2688,6 +2758,7 @@ export async function runMaintSync(options, dependencies = {}) {
     };
     let hasCategoryRuleSummary = false;
     const seenRecordKeys = new Set();
+    const producedItemIds = new Set();
     const inBatchMaintNpcRows = [];
     for (const landingRow of loaded) {
       if (!['npcs_raw', 'npcs_base_raw'].includes(landingRow.dataset_type)) continue;
@@ -2703,9 +2774,23 @@ export async function runMaintSync(options, dependencies = {}) {
         mergeCategoryRuleSummary({ categoryRules: categoryRuleSummary }, result.categoryRules);
         hasCategoryRuleSummary = true;
       }
-      extracted.push(...filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes));
+      const itemFilteredRows = filterRowsByItemIds(result.rows, itemIds, producedItemIds);
+      extracted.push(...filterRowsByScopes(dedupeEntityRows(itemFilteredRows, seenRecordKeys), scopes));
     }
+    assertSelectedItemIdsProduced(itemIds, producedItemIds);
     const summary = buildMaintSyncSummary({ apply: options.apply, scopes }, extracted);
+    if (itemIds != null) {
+      summary.itemSelection = {
+        itemIds: [...itemIds],
+        sourceBindings: extracted
+          .filter((row) => row.scope === 'items')
+          .map((row) => ({
+            sourceId: row.sourceId,
+            landingSourceId: row.landingSourceId,
+            landingContentHash: row.landingContentHash,
+          })),
+      };
+    }
     if (hasCategoryRuleSummary) {
       summary.categoryRules = categoryRuleSummary;
     }

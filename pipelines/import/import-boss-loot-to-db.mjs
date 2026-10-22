@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -52,7 +53,7 @@ async function main() {
     multipleStatements: true,
   });
 
-  assertPrimaryDb(conn.config.database, args['allow-non-primary-db'] === 'true' || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true');
+  assertBossLootDatabaseTarget(conn.config.database, args);
   await conn.query('SET NAMES utf8mb4');
   await ensureSchema(conn);
 
@@ -570,14 +571,16 @@ async function ensureSchema(conn) {
   await conn.query(fs.readFileSync(sqlPath, 'utf8'));
 }
 
-function assertPrimaryDb(database, allowNonPrimaryDb) {
-  if (String(database || '').trim() === 'terria_v1_local') {
-    return;
-  }
-  if (allowNonPrimaryDb) {
-    return;
-  }
-  throw new Error(`Refusing to write to non-primary database '${database}'. Set TERRAPEDIA_DB_NAME=terria_v1_local or pass --allow-non-primary-db=true explicitly.`);
+export function assertBossLootDatabaseTarget(database, args = {}) {
+  const name = String(database ?? '').trim();
+  if (name === 'terria_v1_local') return true;
+  const runId = String(args['run-id'] ?? '');
+  const runKey = String(args['run-key'] ?? '');
+  const slug = runId.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 3) || 'run';
+  const digest = createHash('sha256').update(runId).digest('hex').slice(0, 16);
+  if (args.profile === 't1' && runId && runKey === `${slug}_${digest}`
+      && name === `terria_v1_automation_acceptance_${runKey}_local`) return true;
+  throw new Error(`Refusing Boss loot write to non-primary database '${name}' without its exact T1 run binding.`);
 }
 
 function countUniqueRows(rows) {

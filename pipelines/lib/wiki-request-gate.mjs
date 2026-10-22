@@ -101,12 +101,17 @@ export function createWikiRequestGate({
     headers = {},
     body,
     timeoutMs = 20_000,
-    sourceKey = null
+    sourceKey = null,
+    maxAttempts = null
   } = {}) {
     const requestProfile = requestProfiles[profile] ?? requestProfiles.revision ?? REQUEST_PROFILES.revision;
     const normalizedUrl = normalizeRequestUrl(input);
+    const attemptLimit = Math.min(
+      normalizePositiveNumber(maxAttempts, requestProfile.maxAttempts),
+      requestProfile.maxAttempts
+    );
 
-    for (let attempt = 1; attempt <= requestProfile.maxAttempts; attempt += 1) {
+    for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
       await enforceCooldown();
       await waitForTurn(requestProfile);
 

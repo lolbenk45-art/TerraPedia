@@ -15,6 +15,7 @@ test('parseArgs defaults to dry-run local core sync', () => {
     localDatabase: 'terria_v1_local',
     relationDatabase: 'terria_v1_relation',
     domains: null,
+    itemIds: null,
     dateTag: null,
     backupSuffix: null
   });
@@ -28,6 +29,7 @@ test('parseArgs accepts a domain filter for partial local core sync', () => {
     localDatabase: 'terria_v1_local',
     relationDatabase: 'terria_v1_relation',
     domains: ['npcs', 'projectiles'],
+    itemIds: null,
     dateTag: null,
     backupSuffix: null
   });
@@ -169,6 +171,43 @@ test('runProjectionToLocalCoreSync apply can target only selected domains', asyn
   assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_items`')));
   assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_bosses`')));
   assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_buffs`')));
+});
+
+test('runProjectionToLocalCoreSync selected Item IDs upserts only that subset and preserves seeded recipe dependencies', async () => {
+  const statements = [];
+  const result = await runProjectionToLocalCoreSync({
+    apply: true,
+    localDatabase: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_local',
+    relationDatabase: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_relation',
+    domains: ['items'],
+    itemIds: [2, 4],
+    dateTag: '2026-10-21',
+    backupSuffix: '20261021120000',
+  }, {
+    executeLocal: async (fn) => fn({
+      query: async (sql) => { statements.push(sql); return [{ affectedRows: 1 }]; },
+    }),
+    listColumns: async () => ['id', 'name', 'internal_name', 'status', 'deleted'],
+    countRows: async (_connection, _database, table) => table === 'items' ? 136 : 2,
+    listProjectionIds: async () => [2, 4],
+    writeReport: async () => null,
+  });
+  const itemDml = statements.filter((sql) => sql.startsWith('INSERT INTO `terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_local`.`items`'));
+  assert.equal(itemDml.length, 1);
+  assert.match(itemDml[0], /FROM `terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_relation`\.`projection_items` WHERE `id` IN \(2, 4\)/);
+  assert.doesNotMatch(itemDml[0], /^DELETE FROM/i);
+  assert.equal(result.report.domains.items.syncStrategy, 'upsert_selected_ids_preserve_local');
+  assert.equal(result.report.domains.items.itemIds.length, 2);
+  assert.equal(statements.some((sql) => sql === 'SET FOREIGN_KEY_CHECKS = 0'), true);
+});
+
+test('runProjectionToLocalCoreSync rejects Item ID filters mixed with other domains or duplicate IDs before DB access', async () => {
+  let connected = false;
+  const executeLocal = async (fn) => { connected = true; return fn({ query: async () => [[]] }); };
+  await assert.rejects(() => runProjectionToLocalCoreSync({ apply: true, domains: ['items', 'npcs'], itemIds: [2] }, { executeLocal }), /exactly \['items'\]/i);
+  assert.equal(connected, false);
+  await assert.rejects(() => runProjectionToLocalCoreSync({ apply: true, domains: ['items'], itemIds: [2, 2] }, { executeLocal }), /unique positive/i);
+  assert.equal(connected, false);
 });
 
 test('runProjectionToLocalCoreSync syncs projectile source json columns when both sides expose them', async () => {

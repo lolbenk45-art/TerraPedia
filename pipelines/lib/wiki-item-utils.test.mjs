@@ -256,6 +256,21 @@ test('fetchWikiPageMetadataBatch maps requested redirect aliases to returned can
   );
 });
 
+test('fetchWikiPageMetadataBatch passes an explicit request timeout to its API adapter', async () => {
+  let received;
+  await fetchWikiPageMetadataBatch({
+    titles: ['Module:Npcinfo/data'],
+    timeoutMs: 1500,
+    maxAttempts: 1,
+    fetchWikiApiJsonImpl: async (options) => {
+      received = options;
+      return { query: { pages: [{ pageid: 18065, title: 'Module:Npcinfo/data', revisions: [{ revid: 123, timestamp: '2026-02-13T13:47:32Z' }] }] } };
+    },
+  });
+  assert.equal(received.timeoutMs, 1500);
+  assert.equal(received.maxAttempts, 1);
+});
+
 function runNodeModule(source, options = {}) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, ['--input-type=module', '--eval', source], {

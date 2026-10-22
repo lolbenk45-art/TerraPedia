@@ -1,7 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { reconcileBossLootRows } from './import-boss-loot-to-db.mjs';
+import { assertBossLootDatabaseTarget, reconcileBossLootRows } from './import-boss-loot-to-db.mjs';
+
+test('Boss loot importer accepts only the formal local DB or the exact run-derived T1 local schema', () => {
+  assert.equal(assertBossLootDatabaseTarget('terria_v1_local'), true);
+  assert.equal(assertBossLootDatabaseTarget(
+    'terria_v1_automation_acceptance_e8p_e1cd44a30171d90d_local',
+    { profile: 't1', 'run-id': 'e8pr-bosses-20261017-v1', 'run-key': 'e8p_e1cd44a30171d90d' },
+  ), true);
+  assert.throws(() => assertBossLootDatabaseTarget('terria_v1_maint', { 'allow-non-primary-db': 'true' }), /exact T1 run binding/);
+  assert.throws(() => assertBossLootDatabaseTarget(
+    'terria_v1_automation_acceptance_e8p_e1cd44a30171d90d_local',
+    { profile: 't1', 'run-id': 'another-run', 'run-key': 'e8p_e1cd44a30171d90d' },
+  ), /exact T1 run binding/);
+});
 
 test('reconcileBossLootRows skips unchanged boss loot rows without delete or insert', async () => {
   const conn = createFakeConnection({

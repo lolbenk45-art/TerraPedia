@@ -93,6 +93,7 @@ test('boss T1 runs boss, loot, and consolidation stages offline', async () => {
     fs.copyFileSync(path.join(process.cwd(), fixture), path.join(repoRoot, fixture));
   }
   const invocations = [];
+  const targetQueries = [];
 
   try {
     const result = await runBossCanonicalT1Acceptance({
@@ -135,8 +136,14 @@ test('boss T1 runs boss, loot, and consolidation stages offline', async () => {
       async seedMaintDependenciesImpl() {
         return { npcRows: 2, itemRows: 2 };
       },
-      async createConnectionImpl() {
-        return { async query() { return [[{ count: 2 }]]; }, async end() {} };
+      async createConnectionImpl(options) {
+        return {
+          async query(sql) {
+            targetQueries.push({ database: options.database, sql });
+            return [[{ count: 2 }]];
+          },
+          async end() {},
+        };
       },
     });
 
@@ -148,6 +155,11 @@ test('boss T1 runs boss, loot, and consolidation stages offline', async () => {
     assert.equal(invocations[2][1].maintDatabase, result.databases.maint);
     assert.equal(invocations[2][1].relationDatabase, result.databases.relation);
     assert.equal(invocations[2][2].database.username, 'runner');
+    assert.ok(targetQueries.some(({ database, sql }) => database === result.databases.local && sql === 'DELETE FROM `npcs`'));
+    assert.ok(targetQueries.some(({ database, sql }) => database === result.databases.local && sql === 'DELETE FROM `items`'));
+    assert.ok(targetQueries.some(({ database, sql }) => database === result.databases.maint && sql === 'DELETE FROM `maint_npcs`'));
+    assert.ok(targetQueries.some(({ database, sql }) => database === result.databases.maint && sql === 'DELETE FROM `maint_items`'));
+    assert.ok(targetQueries.some(({ database, sql }) => database === result.databases.local && sql === 'DELETE FROM `boss_groups`'));
   } finally {
     fs.rmSync(repoRoot, { recursive: true, force: true });
   }

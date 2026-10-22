@@ -62,7 +62,7 @@ class CrawlerMonitorActionRegistryTest {
     void exposesTwentyFiveOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
-        assertEquals(27, registry.all().size());
+        assertEquals(28, registry.all().size());
         assertEquals(List.of("check", "force", "verify", "sample"), registry.operations("items").stream()
             .map(CrawlerMonitorActionDefinition::operationId)
             .toList());
@@ -121,6 +121,7 @@ class CrawlerMonitorActionRegistryTest {
             "item-image-source-verification",
             "crawler-queue-v2-items-fixture",
             "wiki-npcs-refresh",
+            "domain-source-npcs",
             "wiki-npcs-force-refresh",
             "wiki-projectiles-refresh",
             "wiki-projectiles-force-refresh",
@@ -144,6 +145,19 @@ class CrawlerMonitorActionRegistryTest {
             "npc-crawler-facts-preview",
             "npc-crawler-facts-apply"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::actionId).toList());
+
+        CrawlerMonitorActionDefinition npcProbe = registry.require("npcs", "domain-source-npcs");
+        assertEquals("hybrid-source-probe", npcProbe.operationId());
+        assertEquals("data/generated/domain-source-npcs-progress.latest.json", npcProbe.progressPath());
+        assertEquals("none", npcProbe.databaseAccess());
+        assertTrue(npcProbe.networkAccess());
+        assertFalse(npcProbe.defaultOperation());
+        assertEquals(List.of(
+            "node",
+            "pipelines/npc-canonical/npc-hybrid-source-probe.mjs",
+            "--progress-path=data/generated/domain-source-npcs-progress.latest.json",
+            "--decision-path=.local/tmp/eight-domain-production-readiness/20261017/npcs/source-decision.json"
+        ), npcProbe.command());
 
         CrawlerMonitorActionDefinition townNpc = registry.require(
             "town_npc_maintenance",

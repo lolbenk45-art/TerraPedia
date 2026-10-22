@@ -6,15 +6,42 @@ import path from 'node:path';
 
 import {
   buildCanonicalItemGroupRelationProjection,
+  normalizeMysqlPersistenceValue,
   collectArmorAttributeCellDiagnostics,
   buildArmorAttributeEffectRows,
   buildArmorAttributeRelations,
   parseArgs,
   readWikiArmorSets,
   rewriteArmorSetRelatedItemImages,
+  buildItemOnlyRelationResults,
+  buildRelationApplyPlan,
+  runItemOnlySync,
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
 
+test('Buff-only relation apply clears and writes only Buff-owned relation and projection tables', () => {
+  assert.deepEqual(buildRelationApplyPlan(['buff']), {
+    buffOnly: true,
+    clearTables: ['item_buff_relations', 'npc_buff_relations', 'relation_buff_images', 'projection_buffs', 'relation_buffs'],
+    writeEntries: [
+      ['relation_buffs', 'relationBuffs'],
+      ['item_buff_relations', 'itemBuffRelations'],
+      ['npc_buff_relations', 'npcBuffRelations'],
+      ['relation_buff_images', 'relationBuffImages'],
+      ['projection_buffs', 'projectionBuffs'],
+    ],
+    runPostApplyProjectionReconciliation: false,
+  });
+  assert.equal(buildRelationApplyPlan(['buff', 'projectile']).buffOnly, false);
+  assert.equal(buildRelationApplyPlan(undefined).buffOnly, false);
+});
+
+test('relation persistence converts ISO DATETIME fields to MySQL format and preserves other values', () => {
+  assert.equal(normalizeMysqlPersistenceValue('source_revision_timestamp', '2026-04-04T07:46:03.000Z'), '2026-04-04 07:46:03');
+  assert.equal(normalizeMysqlPersistenceValue('source_revision_timestamp', '2026-04-04T07:46:03+08:00'), '2026-04-03 23:46:03');
+  assert.equal(normalizeMysqlPersistenceValue('source_revision_timestamp', '2026-04-04 07:46:03'), '2026-04-04 07:46:03');
+  assert.equal(normalizeMysqlPersistenceValue('raw_json', '2026-04-04T07:46:03.000Z'), '2026-04-04T07:46:03.000Z');
+});
 
 test('collectArmorAttributeCellDiagnostics preserves every qualified source cell for review', () => {
   const diagnostics = collectArmorAttributeCellDiagnostics([
@@ -232,6 +259,208 @@ function clearsTable(sql, tableName) {
     sql.includes(`DELETE FROM \`${tableName}\``)
   );
 }
+
+const ITEM_ONLY_DATABASES = {
+  local: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_local',
+  maint: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_maint',
+  relation: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_relation',
+};
+
+const ITEM_ONLY_IDS = [2, 4];
+
+function itemOnlyMaintItems() {
+  return [
+    { source_id: 2, internal_name: 'Item2', english_name: 'Item 2', name_zh: null, raw_json: JSON.stringify({ damage: 5, rare: 1 }) },
+    { source_id: 4, internal_name: 'Item4', english_name: 'Item 4', name_zh: null, raw_json: JSON.stringify({ damage: 7, rare: 2 }) },
+    { source_id: 9, internal_name: 'Item9', english_name: 'Item 9', name_zh: null, raw_json: JSON.stringify({ damage: 9 }) },
+  ];
+}
+
+function itemOnlyRelationRows() {
+  return {
+    biomes: [{ code: 'forest', nameEn: 'Forest' }],
+    itemBiomes: [{ itemInternalName: 'Item2', biomeCode: 'forest', relationType: 'found_in', sortOrder: 0 }],
+    itemImages: [{ itemInternalName: 'Item2', itemName: 'Item 2', role: 'icon', provider: 'wiki_gg', sourceFileTitle: 'Item2.png', originalUrl: 'https://wiki/item2.png', cachedUrl: 'https://wiki/item2.png', isPrimary: true, sortOrder: 0 }],
+    itemSources: [{ itemInternalName: 'Item2', itemName: 'Item 2', sourceType: 'drop', sourceRefType: 'npc', sourceRefName: 'Zombie', sortOrder: 0 }],
+    recipes: [{ resultInternalName: 'Item2', resultName: 'Item 2', resultQuantity: 1, versionScope: 'Desktop', sourcePage: 'Item2', sourceProvider: 'wiki_gg', ingredients: [{ ingredientInternalName: 'Item9', ingredientName: 'Item 9', ingredientGroupType: 'item', quantityMin: 1, quantityMax: 1, quantityText: '1', sortOrder: 0 }], stations: [] }],
+  };
+}
+
+function itemOnlyMaintInputs() {
+  const relationRows = itemOnlyRelationRows();
+  const sourceBinding = {
+    sourceId: 90001,
+    sourceKey: 'repository.items.relations',
+    sourcePage: 'data/standardized-view/item_relations',
+    contentHash: `sha256:${'c'.repeat(64)}`,
+  };
+  const lineage = {
+    landing_source_id: sourceBinding.sourceId,
+    landing_source_key: sourceBinding.sourceKey,
+    landing_content_hash: 'c'.repeat(64),
+  };
+  return {
+    maintItems: itemOnlyMaintItems().slice(0, 2),
+    referenceItems: itemOnlyMaintItems(),
+    referenceNpcs: [],
+    maintItemCategories: [
+      { item_internal_name: 'Item2', top_level: 'Material', item_name: 'Item 2', record_key: 'category-item-2', ...lineage },
+      { item_internal_name: 'Item4', top_level: 'Material', item_name: 'Item 4', record_key: 'category-item-4', ...lineage },
+    ],
+    maintItemRecipes: relationRows.recipes.map((row, index) => ({
+      record_key: `recipe-${index}`,
+      result_internal_name: row.resultInternalName,
+      result_name: row.resultName,
+      result_quantity: row.resultQuantity,
+      version_scope: row.versionScope,
+      ingredients_json: JSON.stringify(row.ingredients),
+      stations_json: JSON.stringify(row.stations),
+      source_provider: row.sourceProvider,
+      source_page: row.sourcePage,
+      source_revision_timestamp: '2026-10-01 00:00:00',
+      raw_json: JSON.stringify(row),
+      ...lineage,
+    })),
+    maintItemImages: relationRows.itemImages.map((row, index) => ({
+      record_key: `image-${index}`,
+      item_internal_name: row.itemInternalName,
+      item_name: row.itemName,
+      role: row.role,
+      source_provider: row.provider,
+      source_file_title: row.sourceFileTitle,
+      original_url: row.originalUrl,
+      cached_url: row.cachedUrl,
+      is_primary: row.isPrimary,
+      sort_order: row.sortOrder,
+      raw_json: JSON.stringify(row),
+      ...lineage,
+    })),
+    maintItemSources: relationRows.itemSources.map((row, index) => ({
+      record_key: `source-${index}`,
+      item_internal_name: row.itemInternalName,
+      item_name: row.itemName,
+      source_type: row.sourceType,
+      source_ref_type: row.sourceRefType,
+      source_ref_name: row.sourceRefName,
+      sort_order: row.sortOrder,
+      raw_json: JSON.stringify(row),
+      ...lineage,
+    })),
+    maintItemBiomes: relationRows.itemBiomes.map((row, index) => ({
+      record_key: `biome-${index}`,
+      item_source_id: 2,
+      item_internal_name: row.itemInternalName,
+      biome_code: row.biomeCode,
+      relation_type: row.relationType,
+      sort_order: row.sortOrder,
+      raw_json: JSON.stringify(row),
+      ...lineage,
+    })),
+    relationRows,
+    sourceBinding,
+  };
+}
+
+test('Item-only relation results keep external recipe dependencies read-only and expose only Item-owned rows', () => {
+  const result = buildItemOnlyRelationResults({
+    itemIds: ITEM_ONLY_IDS,
+    ...itemOnlyMaintInputs(),
+  });
+  assert.deepEqual(result.relationItems.map((row) => row.sourceId), ITEM_ONLY_IDS);
+  assert.equal(result.projectionItems.length, 2);
+  assert.equal(result.itemRecipeHeads.length, 1);
+  assert.equal(result.itemRecipeIngredients[0].ingredientItemSourceId, 9);
+  assert.equal(result.itemBiomeRelations.length, 1);
+  assert.equal(result.relationItemImages.length, 1);
+  assert.equal(result.itemSourceFacts.length, 1);
+  assert.equal(result.itemSourceFacts[0].reviewStatus, 'unresolved');
+  assert.equal(result.nonItemTableRows, 0);
+});
+
+test('Item-only relation sync rejects formal targets and broad scopes before reading or writing', async () => {
+  let reads = 0;
+  let writes = 0;
+  await assert.rejects(() => runItemOnlySync({
+    apply: true,
+    itemOnly: true,
+    itemIds: ITEM_ONLY_IDS,
+    localDatabase: 'terria_v1_local',
+    maintDatabase: ITEM_ONLY_DATABASES.maint,
+    relationDatabase: ITEM_ONLY_DATABASES.relation,
+    relationRows: itemOnlyRelationRows(),
+  }, {
+    itemOnlyInputs: itemOnlyMaintInputs(),
+    queryMaint: async () => { reads += 1; return itemOnlyMaintItems(); },
+    executeRelation: async () => { writes += 1; },
+  }), /formal|isolated Item/i);
+  assert.equal(reads, 0);
+  assert.equal(writes, 0);
+
+  await assert.rejects(() => runItemOnlySync({
+    apply: true,
+    itemOnly: true,
+    itemIds: ITEM_ONLY_IDS,
+    localDatabase: ITEM_ONLY_DATABASES.local,
+    maintDatabase: ITEM_ONLY_DATABASES.maint,
+    relationDatabase: ITEM_ONLY_DATABASES.relation,
+    relationRows: itemOnlyRelationRows(),
+    scopes: ['category', 'recipe'],
+  }, {
+    itemOnlyInputs: itemOnlyMaintInputs(),
+    queryMaint: async () => { reads += 1; return itemOnlyMaintItems(); },
+    executeRelation: async () => { writes += 1; },
+  }), /scopes|Item-only/i);
+  assert.equal(writes, 0);
+});
+
+test('Item-only relation sync writes only the reviewed Item table allowlist', async () => {
+  const executed = [];
+  const result = await runItemOnlySync({
+    apply: true,
+    itemOnly: true,
+    itemIds: ITEM_ONLY_IDS,
+    localDatabase: ITEM_ONLY_DATABASES.local,
+    maintDatabase: ITEM_ONLY_DATABASES.maint,
+    relationDatabase: ITEM_ONLY_DATABASES.relation,
+    relationRows: itemOnlyRelationRows(),
+  }, {
+    itemOnlyInputs: itemOnlyMaintInputs(),
+    executeRelation: async (fn) => fn({
+      async query(sql) {
+        executed.push(sql);
+        if (/^SELECT COUNT\(\*\)/i.test(sql)) return [[{ total: 0 }]];
+        return [[]];
+      },
+      async execute(sql) { executed.push(sql); return [{ affectedRows: 1 }]; },
+    }),
+    writeReports: async () => null,
+  });
+  assert.equal(result.apply, true);
+  assert.equal(result.relationWriteMode, 'items-only');
+  assert.ok(result.rowsWritten > 0);
+  const forbidden = ['relation_npcs', 'relation_projectiles', 'relation_buffs', 'relation_bosses', 'projection_npcs', 'projection_projectiles', 'projection_buffs', 'projection_armor_sets'];
+  assert.equal(executed.some((sql) => forbidden.some((table) => new RegExp(`\\b${table}\\b`, 'i').test(sql))), false);
+  assert.equal(executed.some((sql) => /TRUNCATE|DELETE\s+FROM/i.test(sql)), false);
+});
+
+test('runSync dispatches explicit Item-only mode before the broad shared relation reads', async () => {
+  let broadRead = false;
+  const result = await runSyncBase({
+    apply: false,
+    itemOnly: true,
+    itemIds: ITEM_ONLY_IDS,
+    localDatabase: ITEM_ONLY_DATABASES.local,
+    maintDatabase: ITEM_ONLY_DATABASES.maint,
+    relationDatabase: ITEM_ONLY_DATABASES.relation,
+    relationRows: itemOnlyRelationRows(),
+  }, {
+    itemOnlyInputs: itemOnlyMaintInputs(),
+    queryMaint: async () => { broadRead = true; return []; },
+    managedImageUrlPrefixes: MANAGED_IMAGE_URL_PREFIXES,
+  });
+  assert.equal(result.relationWriteMode, 'items-only');
+  assert.equal(broadRead, false);
+});
 
 test('parseArgs parses relation sync defaults and scopes', () => {
   const actual = parseArgs([

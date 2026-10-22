@@ -9,6 +9,7 @@ import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import { runMaintSync } from '../maint/sync-landing-to-maint.mjs';
 import { runSync } from '../relation/sync-maint-to-relation.mjs';
 import { assertCurrentBuffSourceReplay } from '../fetch/buff-current-source-replay.mjs';
+import { BUFF_NPC_INTERNAL_NAME_ALIASES } from './buff-offline-source.mjs';
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(moduleDir, 'fixtures', 'buff-t1.sample.json');
@@ -16,7 +17,23 @@ const defaultFixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 const DEFAULT_INPUT = 'pipelines/buff/fixtures/buff-t1.sample.json';
 const ISOLATED_LOCAL = /^terria_v1_automation_acceptance_[a-z0-9]{1,3}_[0-9a-f]{16}_local$/;
 const ISOLATED_MAINT = /^terria_v1_automation_acceptance_[a-z0-9]{1,3}_[0-9a-f]{16}_maint$/;
-const NPC_ALIASES = new Map([['SandPoacher', 'DesertScorpionWalk']]);
+const NPC_ALIASES = new Map(Object.entries(BUFF_NPC_INTERNAL_NAME_ALIASES));
+
+function canonical(value) {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'bigint') return value.toString();
+  if (Array.isArray(value)) return value.map(canonical);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
+}
+
+function hashRows(rows) {
+  const values = rows.map((row) => JSON.stringify(canonical(row))).sort();
+  return {
+    rowCount: rows.length,
+    sha256: `sha256:${createHash('sha256').update(JSON.stringify(values), 'utf8').digest('hex')}`,
+  };
+}
 
 function fixtureRecords(fixture = defaultFixture) {
   return fixture.records.map((record) => structuredClone(record));
@@ -37,15 +54,6 @@ export function buildBuffT1LandingRows({ fixture = defaultFixture, sourceReplay 
     sourceRevisionTimestamp: sourceReplay.source.module.revisionTimestamp,
     contentHash: createHash('sha256').update(payloadJson).digest('hex'),
     fetchedAt: sourceReplay.generatedAt,
-  } : sourceMetadata ? {
-    provider: sourceMetadata.provider ?? 'terraria.wiki.gg',
-    sourceKind: 'full_wiki_capture',
-    sourceKey: 'buff-full-recrawl:400',
-    sourceLocator: `${sourceMetadata.sourcePage ?? 'Template:GetBuffInfo'}@${sourceMetadata.sourceRevisionTimestamp ?? 'unknown'}`,
-    sourcePage: sourceMetadata.sourcePage ?? 'Template:GetBuffInfo',
-    sourceRevisionTimestamp: sourceMetadata.sourceRevisionTimestamp ?? null,
-    contentHash: createHash('sha256').update(payloadJson).digest('hex'),
-    fetchedAt: sourceMetadata.fetchedAt ?? null,
   } : {
     provider: 'buff-t1.fixture',
     sourceKind: 'offline_fixture',
@@ -56,6 +64,15 @@ export function buildBuffT1LandingRows({ fixture = defaultFixture, sourceReplay 
     contentHash: createHash('sha256').update(payloadJson).digest('hex'),
     fetchedAt: fixture.generatedAt,
   };
+  if (sourceMetadata && !sourceReplay) {
+    source.provider = sourceMetadata.provider ?? 'terraria.wiki.gg';
+    source.sourceKind = sourceMetadata.sourceKind ?? 'repository_frozen_standardized';
+    source.sourceKey = sourceMetadata.sourceKey ?? 'buff-standardized:388';
+    source.sourceLocator = sourceMetadata.sourceLocator ?? 'data/standardized/buffs.standardized.json';
+    source.sourcePage = sourceMetadata.sourcePage ?? 'data/standardized/buffs.standardized.json';
+    source.sourceRevisionTimestamp = sourceMetadata.sourceRevisionTimestamp ?? null;
+    source.fetchedAt = sourceMetadata.fetchedAt ?? null;
+  }
   return [{
     id: 910003,
     dataset_type: 'buffs_raw',
@@ -77,9 +94,11 @@ export function buildBuffT1LandingRows({ fixture = defaultFixture, sourceReplay 
 export function buildBuffT1InputDescriptor({ sourceReplay = null, fullCapture = null, inputPath = DEFAULT_INPUT } = {}) {
   if (fullCapture) {
     return {
-      type: 'full_wiki_capture',
+      type: fullCapture.buffs.length === 400 ? 'full_wiki_capture' : 'repository_frozen_standardized',
       totalBuffs: fullCapture.buffs.length,
-      sourceRevisionTimestamp: fullCapture.sourceRevisionTimestamp ?? null,
+      sourceRevisionTimestamp: fullCapture.sourceRevisionTimestamp
+        ?? fullCapture.sourceMetadata?.sourceRevisionTimestamp
+        ?? null,
     };
   }
   if (sourceReplay) {
@@ -115,6 +134,25 @@ function buildSourceSummary(sourceReplay) {
   };
 }
 
+function buildFullCaptureSourceSummary(capture) {
+  return {
+    provider: 'terraria.wiki.gg',
+    sourceKind: 'full_wiki_capture',
+    sourceKey: 'buff-full-recrawl:400',
+    sourceLocator: `${capture.sourcePageTitle ?? 'Template:GetBuffInfo'}@${capture.sourceRevisionTimestamp ?? 'unknown'}`,
+    sourcePage: capture.sourcePageTitle ?? 'Template:GetBuffInfo',
+    sourceRevisionTimestamp: toMysqlDateTime(capture.sourceRevisionTimestamp),
+    fetchedAt: toMysqlDateTime(capture.fetchedAt),
+    totalBuffs: capture.buffs.length,
+  };
+}
+
+function toMysqlDateTime(value) {
+  if (value == null || value === '') return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 19).replace('T', ' ') : null;
+}
+
 export function seedBuffFixtureItems(records = fixtureRecords()) {
   return [...new Set(records.flatMap((record) => record.sourceItems.map((item) => item.internalName)))];
 }
@@ -124,11 +162,17 @@ export function seedBuffFixtureNpcs(records = fixtureRecords()) {
 }
 
 export async function seedBuffFixtureMaintItems(options = {}) {
-  return copyFixtureRows({ ...options, sourceDatabase: 'terria_v1_maint', sourceTable: 'maint_items', targetTable: 'maint_items', displayColumn: 'english_name', expectedCount: options.expectedCount ?? options.internalNames?.length, databasePattern: ISOLATED_MAINT });
+  return copyFixtureRows({ ...options, sourceDatabase: 'terria_v1_maint', sourceTable: 'maint_items', targetTable: 'maint_items', expectedCount: options.expectedCount ?? options.internalNames?.length, databasePattern: ISOLATED_MAINT });
 }
 
 export async function seedBuffFixtureMaintNpcs(options = {}) {
-  return copyFixtureRows({ ...options, sourceDatabase: 'terria_v1_maint', sourceTable: 'maint_npcs', targetTable: 'maint_npcs', displayColumn: 'english_name', expectedCount: options.expectedCount ?? options.internalNames?.length, databasePattern: ISOLATED_MAINT });
+  return copyFixtureRows({ ...options, sourceDatabase: 'terria_v1_maint', sourceTable: 'maint_npcs', targetTable: 'maint_npcs', expectedCount: options.expectedCount ?? options.internalNames?.length, databasePattern: ISOLATED_MAINT });
+}
+
+function buildDependencyLookup(rows) {
+  return new Map(rows.map((row) => [row.internal_name, {
+    id: Number(row.id), internalName: row.internal_name, name: row.name,
+  }]));
 }
 
 export async function runBuffCanonicalT1Acceptance({
@@ -140,6 +184,7 @@ export async function runBuffCanonicalT1Acceptance({
   inputPath = DEFAULT_INPUT,
   sourceReplay = null,
   fullCapture = null,
+  dependencySeedEvidence = null,
   redisLogicalDb = null,
   importBuffsImpl = importBuffs,
   runMaintSyncImpl = runMaintSync,
@@ -148,117 +193,220 @@ export async function runBuffCanonicalT1Acceptance({
 } = {}) {
   assertIsolatedDatabases({ profile, databases });
   if (sourceReplay) assertBuffT1SourceReplayResources({ profile, databases, redisLogicalDb });
-  if (fullCapture) assertBuffFullCaptureResources({ profile, databases, redisLogicalDb });
+  if (fullCapture) assertBuffFullCaptureResources({ profile, databases, redisLogicalDb, recordCount: fullCapture.buffs?.length });
   const resolvedInput = sourceReplay || fullCapture ? null : path.resolve(repoRoot, inputPath);
   if (resolvedInput && !fs.existsSync(resolvedInput)) throw new Error(`buff T1 input is missing: ${resolvedInput}`);
   const input = sourceReplay ?? fullCapture ?? JSON.parse(fs.readFileSync(resolvedInput, 'utf8'));
   const records = sourceReplay ? validateSourceReplay(input) : fullCapture ? validateFullCapture(input).buffs : validateFixture(input);
   const allowUnresolvedDependencies = Boolean(fullCapture);
+  const requiresExactDependencyEvidence = fullCapture?.buffs?.length === 388;
+  if (requiresExactDependencyEvidence && dependencySeedEvidence?.readbackVerified !== true) {
+    throw new Error('Buff full-source T1 requires exact dependency seeding evidence before import');
+  }
   const itemNames = seedBuffFixtureItems(records);
   const npcNames = seedBuffFixtureNpcs(records);
-  const itemIdentityRows = uniqueDependencyIdentities(records.flatMap((record) => record.sourceItems));
-  const npcIdentityRows = uniqueDependencyIdentities(records.flatMap((record) => record.inflictingNpcs).map((npc) => ({
-    ...npc,
-    internalName: NPC_ALIASES.get(npc.internalName) ?? npc.internalName,
-  })));
   const sourceIds = records.map((record) => record.id);
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), `terrapedia-buff-t1-${runId}-`));
   const targetOptions = { host: mysql.host, port: mysql.port, user: mysql.username, password: mysql.password };
   const readonlyOptions = { host: mysql.host, port: mysql.port, user: mysql.readonlyUsername, password: mysql.readonlyPassword };
 
   try {
-    const [localSource, localTarget] = await Promise.all([
-      createConnectionImpl({ ...readonlyOptions, database: 'terria_v1_local' }),
-      createConnectionImpl({ ...targetOptions, database: databases.local }),
-    ]);
+    const localSource = requiresExactDependencyEvidence ? null : await createConnectionImpl({ ...readonlyOptions, database: 'terria_v1_local' });
+    const localTarget = await createConnectionImpl({ ...targetOptions, database: databases.local });
     let dependencySeed;
+    let localBuffReadback = [];
+    let localBuffSourceItemReadback = [];
     const buffImport = { input: 0, created: 0, updated: 0, skipped: 0, errors: [] };
     const sourceItemRelations = { input: 0, created: 0, updated: 0, errors: [], unmatched: 0, unmatchedSamples: [] };
     try {
       await ensureIsolatedBuffColumns(localTarget);
       await localTarget.query(`DELETE FROM \`${databases.local}\`.\`buff_source_items\``);
       await localTarget.query(`DELETE FROM \`${databases.local}\`.\`buffs\``);
-      await localTarget.query(`DELETE FROM \`${databases.local}\`.\`items\``);
-      await localTarget.query(`DELETE FROM \`${databases.local}\`.\`npcs\``);
-      const itemRows = await copyFixtureRows({ sourceConnection: localSource, targetConnection: localTarget, sourceDatabase: 'terria_v1_local', sourceTable: 'items', targetDatabase: databases.local, targetTable: 'items', internalNames: itemNames, identityRows: fullCapture ? itemIdentityRows : null, expectedCount: itemNames.length, allowMissing: allowUnresolvedDependencies, databasePattern: ISOLATED_LOCAL });
-      const npcRows = await copyFixtureRows({ sourceConnection: localSource, targetConnection: localTarget, sourceDatabase: 'terria_v1_local', sourceTable: 'npcs', targetDatabase: databases.local, targetTable: 'npcs', internalNames: npcNames, identityRows: fullCapture ? npcIdentityRows : null, expectedCount: npcNames.length, allowMissing: allowUnresolvedDependencies, databasePattern: ISOLATED_LOCAL });
-      dependencySeed = { itemRows, npcRows };
+      if (localSource) {
+        await localTarget.query(`DELETE FROM \`${databases.local}\`.\`items\``);
+        await localTarget.query(`DELETE FROM \`${databases.local}\`.\`npcs\``);
+        const itemRows = await copyFixtureRows({ sourceConnection: localSource, targetConnection: localTarget, sourceDatabase: 'terria_v1_local', sourceTable: 'items', targetDatabase: databases.local, targetTable: 'items', internalNames: itemNames, expectedCount: itemNames.length, allowMissing: allowUnresolvedDependencies, databasePattern: ISOLATED_LOCAL });
+        const npcRows = await copyFixtureRows({ sourceConnection: localSource, targetConnection: localTarget, sourceDatabase: 'terria_v1_local', sourceTable: 'npcs', targetDatabase: databases.local, targetTable: 'npcs', internalNames: npcNames, expectedCount: npcNames.length, allowMissing: allowUnresolvedDependencies, databasePattern: ISOLATED_LOCAL });
+        dependencySeed = { itemRows, npcRows };
+      } else {
+        dependencySeed = {
+          itemRows: seededDependencyCount(dependencySeedEvidence, databases.local, 'items'),
+          npcRows: seededDependencyCount(dependencySeedEvidence, databases.local, 'npcs'),
+        };
+      }
       const [seededItems] = await localTarget.query(`SELECT id, internal_name, name FROM \`${databases.local}\`.\`items\``);
-      const itemLookup = { byInternal: buildDependencyLookup(seededItems, itemIdentityRows) };
-      const sourceItemLookup = { bySourceId: new Map(records.flatMap((record) => record.sourceItems.map((item) => [Number(item.itemId), item.internalName]))) };
+      const itemLookup = fullCapture
+        ? {
+          bySourceId: new Map(seededItems.map((row) => [Number(row.id), { id: Number(row.id), internalName: row.internal_name, name: row.name }])),
+          byInternal: buildDependencyLookup(seededItems),
+        }
+        : { byInternal: new Map(seededItems.map((row) => [row.internal_name, { id: Number(row.id), internalName: row.internal_name, name: row.name }])) };
+      const sourceItemLookup = {
+        bySourceId: new Map(records.flatMap((record) => record.sourceItems
+          .filter((item) => Number.isSafeInteger(Number(item.itemId)) && Number(item.itemId) > 0)
+          .map((item) => [Number(item.itemId), item.internalName]))),
+        ...(requiresExactDependencyEvidence ? { requireStableSourceIds: true } : {}),
+      };
       await importBuffsImpl(localTarget, records, itemLookup, sourceItemLookup, buffImport, sourceItemRelations);
+      [localBuffReadback] = await localTarget.query(`SELECT * FROM \`${databases.local}\`.\`buffs\` ORDER BY source_id`);
+      [localBuffSourceItemReadback] = await localTarget.query(`SELECT * FROM \`${databases.local}\`.\`buff_source_items\` ORDER BY buff_id, sort_order, id`);
     } finally {
-      await Promise.all([localSource.end(), localTarget.end()]);
+      await Promise.all([localSource?.end(), localTarget.end()]);
     }
     const expectedItemRelationCount = records.reduce((sum, record) => sum + record.sourceItems.length, 0);
     const expectedNpcRelationCount = records.reduce((sum, record) => sum + record.inflictingNpcs.length, 0);
-    if ((!allowUnresolvedDependencies && (dependencySeed.itemRows !== itemNames.length || dependencySeed.npcRows !== npcNames.length))
+    const expectedItemDependencyCount = allowUnresolvedDependencies
+      ? new Set(records.flatMap((record) => record.sourceItems)
+        .filter((item) => item.resolveStatus !== 'unresolved' && Number.isSafeInteger(Number(item.itemId)) && Number(item.itemId) > 0)
+        .map((item) => Number(item.itemId))).size
+      : itemNames.length;
+    const expectedNpcDependencyCount = allowUnresolvedDependencies
+      ? new Set(records.flatMap((record) => [...record.inflictingNpcs, ...record.immuneNpcs])
+        .filter((npc) => npc.resolveStatus !== 'unresolved' && Number.isSafeInteger(Number(npc.npcId)) && Number(npc.npcId) !== 0)
+        .map((npc) => Number(npc.npcId))).size
+      : npcNames.length;
+    const localDependenciesMatch = requiresExactDependencyEvidence
+      ? dependencySeed.itemRows === expectedItemDependencyCount && dependencySeed.npcRows === expectedNpcDependencyCount
+      : allowUnresolvedDependencies
+        ? dependencySeed.itemRows <= itemNames.length && dependencySeed.npcRows <= npcNames.length
+        : dependencySeed.itemRows === expectedItemDependencyCount && dependencySeed.npcRows === expectedNpcDependencyCount;
+    if (!localDependenciesMatch
       || buffImport.input !== records.length || buffImport.created !== records.length || buffImport.updated !== 0 || buffImport.errors.length !== 0
-      || sourceItemRelations.input !== expectedItemRelationCount || (!allowUnresolvedDependencies && sourceItemRelations.unmatched !== 0)) {
+      || sourceItemRelations.input !== expectedItemRelationCount || (!allowUnresolvedDependencies && sourceItemRelations.unmatched !== 0)
+      || localBuffReadback.length !== records.length
+      || new Set(localBuffReadback.map((row) => Number(row.source_id))).size !== records.length
+      || records.some((record) => !localBuffReadback.some((row) => Number(row.source_id) === Number(record.id) && row.internal_name === record.internalName))) {
       throw new Error(`buff T1 import mismatch: ${JSON.stringify({ buffImport, sourceItemRelations })}`);
     }
 
-    const [maintSource, maintTarget] = await Promise.all([
-      createConnectionImpl({ ...readonlyOptions, database: 'terria_v1_maint' }),
-      createConnectionImpl({ ...targetOptions, database: databases.maint }),
-    ]);
+    const maintSource = requiresExactDependencyEvidence ? null : await createConnectionImpl({ ...readonlyOptions, database: 'terria_v1_maint' });
+    const maintTarget = await createConnectionImpl({ ...targetOptions, database: databases.maint });
     let maintDependencySeed;
     try {
       await maintTarget.query(`DELETE FROM \`${databases.maint}\`.\`maint_buffs\``);
-      await maintTarget.query(`DELETE FROM \`${databases.maint}\`.\`maint_items\``);
-      await maintTarget.query(`DELETE FROM \`${databases.maint}\`.\`maint_npcs\``);
-      maintDependencySeed = {
-        itemRows: await seedBuffFixtureMaintItems({ sourceConnection: maintSource, targetConnection: maintTarget, targetDatabase: databases.maint, internalNames: itemNames, identityRows: fullCapture ? itemIdentityRows : null, expectedCount: itemNames.length, allowMissing: allowUnresolvedDependencies }),
-        npcRows: await seedBuffFixtureMaintNpcs({ sourceConnection: maintSource, targetConnection: maintTarget, targetDatabase: databases.maint, internalNames: npcNames, identityRows: fullCapture ? npcIdentityRows : null, expectedCount: npcNames.length, allowMissing: allowUnresolvedDependencies }),
-      };
+      if (maintSource) {
+        await maintTarget.query(`DELETE FROM \`${databases.maint}\`.\`maint_items\``);
+        await maintTarget.query(`DELETE FROM \`${databases.maint}\`.\`maint_npcs\``);
+        maintDependencySeed = {
+          itemRows: await seedBuffFixtureMaintItems({ sourceConnection: maintSource, targetConnection: maintTarget, targetDatabase: databases.maint, internalNames: itemNames, expectedCount: itemNames.length, allowMissing: allowUnresolvedDependencies }),
+          npcRows: await seedBuffFixtureMaintNpcs({ sourceConnection: maintSource, targetConnection: maintTarget, targetDatabase: databases.maint, internalNames: npcNames, expectedCount: npcNames.length, allowMissing: allowUnresolvedDependencies }),
+        };
+      } else {
+        maintDependencySeed = {
+          itemRows: seededDependencyCount(dependencySeedEvidence, databases.maint, 'maint_items'),
+          npcRows: seededDependencyCount(dependencySeedEvidence, databases.maint, 'maint_npcs'),
+        };
+      }
     } finally {
-      await Promise.all([maintSource.end(), maintTarget.end()]);
+      await Promise.all([maintSource?.end(), maintTarget.end()]);
     }
-    if (!allowUnresolvedDependencies && (maintDependencySeed.itemRows !== itemNames.length || maintDependencySeed.npcRows !== npcNames.length)) throw new Error(`buff T1 maint dependency closure failed: ${JSON.stringify(maintDependencySeed)}`);
+    if ((!allowUnresolvedDependencies && (maintDependencySeed.itemRows !== itemNames.length || maintDependencySeed.npcRows !== npcNames.length))
+      || (requiresExactDependencyEvidence && (maintDependencySeed.itemRows !== expectedItemDependencyCount || maintDependencySeed.npcRows !== expectedNpcDependencyCount))) {
+      throw new Error(`buff T1 maint dependency closure failed: ${JSON.stringify(maintDependencySeed)}`);
+    }
 
     const maintSync = await runMaintSyncImpl({ apply: true, scopes: ['buffs'], ...targetOptions, database: databases.maint }, {
       config: { database: { ...targetOptions, username: mysql.username } },
-      loadLandingRows: async () => buildBuffT1LandingRows({ fixture: input, sourceReplay, recordsOverride: fullCapture ? records : null, sourceMetadata: fullCapture ? buildFullCaptureSourceSummary(input) : null }),
+      loadLandingRows: async () => buildBuffT1LandingRows({
+        fixture: input,
+        sourceReplay,
+        recordsOverride: fullCapture ? records : null,
+        sourceMetadata: fullCapture?.sourceMetadata ?? (fullCapture?.buffs?.length === 400 ? buildFullCaptureSourceSummary(fullCapture) : null),
+      }),
       writeReport: async () => null,
     });
     const maintWrites = Number(maintSync?.writes?.inserted ?? 0) + Number(maintSync?.writes?.updated ?? 0);
     if (maintWrites !== records.length) throw new Error(`buff T1 maint mapping mismatch: ${JSON.stringify(maintSync?.writes ?? null)}`);
 
-    const consolidation = await runSyncImpl({ apply: true, createDatabase: false, maintDatabase: databases.maint, localDatabase: databases.local, relationDatabase: databases.relation, allowLocalItemImageFallback: false, scopes: ['buff'] }, {
+    const maintReadbackConnection = await createConnectionImpl({ ...targetOptions, database: databases.maint });
+    let maintBuffReadback;
+    try {
+      [maintBuffReadback] = await maintReadbackConnection.query(`SELECT * FROM \`${databases.maint}\`.\`maint_buffs\` ORDER BY source_id`);
+    } finally {
+      await maintReadbackConnection.end();
+    }
+    if (maintBuffReadback.length !== records.length
+        || records.some((record) => !maintBuffReadback.some((row) => Number(row.source_id) === Number(record.id) && row.internal_name === record.internalName))) {
+      throw new Error('Buff maintained table independent readback identity mismatch');
+    }
+
+    const consolidation = await runSyncImpl({ apply: true, createDatabase: false, maintDatabase: databases.maint, localDatabase: databases.local, relationDatabase: databases.relation, allowLocalItemImageFallback: false, scopes: ['buff'], ...(fullCapture ? { buffSourceNpcRelationMode: 'source-bound' } : {}) }, {
       config: { database: { ...targetOptions, username: mysql.username } },
       writeReports: async () => ({ auditJsonPath: path.join(tempRoot, 'audit.json'), auditMdPath: path.join(tempRoot, 'audit.md'), conflictsPath: path.join(tempRoot, 'conflicts.json'), unresolvedPath: path.join(tempRoot, 'unresolved.json') }),
     });
-    assertExactConsolidation({ records, results: consolidation.results ?? {}, allowUnresolvedDependencies });
-    const actualItemBuffRelationCount = (consolidation.results?.itemBuffRelations ?? []).length;
-    const actualInflictingNpcBuffRelationCount = (consolidation.results?.npcBuffRelations ?? []).length;
-
     const relationConnection = await createConnectionImpl({ ...targetOptions, database: databases.relation });
+    let relationBuffReadback;
+    let itemBuffRelationReadback;
+    let npcBuffRelationReadback;
+    let relationBuffImageReadback;
     let projectionRows;
     try {
-      [projectionRows] = await relationConnection.query(`SELECT source_id, internal_name, source_item_count, immune_npc_count, source_items_json, inflicting_npcs_json, immune_npcs_json, source_evidence_json FROM \`${databases.relation}\`.\`projection_buffs\` WHERE source_id IN (${sourceIds.map(() => '?').join(', ')}) ORDER BY source_id`, sourceIds);
+      [relationBuffReadback] = await relationConnection.query(`SELECT * FROM \`${databases.relation}\`.\`relation_buffs\` ORDER BY source_id`);
+      [itemBuffRelationReadback] = await relationConnection.query(`SELECT * FROM \`${databases.relation}\`.\`item_buff_relations\` ORDER BY record_key`);
+      [npcBuffRelationReadback] = await relationConnection.query(`SELECT * FROM \`${databases.relation}\`.\`npc_buff_relations\` ORDER BY record_key`);
+      [relationBuffImageReadback] = await relationConnection.query(`SELECT * FROM \`${databases.relation}\`.\`relation_buff_images\` ORDER BY record_key`);
+      [projectionRows] = await relationConnection.query(`SELECT * FROM \`${databases.relation}\`.\`projection_buffs\` ORDER BY source_id`);
     } finally {
       await relationConnection.end();
     }
-    assertProjectionReadback(records, projectionRows, { allowUnresolvedDependencies });
+    const isolatedReadbackResults = {
+      relationBuffs: relationBuffReadback,
+      itemBuffRelations: itemBuffRelationReadback,
+      npcBuffRelations: npcBuffRelationReadback,
+      projectionBuffs: projectionRows,
+    };
+    assertExactConsolidation({ records, results: isolatedReadbackResults, includeSourceImmuneFacts: allowUnresolvedDependencies });
+    const actualItemBuffRelationCount = itemBuffRelationReadback.length;
+    const actualNpcBuffRelations = npcBuffRelationReadback;
+    const actualInflictingNpcBuffRelationCount = actualNpcBuffRelations.filter((row) => (row.relationType ?? row.relation_type) === 'inflicts').length;
+    const actualImmuneNpcBuffRelationCount = actualNpcBuffRelations.filter((row) => (row.relationType ?? row.relation_type) === 'immune').length;
+    assertProjectionReadback(records, projectionRows);
+    const readbackRows = {
+      'local.buffs': localBuffReadback,
+      'local.buff_source_items': localBuffSourceItemReadback,
+      'maint.maint_buffs': maintBuffReadback,
+      'relation.relation_buffs': relationBuffReadback,
+      'relation.item_buff_relations': itemBuffRelationReadback,
+      'relation.npc_buff_relations': npcBuffRelationReadback,
+      'relation.relation_buff_images': relationBuffImageReadback,
+      'relation.projection_buffs': projectionRows,
+    };
+    const readbackHashes = Object.fromEntries(Object.entries(readbackRows).map(([table, rows]) => [table, hashRows(rows)]));
     return {
       status: 'passed', databases, input: buildBuffT1InputDescriptor({ sourceReplay, fullCapture, inputPath }), dependencySeed, maintDependencySeed, buffImport, sourceItemRelations, maintSync,
       consolidation: {
         apply: consolidation.apply,
-        relationBuffCount: records.length,
-        projectionBuffCount: records.length,
+        relationBuffCount: relationBuffReadback.length,
+        projectionBuffCount: projectionRows.length,
         itemBuffRelationCount: actualItemBuffRelationCount,
         inflictingNpcBuffRelationCount: actualInflictingNpcBuffRelationCount,
-        immuneNpcRelationCount: 0,
+        immuneNpcRelationCount: actualImmuneNpcBuffRelationCount,
+        npcBuffRelationCount: actualNpcBuffRelations.length,
+        relationBuffImageCount: relationBuffImageReadback.length,
         unresolvedFixtureCount: fullCapture ? null : 0,
         unresolvedSourceItemCount: sourceItemRelations.unmatched,
       },
       consumerReadback: projectionRows.map((row) => ({ sourceId: Number(row.source_id), internalName: row.internal_name, sourceItemCount: Number(row.source_item_count), immuneNpcCount: Number(row.immune_npc_count) })),
+      readbackHashes,
+      apiExpectations: {
+        totalBuffs: records.length,
+        detailId: Number(localBuffReadback[0]?.id),
+        firstBuff: {
+          sourceId: Number(localBuffReadback[0]?.source_id),
+          internalName: localBuffReadback[0]?.internal_name,
+        },
+      },
       unresolved: {
         sourceItemRelations: sourceItemRelations.unmatched,
         sourceItemSamples: sourceItemRelations.unmatchedSamples,
+        sourceItemFacts: records.reduce((sum, record) => sum + record.sourceItems.filter((item) => item.resolveStatus === 'unresolved').length, 0),
+        npcFacts: records.reduce((sum, record) => sum
+          + record.inflictingNpcs.filter((npc) => npc.resolveStatus === 'unresolved').length
+          + record.immuneNpcs.filter((npc) => npc.resolveStatus === 'unresolved').length, 0),
         relationReadback: {
           itemBuffRelations: actualItemBuffRelationCount,
           inflictingNpcBuffRelations: actualInflictingNpcBuffRelationCount,
+          immuneNpcBuffRelations: actualImmuneNpcBuffRelationCount,
         },
         dependencySeed,
         maintDependencySeed,
@@ -279,64 +427,29 @@ async function ensureIsolatedBuffColumns(connection) {
   }
 }
 
-async function copyFixtureRows({ sourceConnection, targetConnection, sourceDatabase, sourceTable, targetDatabase, targetTable, internalNames, identityRows = null, expectedCount, allowMissing = false, displayColumn = 'name', databasePattern }) {
+async function copyFixtureRows({ sourceConnection, targetConnection, sourceDatabase, sourceTable, targetDatabase, targetTable, internalNames, expectedCount, allowMissing = false, databasePattern }) {
   if (!databasePattern.test(targetDatabase ?? '')) throw new Error(`buff T1 seed requires an isolated ${targetTable} database`);
   if (internalNames.length !== expectedCount || new Set(internalNames).size !== expectedCount) throw new Error(`buff T1 seed requires ${expectedCount} unique ${targetTable} identities`);
   if (expectedCount === 0) return 0;
-  const identities = Array.isArray(identityRows) && identityRows.length > 0
-    ? identityRows
-    : internalNames.map((internalName) => ({ internalName }));
-  const internalValues = identities.map((row) => String(row.internalName ?? '').trim()).filter(Boolean);
-  const displayValues = identities.map((row) => String(row.name ?? '').trim()).filter(Boolean);
-  const internalPlaceholders = internalValues.map(() => '?').join(', ');
-  const displayPlaceholders = displayValues.map(() => '?').join(', ');
-  const predicates = [];
-  const params = [];
-  if (internalValues.length > 0) {
-    predicates.push(`LOWER(internal_name) IN (${internalPlaceholders})`);
-    params.push(...internalValues.map((value) => value.toLowerCase()));
-  }
-  if (displayValues.length > 0) {
-    if (!/^[a-z0-9_]+$/i.test(displayColumn)) throw new Error(`buff T1 dependency display column is invalid: ${displayColumn}`);
-    predicates.push(`\`${displayColumn}\` IN (${displayPlaceholders})`);
-    params.push(...displayValues);
-  }
-  const [sourceRows] = await sourceConnection.query(`SELECT * FROM \`${sourceDatabase}\`.\`${sourceTable}\` WHERE ${predicates.join(' OR ')}`, params);
-  const uniqueRows = [...new Map(sourceRows.map((row) => [String(row.id), row])).values()];
-  if (!allowMissing && uniqueRows.length !== expectedCount) throw new Error(`buff T1 source closure failed for ${sourceTable}: expected=${expectedCount} actual=${uniqueRows.length}`);
-  for (const row of uniqueRows) {
+  const placeholders = internalNames.map(() => '?').join(', ');
+  const [sourceRows] = await sourceConnection.query(`SELECT * FROM \`${sourceDatabase}\`.\`${sourceTable}\` WHERE internal_name IN (${placeholders})`, internalNames);
+  if (!allowMissing && sourceRows.length !== expectedCount) throw new Error(`buff T1 source closure failed for ${sourceTable}`);
+  for (const row of sourceRows) {
     const columns = Object.keys(row).sort();
     if (columns.some((column) => !/^[a-z0-9_]+$/i.test(column))) throw new Error(`buff T1 dependency column is invalid for ${sourceTable}`);
     await targetConnection.query(`INSERT INTO \`${targetDatabase}\`.\`${targetTable}\` (${columns.map((column) => `\`${column}\``).join(', ')}) VALUES (${columns.map(() => '?').join(', ')}) ON DUPLICATE KEY UPDATE ${columns.map((column) => `\`${column}\` = VALUES(\`${column}\`)`).join(', ')}`, columns.map((column) => row[column]));
   }
-  const [[countRow]] = await targetConnection.query(`SELECT COUNT(*) AS count FROM \`${targetDatabase}\`.\`${targetTable}\` WHERE id IN (${uniqueRows.map(() => '?').join(', ')})`, uniqueRows.map((row) => row.id));
+  const [[countRow]] = await targetConnection.query(`SELECT COUNT(*) AS count FROM \`${targetDatabase}\`.\`${targetTable}\` WHERE internal_name IN (${placeholders})`, internalNames);
   return Number(countRow?.count ?? 0);
 }
 
-function uniqueDependencyIdentities(rows) {
-  const byKey = new Map();
-  for (const row of rows) {
-    const internalName = String(row?.internalName ?? '').trim();
-    if (!internalName) continue;
-    const key = internalName.toLowerCase();
-    if (!byKey.has(key)) byKey.set(key, {
-      internalName,
-      name: String(row?.name ?? '').trim() || null,
-    });
+function seededDependencyCount(evidence, database, table) {
+  if (evidence?.status !== 'verified' || evidence.readbackVerified !== true || !Array.isArray(evidence.dependencies)) {
+    throw new Error('Buff exact dependency seed evidence is invalid');
   }
-  return [...byKey.values()];
-}
-
-function buildDependencyLookup(rows, identities) {
-  const result = new Map();
-  const normalizedRows = rows.map((row) => ({ id: Number(row.id), internalName: row.internal_name, name: row.name }));
-  for (const row of normalizedRows) result.set(row.internalName, row);
-  for (const identity of identities) {
-    const matches = normalizedRows.filter((row) => row.internalName?.toLowerCase() === identity.internalName.toLowerCase()
-      || (identity.name && row.name === identity.name));
-    if (matches.length === 1) result.set(identity.internalName, matches[0]);
-  }
-  return result;
+  const matches = evidence.dependencies.filter((entry) => entry.target?.database === database && entry.target?.table === table);
+  if (matches.length > 1) throw new Error(`Buff dependency seed contains duplicate target evidence for ${table}`);
+  return matches.reduce((sum, entry) => sum + Number(entry.targetRowCount ?? 0), 0);
 }
 
 function validateFixture(fixture) {
@@ -353,33 +466,16 @@ function validateSourceReplay(sourceReplay) {
 
 function validateFullCapture(capture) {
   const records = Array.isArray(capture?.buffs) ? capture.buffs : [];
-  if (records.length !== 400) throw new Error(`Buff full capture requires exactly 400 records, received ${records.length}`);
+  if (![388, 400].includes(records.length)) throw new Error(`Buff local source requires exactly 388 or 400 records, received ${records.length}`);
+  const sourceLabel = records.length === 400 ? 'full capture' : 'standardized source';
   const identities = records.map((record) => `${record?.id}:${record?.internalName}`);
-  if (new Set(identities).size !== 400 || records.some((record) => !Number.isSafeInteger(Number(record?.id)) || !String(record?.internalName ?? '').trim())) {
-    throw new Error('Buff full capture identities are missing or duplicated');
+  if (new Set(identities).size !== records.length || records.some((record) => !Number.isSafeInteger(Number(record?.id)) || !String(record?.internalName ?? '').trim())) {
+    throw new Error(`Buff ${sourceLabel} identities are missing or duplicated`);
   }
   if (records.some((record) => !Array.isArray(record.sourceItems) || !Array.isArray(record.inflictingNpcs) || !Array.isArray(record.immuneNpcs))) {
-    throw new Error('Buff full capture dependency arrays are required');
+    throw new Error(`Buff ${sourceLabel} dependency arrays are required`);
   }
   return { ...capture, buffs: records.map((record) => structuredClone(record)) };
-}
-
-function buildFullCaptureSourceSummary(capture) {
-  return {
-    schemaVersion: 'buff-full-recrawl/v1',
-    provider: 'terraria.wiki.gg',
-    sourceRevisionTimestamp: toMysqlDateTime(capture.sourceRevisionTimestamp),
-    sourcePage: capture.sourcePageTitle ?? 'Template:GetBuffInfo',
-    fetchedAt: toMysqlDateTime(capture.fetchedAt),
-    totalBuffs: capture.buffs.length,
-  };
-}
-
-function toMysqlDateTime(value) {
-  if (value == null || value === '') return null;
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return null;
-  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 export function assertBuffT1SourceReplayResources({ profile, databases, redisLogicalDb } = {}) {
@@ -388,9 +484,15 @@ export function assertBuffT1SourceReplayResources({ profile, databases, redisLog
   return true;
 }
 
-export function assertBuffFullCaptureResources({ profile, databases, redisLogicalDb } = {}) {
+export function assertBuffFullCaptureResources({ profile, databases, redisLogicalDb, recordCount = null } = {}) {
   assertIsolatedDatabases({ profile, databases });
-  if (Number(redisLogicalDb) !== 22) throw new Error('Buff full capture requires Redis DB22');
+  const expectedDb = Number(recordCount) === 388 ? 7 : Number(recordCount) === 400 ? 22 : null;
+  if (expectedDb != null && Number(redisLogicalDb) !== expectedDb) {
+    throw new Error(`Buff ${recordCount}-record source requires Redis DB${expectedDb}`);
+  }
+  if (expectedDb == null && ![7, 22].includes(Number(redisLogicalDb))) {
+    throw new Error('Buff full source requires its isolated Redis DB7 or DB22 allocation');
+  }
   return true;
 }
 
@@ -401,7 +503,7 @@ function assertIsolatedDatabases({ profile, databases }) {
   if (databases.maint !== `${prefix}_maint` || databases.relation !== `${prefix}_relation`) throw new Error('buff T1 acceptance requires one run-derived isolated three-database set');
 }
 
-function assertExactConsolidation({ records, results, allowUnresolvedDependencies = false }) {
+function assertExactConsolidation({ records, results, includeSourceImmuneFacts = false }) {
   const expectedBuffs = new Set(records.map((record) => record.internalName));
   const relationBuffs = results.relationBuffs ?? [];
   const projectionBuffs = results.projectionBuffs ?? [];
@@ -409,10 +511,19 @@ function assertExactConsolidation({ records, results, allowUnresolvedDependencie
   const npcRelations = results.npcBuffRelations ?? [];
   const relationNames = new Set(relationBuffs.map((row) => row.internalName ?? row.internal_name));
   const projectionNames = new Set(projectionBuffs.map((row) => row.internalName ?? row.internal_name));
-  const expectedItems = new Set(records.flatMap((record) => record.sourceItems.map((item) => `${item.internalName}->${record.internalName}`)));
+  const expectedItems = new Set(records.flatMap((record) => record.sourceItems
+    .filter((item) => item.resolveStatus !== 'unresolved')
+    .map((item) => `${item.internalName}->${record.internalName}`)));
   const actualItems = new Set(itemRelations.map((row) => `${row.itemInternalName ?? row.item_internal_name}->${row.buffInternalName ?? row.buff_internal_name}`));
-  const expectedNpcs = new Set(records.flatMap((record) => record.inflictingNpcs.map((npc) => `${NPC_ALIASES.get(npc.internalName) ?? npc.internalName}->${record.internalName}`)));
-  const actualNpcs = new Set(npcRelations.map((row) => `${row.npcInternalName ?? row.npc_internal_name}->${row.buffInternalName ?? row.buff_internal_name}`));
+  const expectedNpcs = new Set(records.flatMap((record) => [
+    ...record.inflictingNpcs.filter((npc) => npc.resolveStatus !== 'unresolved').map((npc) => ({ ...npc, relationType: 'inflicts' })),
+    ...(includeSourceImmuneFacts ? record.immuneNpcs.filter((npc) => npc.resolveStatus !== 'unresolved').map((npc) => ({ ...npc, relationType: 'immune' })) : []),
+  ].map((npc) => includeSourceImmuneFacts
+    ? `${Number(npc.npcId)}:${NPC_ALIASES.get(npc.internalName) ?? npc.internalName}->${Number(record.id)}:${record.internalName}:${npc.relationType}`
+    : `${NPC_ALIASES.get(npc.internalName) ?? npc.internalName}->${record.internalName}`)));
+  const actualNpcs = new Set(npcRelations.map((row) => includeSourceImmuneFacts
+    ? `${Number(row.npcSourceId ?? row.npc_source_id)}:${row.npcInternalName ?? row.npc_internal_name}->${Number(row.buffSourceId ?? row.buff_source_id)}:${row.buffInternalName ?? row.buff_internal_name}:${row.relationType ?? row.relation_type}`
+    : `${row.npcInternalName ?? row.npc_internal_name}->${row.buffInternalName ?? row.buff_internal_name}`));
   const parentRowsMatch = relationBuffs.length === expectedBuffs.size
     && relationNames.size === expectedBuffs.size
     && [...expectedBuffs].every((name) => relationNames.has(name))
@@ -425,32 +536,43 @@ function assertExactConsolidation({ records, results, allowUnresolvedDependencie
     && npcRelations.length === expectedNpcs.size
     && actualNpcs.size === expectedNpcs.size
     && [...expectedNpcs].every((pair) => actualNpcs.has(pair));
-  if (!parentRowsMatch || (!allowUnresolvedDependencies && !childRowsMatch)) throw new Error('buff T1 exact relation closure mismatch');
+  if (!parentRowsMatch || !childRowsMatch) {
+    const differences = (expected, actual) => ({
+      expectedCount: expected.size,
+      actualCount: actual.size,
+      missing: [...expected].filter((key) => !actual.has(key)).slice(0, 10),
+      extra: [...actual].filter((key) => !expected.has(key)).slice(0, 10),
+    });
+    throw new Error(`buff T1 exact relation closure mismatch: ${JSON.stringify({
+      parent: {
+        expectedBuffs: expectedBuffs.size,
+        relationBuffs: relationBuffs.length,
+        projectionBuffs: projectionBuffs.length,
+        parentRowsMatch,
+      },
+      itemBuffRelations: differences(expectedItems, actualItems),
+      npcBuffRelations: differences(expectedNpcs, actualNpcs),
+    })}`);
+  }
 }
 
-function assertProjectionReadback(records, rows, { allowUnresolvedDependencies = false } = {}) {
+function assertProjectionReadback(records, rows) {
   if (rows.length !== records.length || new Set(rows.map((row) => row.internal_name)).size !== records.length) throw new Error('buff T1 projection identity mismatch');
   for (const row of rows) {
     const expected = records.find((record) => Number(record.id) === Number(row.source_id));
-    if (!expected || row.internal_name !== expected.internalName) throw new Error('buff T1 projection count mismatch');
-    if ((!allowUnresolvedDependencies
-      && (Number(row.source_item_count) !== expected.sourceItems.length || Number(row.immune_npc_count) !== expected.immuneNpcs.length))
-      || (allowUnresolvedDependencies
-        && (Number(row.source_item_count) < 0 || Number(row.source_item_count) > expected.sourceItems.length
-          || Number(row.immune_npc_count) < 0 || Number(row.immune_npc_count) > expected.immuneNpcs.length))) {
-      throw new Error('buff T1 projection count mismatch');
-    }
+    const resolvedSourceItems = expected?.sourceItems.filter((item) => item.resolveStatus !== 'unresolved') ?? [];
+    const resolvedInflictingNpcs = expected?.inflictingNpcs.filter((npc) => npc.resolveStatus !== 'unresolved') ?? [];
+    if (!expected || row.internal_name !== expected.internalName
+      || Number(row.source_item_count) !== resolvedSourceItems.length
+      || Number(row.immune_npc_count) !== expected.immuneNpcs.length) throw new Error('buff T1 projection count mismatch');
     const sourceItems = JSON.parse(row.source_items_json);
-    const expectedSourceItems = expected.sourceItems.map((item) => `${Number(item.itemId)}:${item.internalName}`).sort();
+    const expectedSourceItems = resolvedSourceItems.map((item) => `${Number(item.itemId)}:${item.internalName}`).sort();
     const actualSourceItems = sourceItems.map((item) => `${Number(item.sourceId ?? item.itemId)}:${item.internalName}`).sort();
-    if ((!allowUnresolvedDependencies && sourceItems.length !== expected.sourceItems.length)
-      || (!allowUnresolvedDependencies && JSON.stringify(actualSourceItems) !== JSON.stringify(expectedSourceItems))) throw new Error('buff T1 projection payload mismatch: source_items_json');
+    if (sourceItems.length !== resolvedSourceItems.length || JSON.stringify(actualSourceItems) !== JSON.stringify(expectedSourceItems)) throw new Error('buff T1 projection payload mismatch: source_items_json');
     const inflictingNpcs = JSON.parse(row.inflicting_npcs_json);
-    const expectedNpcNames = expected.inflictingNpcs.map((npc) => NPC_ALIASES.get(npc.internalName) ?? npc.internalName).sort();
+    const expectedNpcNames = resolvedInflictingNpcs.map((npc) => NPC_ALIASES.get(npc.internalName) ?? npc.internalName).sort();
     const actualNpcNames = inflictingNpcs.map((npc) => npc.internalName).sort();
-    if ((!allowUnresolvedDependencies && inflictingNpcs.length !== expected.inflictingNpcs.length)
-      || (!allowUnresolvedDependencies && JSON.stringify(actualNpcNames) !== JSON.stringify(expectedNpcNames))
-      || inflictingNpcs.some((npc) => npc.relationType !== 'inflicts')) throw new Error('buff T1 projection payload mismatch: inflicting_npcs_json');
+    if (inflictingNpcs.length !== resolvedInflictingNpcs.length || JSON.stringify(actualNpcNames) !== JSON.stringify(expectedNpcNames) || inflictingNpcs.some((npc) => npc.relationType !== 'inflicts')) throw new Error('buff T1 projection payload mismatch: inflicting_npcs_json');
     for (const [column, value] of [['immune_npcs_json', expected.immuneNpcs], ['source_evidence_json', expected.sourceEvidence]]) {
       if (JSON.stringify(JSON.parse(row[column])) !== JSON.stringify(value)) throw new Error(`buff T1 projection payload mismatch: ${column}`);
     }

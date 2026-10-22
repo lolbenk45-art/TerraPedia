@@ -19,11 +19,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 public class CrawlerAttemptSupervisor {
+
+    private static final String ISOLATED_ACCEPTANCE_FLAG = "TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE";
+    private static final String ISOLATED_ACCEPTANCE_MANIFEST = "TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH";
+    private static final String ISOLATED_SOURCE_MANIFEST = "TERRAPEDIA_EIGHT_DOMAIN_SOURCE_MANIFEST_PATH";
+    private static final String ISOLATED_SOURCE_STATE = "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH";
+    private static final String ISOLATED_DOMAIN = "TERRAPEDIA_EIGHT_DOMAIN_DOMAIN";
+    private static final String ISOLATED_RUN_ID = "TERRAPEDIA_EIGHT_DOMAIN_RUN_ID";
+    private static final Pattern SAFE_DOMAIN = Pattern.compile("[a-z][a-z0-9_]{0,63}");
 
     private final CrawlerQueueV2Repository repository;
     private final CrawlerAttemptArtifactStore artifactStore;
@@ -202,8 +211,10 @@ public class CrawlerAttemptSupervisor {
                     launchArtifactPath(current.artifacts().progressPath()),
                     effectiveResumeMode(current, queue, definition)
                 ));
+                IsolatedSourceBinding isolatedBinding = isolatedSourceBinding(System.getenv(), worktreeRoot);
+                command = bindIsolatedSourceCommand(command, isolatedBinding, worktreeRoot);
                 command = resolveCommandFromRoot(command);
-                environment = launchEnvironment(current);
+                environment = launchEnvironment(current, isolatedBinding);
             } catch (RuntimeException exception) {
                 return terminalizeStartFailure(current, "launch validation failed", exception);
             }
@@ -472,6 +483,92 @@ public class CrawlerAttemptSupervisor {
         List<String> resolvedCommand = new ArrayList<>(command);
         resolvedCommand.set(1, resolved.toString());
         return List.copyOf(resolvedCommand);
+    }
+
+    static IsolatedSourceBinding isolatedSourceBinding(Map<String, String> environment, Path root) {
+        if (!"true".equalsIgnoreCase(environment.get(ISOLATED_ACCEPTANCE_FLAG))) {
+            return null;
+        }
+        String domain = environment.get(ISOLATED_DOMAIN);
+        String runId = environment.get(ISOLATED_RUN_ID);
+        if (domain == null || !SAFE_DOMAIN.matcher(domain).matches() || runId == null || runId.isBlank()) {
+            throw new SecurityException("isolated V2 environment domain/run identity is invalid");
+        }
+        Path worktree = root.toAbsolutePath().normalize();
+        Path expectedState = worktree.resolve(".local/tmp/eight-domain-production-readiness/20261017/source-state/" + domain + ".json").normalize();
+        Path expectedSource = worktree.resolve(".local/tmp/eight-domain-production-readiness/20261017/source-manifests/" + domain + ".json").normalize();
+        Path expectedAcceptance = worktree.resolve(".local/tmp/eight-domain-production-readiness/20261017/acceptance-manifests/" + domain + ".json").normalize();
+        Path state = exactIsolatedPath(environment.get(ISOLATED_SOURCE_STATE), expectedState, "source state");
+        Path source = exactIsolatedPath(environment.get(ISOLATED_SOURCE_MANIFEST), expectedSource, "source manifest");
+        Path acceptance = exactIsolatedPath(environment.get(ISOLATED_ACCEPTANCE_MANIFEST), expectedAcceptance, "acceptance manifest");
+        if (!"frozen-run-manifest".equals(environment.get("TERRAPEDIA_EIGHT_DOMAIN_SOURCE_PROBE_MODE"))
+            || !"local".equals(environment.get("TERRAPEDIA_CRAWLER_SOURCE_MODE"))) {
+            throw new SecurityException("isolated V2 environment must use local frozen source mode");
+        }
+        return new IsolatedSourceBinding(domain, runId, state, source, acceptance);
+    }
+
+    private static Path exactIsolatedPath(String value, Path expected, String label) {
+        if (value == null || value.isBlank()) throw new SecurityException("isolated V2 " + label + " path is missing");
+        Path actual = Path.of(value).toAbsolutePath().normalize();
+        if (!actual.equals(expected) || Files.isSymbolicLink(actual)
+            || !Files.isRegularFile(actual, LinkOption.NOFOLLOW_LINKS)
+            || hasSymbolicLinkAncestor(expected.getRoot(), actual)
+            || !isPrivateIsolatedFile(actual)) {
+            throw new SecurityException("isolated V2 " + label + " path is outside the exact run binding");
+        }
+        return actual;
+    }
+
+    private static boolean hasSymbolicLinkAncestor(Path filesystemRoot, Path target) {
+        Path current = filesystemRoot;
+        for (Path segment : filesystemRoot.relativize(target)) {
+            current = current.resolve(segment);
+            if (Files.isSymbolicLink(current)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isPrivateIsolatedFile(Path file) {
+        try {
+            return Files.getPosixFilePermissions(file, LinkOption.NOFOLLOW_LINKS).stream()
+                .noneMatch(permission -> permission.name().startsWith("GROUP_") || permission.name().startsWith("OTHERS_"));
+        } catch (IOException | UnsupportedOperationException exception) {
+            return false;
+        }
+    }
+
+    static List<String> bindIsolatedSourceCommand(List<String> command, IsolatedSourceBinding binding, Path worktreeRoot) {
+        if (binding == null) return command;
+        String expectedRunner = switch (binding.domain()) {
+            case "items", "npcs", "projectiles", "buffs" -> "run-base-domain-automatic-operation.mjs";
+            case "audio", "bosses", "shimmer" -> "run-supplementary-domain-automatic-operation.mjs";
+            default -> throw new SecurityException("isolated V2 domain has no isolated automatic runner: " + binding.domain());
+        };
+        if (command.stream().noneMatch(token -> token.endsWith(expectedRunner))) {
+            throw new SecurityException("isolated V2 registered runner differs from the domain contract");
+        }
+        List<String> bound = new ArrayList<>(command);
+        String manifestArgument = "--manifest-path=" + worktreeRoot.relativize(binding.sourceManifest()).toString().replace('\\', '/');
+        int manifestIndex = -1;
+        for (int index = 0; index < bound.size(); index++) {
+            if (bound.get(index).startsWith("--manifest-path=")) {
+                if (manifestIndex >= 0) throw new SecurityException("registered isolated V2 runner has multiple source manifest arguments");
+                manifestIndex = index;
+            }
+        }
+        if (manifestIndex >= 0) bound.set(manifestIndex, manifestArgument);
+        else bound.add(manifestArgument);
+        int sourceModeIndex = -1;
+        for (int index = 0; index < bound.size(); index++) {
+            if (bound.get(index).startsWith("--source-mode=")) {
+                if (sourceModeIndex >= 0) throw new SecurityException("registered isolated V2 runner has multiple source mode arguments");
+                sourceModeIndex = index;
+            }
+        }
+        if (sourceModeIndex >= 0) bound.set(sourceModeIndex, "--source-mode=local");
+        else bound.add("--source-mode=local");
+        return List.copyOf(bound);
     }
 
     private CrawlerQueueV2Attempt mutateProgress(
@@ -1239,7 +1336,7 @@ public class CrawlerAttemptSupervisor {
         ));
     }
 
-    private Map<String, String> launchEnvironment(CrawlerQueueV2Attempt attempt) {
+    private Map<String, String> launchEnvironment(CrawlerQueueV2Attempt attempt, IsolatedSourceBinding isolatedBinding) {
         Map<String, String> environment = new LinkedHashMap<>();
         environment.put("WORKTREE_ROOT", worktreeRoot.toString());
         environment.put("TERRAPEDIA_CRAWLER_COMMAND_ROOT", commandRoot.toString());
@@ -1263,10 +1360,21 @@ public class CrawlerAttemptSupervisor {
             environment.put("TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT", identity.sourceFingerprint());
             environment.put("TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY", identity.sourceRunIdentity());
             environment.put("TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY", identity.sourceContentIdentity());
-            environment.put(
-                "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH",
-                worktreeRoot.resolve("data/generated/source-update-monitor.latest.json").toString()
-            );
+            if (isolatedBinding != null) {
+                environment.put("TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE", "true");
+                environment.put(ISOLATED_DOMAIN, isolatedBinding.domain());
+                environment.put(ISOLATED_RUN_ID, isolatedBinding.runId());
+                environment.put(ISOLATED_SOURCE_STATE, isolatedBinding.sourceState().toString());
+                environment.put(ISOLATED_SOURCE_MANIFEST, worktreeRoot.relativize(isolatedBinding.sourceManifest()).toString().replace('\\', '/'));
+                environment.put(ISOLATED_ACCEPTANCE_MANIFEST, worktreeRoot.relativize(isolatedBinding.acceptanceManifest()).toString().replace('\\', '/'));
+                environment.put("TERRAPEDIA_EIGHT_DOMAIN_SOURCE_PROBE_MODE", "frozen-run-manifest");
+                environment.put("TERRAPEDIA_CRAWLER_SOURCE_MODE", "local");
+            } else {
+                environment.put(
+                    "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH",
+                    worktreeRoot.resolve("data/generated/source-update-monitor.latest.json").toString()
+                );
+            }
             if ("domain-source-armor-sets".equals(attempt.actionId())) {
                 CrawlerOperationPlanSnapshot plan = artifactStore.readOperationPlan(attempt.attemptId())
                     .orElseThrow(() -> new SecurityException("Armor scheduler attempt 缺少 immutable operation plan"));
@@ -1790,6 +1898,14 @@ public class CrawlerAttemptSupervisor {
             return code == TerminationCode.CONFIRMED;
         }
     }
+
+    record IsolatedSourceBinding(
+        String domain,
+        String runId,
+        Path sourceState,
+        Path sourceManifest,
+        Path acceptanceManifest
+    ) {}
 
     private record LaunchIdentity(
         String stateStoreEpoch,

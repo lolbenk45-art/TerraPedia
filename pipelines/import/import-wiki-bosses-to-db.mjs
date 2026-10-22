@@ -169,6 +169,7 @@ export async function runBossImport(args = {}, dependencies = {}) {
         managedUrlPrefixes,
       })
     : null;
+  const bossImageCache = dependencies.bossImageCache ?? null;
 
   const conn = dependencies.connection ?? await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
@@ -179,6 +180,9 @@ export async function runBossImport(args = {}, dependencies = {}) {
     multipleStatements: true,
   });
 
+  if (dependencies.isolatedTarget != null) {
+    assertBossIsolatedTarget(conn, dependencies.isolatedTarget);
+  }
   assertPrimaryDb(conn.config.database, args['allow-non-primary-db'] === 'true' || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true');
 
   const summary = {
@@ -231,6 +235,7 @@ export async function runBossImport(args = {}, dependencies = {}) {
         uploader,
         summary,
         managedUrlPrefixes,
+        bossImageCache,
       );
       if (await reconcileBossMemberImages(
         memberMapping.members,
@@ -363,7 +368,7 @@ export function buildBossImportProjection({
 
   const currentNpcsById = new Map();
   for (const [index, row] of currentNpcs.entries()) {
-    const id = toPositiveInteger(row?.id);
+    const id = toSafeInteger(row?.id);
     if (id == null || currentNpcsById.has(id)) {
       throw new Error(`current Boss NPC identity is duplicated or invalid at row ${index}`);
     }
@@ -419,7 +424,7 @@ export function buildBossImportProjection({
 
     const memberIds = new Set();
     for (const member of memberMapping.members) {
-      const id = toPositiveInteger(member.id);
+      const id = toSafeInteger(member.id);
       if (id == null || memberIds.has(id)) throw new Error(`Boss projection has a duplicate member for ${code}`);
       if (!currentNpcsById.has(id)) throw new Error(`Boss projection member ${id} is missing from the current NPC snapshot`);
       memberIds.add(id);
@@ -454,11 +459,11 @@ export function buildBossImportProjection({
   // including reference-only composite bosses such as Mechdusa.
   for (const row of currentNpcs) {
     const groupId = toPositiveInteger(row?.boss_group_id);
-    if (groupId == null || projectedMembersById.has(toPositiveInteger(row?.id))) continue;
+    const npcId = toSafeInteger(row?.id);
+    if (groupId == null || npcId == null || projectedMembersById.has(npcId)) continue;
     const processedGroup = groups.some((group) => toPositiveInteger(currentGroupsByCode.get(group.code)?.id) === groupId);
     if (!processedGroup) continue;
-    const id = toPositiveInteger(row?.id);
-    if (id == null) continue;
+    const id = npcId;
     projectedMembersById.set(id, {
       id,
       is_boss: row?.is_boss == null ? 1 : row.is_boss,
@@ -512,7 +517,7 @@ function buildNpcLookup(rows = []) {
   const all = [];
   const byInternal = new Map();
   for (const [index, row] of (Array.isArray(rows) ? rows : []).entries()) {
-    const id = toPositiveInteger(row?.id);
+    const id = toSafeInteger(row?.id);
     const internalName = toText(row?.internal_name ?? row?.internalName);
     if (id == null || !internalName) {
       throw new Error(`Boss NPC dependency identity is invalid at row ${index}`);
@@ -642,9 +647,20 @@ function dedupeMembers(members) {
   return out;
 }
 
-async function localizeBossImage(record, uploader, summary, managedUrlPrefixes) {
+async function localizeBossImage(record, uploader, summary, managedUrlPrefixes, bossImageCache = null) {
   const sourceUrl = toText(record?.imageUrl);
+  const code = buildBossCode(record?.titleEn);
+  const cachedUrl = bossImageCache instanceof Map
+    ? bossImageCache.get(code)
+    : bossImageCache && typeof bossImageCache === 'object'
+      ? bossImageCache[code]
+      : null;
   if (!sourceUrl) {
+    if (isManagedUrlForEntity(cachedUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
+      summary.bossImageCandidates += 1;
+      summary.bossImagesFromReadOnlyCache = Number(summary.bossImagesFromReadOnlyCache ?? 0) + 1;
+      return cachedUrl;
+    }
     return null;
   }
 
@@ -652,6 +668,11 @@ async function localizeBossImage(record, uploader, summary, managedUrlPrefixes) 
   if (isManagedUrlForEntity(sourceUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
     summary.bossImagesAlreadyManaged += 1;
     return sourceUrl;
+  }
+
+  if (isManagedUrlForEntity(cachedUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
+    summary.bossImagesFromReadOnlyCache = Number(summary.bossImagesFromReadOnlyCache ?? 0) + 1;
+    return cachedUrl;
   }
 
   if (!uploader) {
@@ -930,6 +951,11 @@ function toPositiveInteger(value) {
   return Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
+function toSafeInteger(value) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) ? number : null;
+}
+
 function extractNpcImageUrl(rawJson) {
   if (!rawJson || typeof rawJson !== 'object') return null;
   const direct = toText(rawJson.imageUrl) ?? toText(rawJson.image_url);
@@ -992,6 +1018,24 @@ function booleanOption(value, fallback) {
 
 export function shouldCreateBossImageUploader({ dryRun, offline } = {}) {
   return !dryRun && !offline;
+}
+
+export function assertBossIsolatedTarget(connection, target = {}) {
+  const database = String(connection?.config?.database ?? '');
+  const expected = String(target.database ?? '');
+  const runKey = String(target.runKey ?? '');
+  if (target.profile !== 't1' || !/^e8p_[0-9a-f]{16}$/.test(runKey)
+      || database !== expected
+      || !new RegExp(`^terria_v1_automation_acceptance_${runKey}_local$`).test(database)) {
+    throw new Error('Boss isolated target must be the exact run-derived T1 local schema');
+  }
+  if (target.host && connection?.config?.host && String(target.host) !== String(connection.config.host)) {
+    throw new Error('Boss isolated target host differs from the bound MySQL endpoint');
+  }
+  if (target.port && connection?.config?.port && Number(target.port) !== Number(connection.config.port)) {
+    throw new Error('Boss isolated target port differs from the bound MySQL endpoint');
+  }
+  return true;
 }
 
 function toText(value) {

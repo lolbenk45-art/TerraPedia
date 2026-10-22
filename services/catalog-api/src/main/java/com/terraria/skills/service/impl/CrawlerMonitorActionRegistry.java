@@ -233,6 +233,20 @@ public class CrawlerMonitorActionRegistry {
                 "按需更新 NPC 来源并执行 activation-gated 入库", "write", 1L,
                 "data/generated/domain-source-npcs-progress.latest.json", null
             ),
+            direct(
+                "npcs", "NPC source fingerprint probe", "wiki.module.npcinfo", "Module:Npcinfo/data",
+                "domain-source-npcs", "hybrid-source-probe", "direct_crawl", "fresh",
+                "仅读取 NPC 模块 revision 并选择本地或私有源，不写共享 manifest 或数据库。",
+                "写入 NPC 私有 source-decision 和进度证据", 1L, true,
+                "data/generated/domain-source-npcs-progress.latest.json",
+                List.of(
+                    "node",
+                    "pipelines/npc-canonical/npc-hybrid-source-probe.mjs",
+                    "--progress-path=data/generated/domain-source-npcs-progress.latest.json",
+                    "--decision-path=.local/tmp/eight-domain-production-readiness/20261017/npcs/source-decision.json"
+                ),
+                false
+            ),
             backend(
                 "npcs", "强制重抓 NPC 模块", "wiki.module.npcinfo", "Module:Npcinfo/data",
                 "wiki-npcs-force-refresh", "force", "check_sync", "force",
@@ -538,6 +552,29 @@ public class CrawlerMonitorActionRegistry {
         String progressPath,
         List<String> command
     ) {
+        return direct(
+            domain, label, sourceKey, locator, actionId, operationId, category, mode, descriptionZh,
+            fileWriteSummary, estimatedRequests, shortTask, progressPath, command, true
+        );
+    }
+
+    private static CrawlerMonitorActionDefinition direct(
+        String domain,
+        String label,
+        String sourceKey,
+        String locator,
+        String actionId,
+        String operationId,
+        String category,
+        String mode,
+        String descriptionZh,
+        String fileWriteSummary,
+        Long estimatedRequests,
+        boolean shortTask,
+        String progressPath,
+        List<String> command,
+        boolean defaultOperation
+    ) {
         return new CrawlerMonitorActionDefinition(
             domain,
             label,
@@ -564,7 +601,7 @@ public class CrawlerMonitorActionRegistry {
             shortTask,
             true,
             "summary",
-            true
+            defaultOperation
         );
     }
 

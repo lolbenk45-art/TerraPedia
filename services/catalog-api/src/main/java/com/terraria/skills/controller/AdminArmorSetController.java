@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -55,7 +56,6 @@ import java.util.regex.Pattern;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminArmorSetController {
 
-    private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
     private static final String PROJECTION_ITEMS_TABLE = "projection_items";
     private static final String PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE = "projection_item_armor_attributes";
@@ -71,6 +71,8 @@ public class AdminArmorSetController {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
+    @Value("${terraria.crawler.cross-db.relation-database:terria_v1_relation}")
+    private String relationDatabaseName;
     private Map<String, List<String>> armorBenefitStatementCache;
     private Map<String, WikiArmorSetSourceRecord> wikiArmorSetSourceCache;
 
@@ -178,8 +180,8 @@ public class AdminArmorSetController {
         if (tableExistsInCurrentDatabase(PROJECTION_ARMOR_SETS_TABLE) && tableHasRows(PROJECTION_ARMOR_SETS_TABLE)) {
             return PROJECTION_ARMOR_SETS_TABLE;
         }
-        String relationTable = "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
-        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ARMOR_SETS_TABLE) && tableHasRows(relationTable)) {
+        String relationTable = "`" + relationDatabaseName() + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
+        if (tableExists(relationDatabaseName(), PROJECTION_ARMOR_SETS_TABLE) && tableHasRows(relationTable)) {
             return relationTable;
         }
         return null;
@@ -1190,10 +1192,14 @@ public class AdminArmorSetController {
         if (tableExistsInCurrentDatabase(tableName)) {
             return tableName;
         }
-        if (tableExists(RELATION_DATABASE_NAME, tableName)) {
-            return "`" + RELATION_DATABASE_NAME + "`.`" + tableName + "`";
+        if (tableExists(relationDatabaseName(), tableName)) {
+            return "`" + relationDatabaseName() + "`.`" + tableName + "`";
         }
         return null;
+    }
+
+    private String relationDatabaseName() {
+        return relationDatabaseName == null || relationDatabaseName.isBlank() ? "terria_v1_relation" : relationDatabaseName;
     }
 
     private List<Map<String, Object>> buildArmorReplacementGroups(List<Map<String, Object>> equipmentItems) {

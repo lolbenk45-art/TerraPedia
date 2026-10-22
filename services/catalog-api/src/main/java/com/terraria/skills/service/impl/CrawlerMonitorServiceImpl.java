@@ -103,6 +103,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path BUFF_PAGE_EVIDENCE_CACHE_DIR = Path.of("data", "generated", "buff-page-evidence-cache");
     private static final Path WORLD_CONTEXT_FETCH_PROGRESS_FILE = Path.of("data", "generated", "wiki-world-contexts-progress.latest.json");
     private static final Path DOMAIN_SOURCE_BOSSES_PROGRESS_FILE = Path.of("data", "generated", "domain-source-bosses-progress.latest.json");
+    private static final Path DOMAIN_SOURCE_NPCS_PROGRESS_FILE = Path.of("data", "generated", "domain-source-npcs-progress.latest.json");
     private static final Path DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE = Path.of("data", "generated", "domain-source-armor-sets-progress.latest.json");
     private static final Path DOMAIN_SOURCE_ARMOR_ATTRIBUTES_PROGRESS_FILE = Path.of("data", "generated", "domain-source-armor-attributes-progress.latest.json");
     private static final Path DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE = Path.of("data", "generated", "domain-source-shimmer-progress.latest.json");
@@ -8387,6 +8388,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult buffFetchProgress = readProgressWithRedisAndSharedFallback(repoRoot, REDIS_BUFF_PROGRESS_KEY, BUFF_FETCH_PROGRESS_FILE);
         ReadResult worldContextFetchProgress = readProgressWithSharedFallback(repoRoot, WORLD_CONTEXT_FETCH_PROGRESS_FILE);
         ReadResult domainSourceBossesProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_BOSSES_PROGRESS_FILE).normalize());
+        ReadResult domainSourceNpcsProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_NPCS_PROGRESS_FILE).normalize());
         ReadResult domainSourceArmorSetsProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE).normalize());
         ReadResult domainSourceArmorAttributesProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_ARMOR_ATTRIBUTES_PROGRESS_FILE).normalize());
         ReadResult domainSourceShimmerProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE).normalize());
@@ -8413,6 +8415,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "p0",
             "Wiki image revisions and bytes -> verified managed Armor images",
             "Verify the governed image result before canonical Armor ingestion."
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "domain-source-npcs",
+            "NPC source fingerprint probe",
+            DOMAIN_SOURCE_NPCS_PROGRESS_FILE,
+            ".local/tmp/eight-domain-production-readiness/20261017/npcs/source-decision.json",
+            domainSourceNpcsProgress,
+            "p0",
+            "wiki NPC module revision -> private local/changed source decision",
+            "Run the NPC hybrid source probe before isolated NPC ingestion."
         ));
         tasks.add(buildDomainSourceSnapshotTask(
             repoRoot,

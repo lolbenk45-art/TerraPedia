@@ -118,6 +118,26 @@ test('T1 acceptance input descriptor identifies the current Wiki replay instead 
     type: 'offline_fixture',
     path: 'pipelines/buff/fixtures/custom.json',
   });
+  assert.deepEqual(buildBuffT1InputDescriptor({
+    fullCapture: {
+      buffs: [{ id: 1, internalName: 'ObsidianSkin' }],
+      sourceMetadata: { sourceRevisionTimestamp: '2026-03-01T03:21:12Z' },
+    },
+  }), {
+    type: 'repository_frozen_standardized',
+    totalBuffs: 1,
+    sourceRevisionTimestamp: '2026-03-01T03:21:12Z',
+  });
+  assert.deepEqual(buildBuffT1InputDescriptor({
+    fullCapture: {
+      buffs: Array.from({ length: 400 }, (_, index) => ({ id: index + 1, internalName: `Buff${index + 1}` })),
+      sourceRevisionTimestamp: '2026-08-22T05:46:54Z',
+    },
+  }), {
+    type: 'full_wiki_capture',
+    totalBuffs: 400,
+    sourceRevisionTimestamp: '2026-08-22T05:46:54Z',
+  });
 });
 
 test('source replay accepts only the isolated T1 databases and Redis DB18', () => {
@@ -133,8 +153,43 @@ test('source replay accepts only the isolated T1 databases and Redis DB18', () =
   }
 });
 
-test('full capture mode accepts exactly 400 records and binds Redis DB22', () => {
-  const records = Array.from({ length: 400 }, (_, index) => ({
+test('Buff full-source contracts keep the 388-record local lane and 400-record capture lane isolated', async () => {
+  const databases = {
+    local: 'terria_v1_automation_acceptance_abc_0123456789abcdef_local',
+    maint: 'terria_v1_automation_acceptance_abc_0123456789abcdef_maint',
+    relation: 'terria_v1_automation_acceptance_abc_0123456789abcdef_relation',
+  };
+  assert.doesNotThrow(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 7 }));
+  assert.doesNotThrow(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 22 }));
+  assert.doesNotThrow(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 7, recordCount: 388 }));
+  assert.doesNotThrow(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 22, recordCount: 400 }));
+  assert.throws(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 22, recordCount: 388 }), /DB7/i);
+  assert.throws(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 7, recordCount: 400 }), /DB22/i);
+  const records = Array.from({ length: 388 }, (_, index) => ({
+    id: index + 1,
+    internalName: `Buff${index + 1}`,
+    sourceItems: [],
+    inflictingNpcs: [],
+    immuneNpcs: [],
+  }));
+  const landing = buildBuffT1LandingRows({
+    recordsOverride: records,
+    sourceMetadata: { sourcePage: 'Template:GetBuffInfo', sourceRevisionTimestamp: '2026-03-01T03:21:12Z' },
+  })[0];
+  assert.equal(JSON.parse(landing.payload_json).records.length, 388);
+  assert.equal(landing.source_kind, 'repository_frozen_standardized');
+  assert.doesNotMatch(`${landing.provider} ${landing.source_kind} ${landing.source_key}`, /fixture|offline/i);
+  await assert.rejects(() => runBuffCanonicalT1Acceptance({
+    profile: 't1',
+    runId: 'e8pr-buffs-20261017-v1',
+    repoRoot: process.cwd(),
+    databases,
+    mysql: { host: '127.0.0.1', port: 13306, username: 'unused', password: 'unused' },
+    fullCapture: { buffs: records },
+    redisLogicalDb: 7,
+  }), /dependency seeding evidence/i);
+
+  const legacyRecords = Array.from({ length: 400 }, (_, index) => ({
     id: index + 1,
     internalName: `Buff${index + 1}`,
     sourceItems: [{ itemId: index + 1, internalName: `Item${index + 1}` }],
@@ -142,14 +197,17 @@ test('full capture mode accepts exactly 400 records and binds Redis DB22', () =>
     immuneNpcs: [],
     sourceEvidence: { parseStatus: 'parsed', provider: 'terraria.wiki.gg' },
   }));
-  const databases = {
-    local: 'terria_v1_automation_acceptance_abc_0123456789abcdef_local',
-    maint: 'terria_v1_automation_acceptance_abc_0123456789abcdef_maint',
-    relation: 'terria_v1_automation_acceptance_abc_0123456789abcdef_relation',
-  };
-  assert.doesNotThrow(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 22 }));
-  assert.throws(() => assertBuffFullCaptureResources({ profile: 't1', databases, redisLogicalDb: 18 }), /DB22|Redis/i);
-  const rows = buildBuffT1LandingRows({ recordsOverride: records, sourceMetadata: { sourceRevisionTimestamp: '2026-08-22T05:46:54Z' } });
-  assert.equal(JSON.parse(rows[0].payload_json).records.length, 400);
-  assert.equal(rows[0].source_kind, 'full_wiki_capture');
+  const legacyLanding = buildBuffT1LandingRows({
+    recordsOverride: legacyRecords,
+    sourceMetadata: {
+      provider: 'terraria.wiki.gg',
+      sourceKind: 'full_wiki_capture',
+      sourceKey: 'buff-full-recrawl:400',
+      sourcePage: 'Template:GetBuffInfo',
+      sourceRevisionTimestamp: '2026-08-22 05:46:54',
+    },
+  })[0];
+  assert.equal(JSON.parse(legacyLanding.payload_json).records.length, 400);
+  assert.equal(legacyLanding.source_kind, 'full_wiki_capture');
+  assert.equal(legacyLanding.source_key, 'buff-full-recrawl:400');
 });

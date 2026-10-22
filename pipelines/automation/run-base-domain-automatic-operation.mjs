@@ -45,6 +45,7 @@ import {
   sourceDispatchIdentityFromEnvironment,
 } from './source-dispatch-identity.mjs';
 import { createContentHash } from '../lib/wiki-sync-manifest.mjs';
+import { connectionOptions as isolatedConnectionOptions, loadIsolatedAcceptanceManifest } from './eight-domain-v2-isolated-acceptance.mjs';
 import {
   buildActionProgressPayload,
   createCrawlerAttemptProgressSequencer,
@@ -96,6 +97,11 @@ export async function runBaseDomainAutomaticOperation({
     manifestPath: args['manifest-path'],
     repoRoot,
   });
+  const isolatedMode = String(env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE ?? '').trim() === 'true';
+  const isolatedManifest = isolatedMode
+    ? loadIsolatedAcceptanceManifest({ repoRoot, manifestPath, domain, env })
+    : null;
+  const sourceMode = args['source-mode'] ?? (isolatedMode ? 'local' : 'live');
   const crawlRunId = `${domain}_source_${startTime.replace(/\D/g, '').slice(0, 14)}`;
   const progressPath = path.resolve(
     args['progress-path'] ?? env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? defaultProgressPath(domain),
@@ -104,11 +110,14 @@ export async function runBaseDomainAutomaticOperation({
   const db = mysqlModule ?? loadMysqlModule();
   let connection = null;
   try {
-    connection = await db.createConnection(connectionOptions(env));
+    connection = await db.createConnection(connectionOptions(env, {
+      domain,
+      repoRoot,
+      manifestPath: env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH,
+    }));
     const activation = await loadFreshActivation(connection);
     if (!activation) throw new Error(`no fresh scheduler activation for automatic domain: ${domain}`);
 
-    const sourceMode = args['source-mode'] ?? 'live';
     if (!['live', 'local'].includes(sourceMode)) throw new Error('--source-mode must be live or local');
     if (sourceMode === 'live') {
       await runSourceImpl({ domain, progressPath, runId: crawlRunId, env });
@@ -1030,11 +1039,8 @@ function actionId(domain) {
   return ({ items: 'wiki-items-refresh', npcs: 'wiki-npcs-refresh', projectiles: 'wiki-projectiles-refresh', buffs: 'buff-page-immunity-refresh', armor_sets: 'domain-source-armor-sets' })[domain];
 }
 
-export function connectionOptions(env) {
-  const port = Number(requireText(env.TERRAPEDIA_DB_PORT, 'TERRAPEDIA_DB_PORT'));
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('invalid TERRAPEDIA_DB_PORT');
-  if (env.TERRAPEDIA_DB_NAME !== 'terria_v1_local') throw new Error('TERRAPEDIA_DB_NAME must be terria_v1_local');
-  return { host: requireText(env.TERRAPEDIA_DB_HOST, 'TERRAPEDIA_DB_HOST'), port, user: requireText(env.TERRAPEDIA_DB_USERNAME, 'TERRAPEDIA_DB_USERNAME'), password: requireText(env.TERRAPEDIA_DB_PASSWORD, 'TERRAPEDIA_DB_PASSWORD'), database: 'terria_v1_local', multipleStatements: false, dateStrings: true };
+export function connectionOptions(env, context = {}) {
+  return isolatedConnectionOptions(env, context);
 }
 
 function parseArgs(argv) {

@@ -133,6 +133,30 @@ test('runJsonRequest stops immediately on 429 and persists Retry-After cooldown'
   assert.equal(state.throttleFailureCount, 1);
 });
 
+test('runJsonRequest supports a bounded one-attempt source fingerprint probe', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-one-attempt-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  let fetchCount = 0;
+  const gate = createWikiRequestGate({
+    statePath,
+    sleepFn: async () => {},
+    requestProfiles: {
+      revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 4, cooldownMs: 10_000 },
+    },
+    fetchFn: async () => {
+      fetchCount += 1;
+      return textResponse({ ok: false, status: 502, statusText: 'Bad Gateway', body: 'maintenance' });
+    },
+  });
+  await assert.rejects(
+    () => gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+      profile: 'revision', sourceKey: 'NPC fingerprint', maxAttempts: 1,
+    }),
+    /Request retry exhausted/,
+  );
+  assert.equal(fetchCount, 1);
+});
+
 test('runJsonRequest records alert when Cloudflare failures reach threshold', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
   const statePath = path.join(tempDir, 'gate.json');

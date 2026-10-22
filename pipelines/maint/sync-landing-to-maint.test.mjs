@@ -1748,6 +1748,309 @@ test('buildMaintSyncSummary groups expanded rows by scope', () => {
   assert.equal(summary.rows.byScope.npcs, 1);
 });
 
+function createItemIdSelectionLandingRow() {
+  const contentHash = 'b'.repeat(64);
+  return {
+    id: 41,
+    dataset_type: 'items_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Module:Iteminfo/data',
+    source_key: 'wiki.module.iteminfo',
+    source_revision_timestamp: '2026-04-22T10:00:00Z',
+    content_hash: contentHash,
+    fetched_at: '2026-04-23T10:00:00Z',
+    parsed_at: '2026-04-23T10:00:00Z',
+    payload_json: JSON.stringify({
+      moduleContent: 'return { ["data"] = [=====[{"_generated":"2026-04-22 10:00:00 (+00:00)","_terrariaversion":"1.4.5.6","101":{"name":"Iron Pickaxe","internalName":"IronPickaxe"},"102":{"name":"Dirt Block","internalName":"DirtBlock"},"103":{"name":"Torch","internalName":"Torch"}}]=====] }',
+      pageTitle: 'Module:Iteminfo/data',
+    }),
+  };
+}
+
+function createRecordingMaintMysqlModule(writtenItems) {
+  return {
+    async createConnection() {
+      return {
+        async beginTransaction() {},
+        async query() {},
+        async execute(sql, params) {
+          if (sql.startsWith('SELECT id FROM `maint_items`')) {
+            return [[]];
+          }
+          if (sql.startsWith('INSERT INTO `maint_items`')) {
+            writtenItems.push({
+              sourceId: params[0],
+              landingSourceId: params[7],
+              landingContentHash: params[10],
+            });
+          }
+          return [{}];
+        },
+        async commit() {},
+        async rollback() {},
+        async end() {},
+      };
+    },
+  };
+}
+
+test('runMaintSync filters an exact item ID allowlist and binds selected rows to unchanged landing lineage', async () => {
+  const landingRow = createItemIdSelectionLandingRow();
+  const originalPayload = landingRow.payload_json;
+  const originalContentHash = landingRow.content_hash;
+  const writtenItems = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['items'], itemIds: [101, 103] },
+    {
+      loadLandingRows: async () => [landingRow],
+      mysqlModule: createRecordingMaintMysqlModule(writtenItems),
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(summary.rows.total, 2);
+  assert.deepEqual(summary.rows.byScope, { items: 2 });
+  assert.equal(summary.writes.inserted, 2);
+  assert.deepEqual(writtenItems, [
+    { sourceId: 101, landingSourceId: 41, landingContentHash: originalContentHash },
+    { sourceId: 103, landingSourceId: 41, landingContentHash: originalContentHash },
+  ]);
+  assert.deepEqual(summary.itemSelection, {
+    itemIds: [101, 103],
+    sourceBindings: [
+      { sourceId: 101, landingSourceId: 41, landingContentHash: originalContentHash },
+      { sourceId: 103, landingSourceId: 41, landingContentHash: originalContentHash },
+    ],
+  });
+  assert.equal(landingRow.payload_json, originalPayload);
+  assert.equal(landingRow.content_hash, originalContentHash);
+});
+
+test('runMaintSync filters an async iterable landing source by the exact item ID allowlist', async () => {
+  const landingRow = createItemIdSelectionLandingRow();
+  const originalPayload = landingRow.payload_json;
+  const originalContentHash = landingRow.content_hash;
+  const writtenItems = [];
+  let iterateLandingRowsCalls = 0;
+  async function* iterateLandingRows() {
+    iterateLandingRowsCalls += 1;
+    yield landingRow;
+  }
+
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['items'], itemIds: [101, 103] },
+    {
+      iterateLandingRows,
+      mysqlModule: createRecordingMaintMysqlModule(writtenItems),
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(iterateLandingRowsCalls, 1);
+  assert.equal(summary.rows.total, 2);
+  assert.deepEqual(summary.rows.byScope, { items: 2 });
+  assert.equal(summary.writes.inserted, 2);
+  assert.deepEqual(writtenItems, [
+    { sourceId: 101, landingSourceId: 41, landingContentHash: originalContentHash },
+    { sourceId: 103, landingSourceId: 41, landingContentHash: originalContentHash },
+  ]);
+  assert.deepEqual(summary.itemSelection, {
+    itemIds: [101, 103],
+    sourceBindings: [
+      { sourceId: 101, landingSourceId: 41, landingContentHash: originalContentHash },
+      { sourceId: 103, landingSourceId: 41, landingContentHash: originalContentHash },
+    ],
+  });
+  assert.equal(landingRow.payload_json, originalPayload);
+  assert.equal(landingRow.content_hash, originalContentHash);
+});
+
+test('runMaintSync does not fall back to another landing source when the supplied iterator is empty', async () => {
+  let createConnectionCalls = 0;
+  await assert.rejects(
+    runMaintSync(
+      { apply: true, scopes: ['items'], itemIds: [101] },
+      {
+        iterateLandingRows: async () => null,
+        mysqlModule: {
+          async createConnection() {
+            createConnectionCalls += 1;
+            throw new Error('must not fall back to an implicit database source');
+          },
+        },
+      },
+    ),
+    /iterateLandingRows must return an iterable/,
+  );
+  assert.equal(createConnectionCalls, 0);
+});
+
+test('runMaintSync does not fall back to a database when the supplied landing loader returns no rows', async () => {
+  let createConnectionCalls = 0;
+  await assert.rejects(
+    runMaintSync(
+      { apply: true, scopes: ['items'], itemIds: [101] },
+      {
+        loadLandingRows: async () => null,
+        mysqlModule: {
+          async createConnection() {
+            createConnectionCalls += 1;
+            throw new Error('must not fall back to an implicit database source');
+          },
+        },
+      },
+    ),
+    /loadLandingRows must return an array or iterable/,
+  );
+  assert.equal(createConnectionCalls, 0);
+});
+
+test('runMaintSync requires an explicit landing source binding when itemIds are used', async () => {
+  let createConnectionCalls = 0;
+  await assert.rejects(
+    runMaintSync(
+      { apply: true, scopes: ['items'], itemIds: [101] },
+      {
+        mysqlModule: {
+          async createConnection() {
+            createConnectionCalls += 1;
+            throw new Error('must not use implicit configured DB source');
+          },
+        },
+      },
+    ),
+    /itemIds requires an explicit loadLandingRows or iterateLandingRows source binding/,
+  );
+  assert.equal(createConnectionCalls, 0);
+});
+
+test('runMaintSync rejects an item ID absent from the parsed landing before opening a write connection', async () => {
+  let createConnectionCalls = 0;
+  await assert.rejects(
+    runMaintSync(
+      { apply: true, scopes: ['items'], itemIds: [101, 999] },
+      {
+        loadLandingRows: async () => [createItemIdSelectionLandingRow()],
+        mysqlModule: {
+          async createConnection() {
+            createConnectionCalls += 1;
+            throw new Error('write connection must not open');
+          },
+        },
+        writeReport: async () => {},
+      },
+    ),
+    /item IDs not produced by parsed items_raw landing: 999/,
+  );
+
+  assert.equal(createConnectionCalls, 0);
+});
+
+test('runMaintSync rejects an absent selected ID from an async iterable before opening a write connection', async () => {
+  let createConnectionCalls = 0;
+  async function* iterateLandingRows() {
+    yield createItemIdSelectionLandingRow();
+  }
+  await assert.rejects(
+    runMaintSync(
+      { apply: true, scopes: ['items'], itemIds: [101, 999] },
+      {
+        iterateLandingRows,
+        mysqlModule: {
+          async createConnection() {
+            createConnectionCalls += 1;
+            throw new Error('write connection must not open');
+          },
+        },
+      },
+    ),
+    /item IDs not produced by parsed items_raw landing: 999/,
+  );
+  assert.equal(createConnectionCalls, 0);
+});
+
+test('runMaintSync rejects invalid, non-positive, and duplicate item IDs before loading landings', async () => {
+  for (const itemIds of [['101'], [0], [-1], [1.5], [Number.MAX_SAFE_INTEGER + 1], [1, 1]]) {
+    let loadLandingRowsCalls = 0;
+    await assert.rejects(
+      runMaintSync(
+        { apply: true, scopes: ['items'], itemIds },
+        {
+          loadLandingRows: async () => {
+            loadLandingRowsCalls += 1;
+            return [];
+          },
+          mysqlModule: { async createConnection() { throw new Error('must not connect'); } },
+          writeReport: async () => {},
+        },
+      ),
+      /itemIds/,
+    );
+    assert.equal(loadLandingRowsCalls, 0);
+  }
+});
+
+test('runMaintSync rejects non-array itemIds before loading landings', async () => {
+  for (const itemIds of ['101', 101, null, undefined]) {
+    let loadLandingRowsCalls = 0;
+    await assert.rejects(
+      runMaintSync(
+        { apply: true, scopes: ['items'], itemIds },
+        {
+          loadLandingRows: async () => {
+            loadLandingRowsCalls += 1;
+            return [];
+          },
+          mysqlModule: { async createConnection() { throw new Error('must not connect'); } },
+          writeReport: async () => {},
+        },
+      ),
+      /itemIds must be an array/,
+    );
+    assert.equal(loadLandingRowsCalls, 0);
+  }
+});
+
+test('runMaintSync accepts item IDs only for the items scope', async () => {
+  for (const scopes of [['npcs'], ['items', 'npcs'], 'items,npcs']) {
+    let loadLandingRowsCalls = 0;
+    await assert.rejects(
+      runMaintSync(
+        { apply: true, scopes, itemIds: [101] },
+        {
+          loadLandingRows: async () => {
+            loadLandingRowsCalls += 1;
+            return [];
+          },
+          mysqlModule: { async createConnection() { throw new Error('must not connect'); } },
+          writeReport: async () => {},
+        },
+      ),
+      /itemIds requires scopes to be exactly \['items'\]/,
+    );
+    assert.equal(loadLandingRowsCalls, 0);
+  }
+});
+
+test('runMaintSync preserves the full items behavior when itemIds is omitted', async () => {
+  const landingRow = createItemIdSelectionLandingRow();
+  const writtenItems = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['items'] },
+    {
+      loadLandingRows: async () => [landingRow],
+      mysqlModule: createRecordingMaintMysqlModule(writtenItems),
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(summary.rows.total, 3);
+  assert.deepEqual(summary.rows.byScope, { items: 3 });
+  assert.equal(summary.writes.inserted, 3);
+  assert.deepEqual(writtenItems.map((row) => row.sourceId), [101, 102, 103]);
+  assert.equal(Object.hasOwn(summary, 'itemSelection'), false);
+});
+
 test('runMaintSync skips connection in dry-run mode and reports expanded rows', async () => {
   let createConnectionCalled = false;
   const summary = await runMaintSync(

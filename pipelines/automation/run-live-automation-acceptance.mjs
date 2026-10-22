@@ -37,6 +37,8 @@ import { runBossCanonicalT1Acceptance } from '../boss/boss-canonical-t1-acceptan
 import { runProjectileCanonicalT1Acceptance } from '../projectile/projectile-canonical-t1-acceptance.mjs';
 import { runBuffCanonicalT1Acceptance } from '../buff/buff-canonical-t1-acceptance.mjs';
 import { runBiomeCanonicalT1Acceptance } from '../biome/biome-canonical-t1-acceptance.mjs';
+import { assertEightDomainAcceptanceBinding } from './eight-domain-isolated-allocation.mjs';
+import { createEightDomainApiLifecycle } from '../../platform/local/run-eight-domain-isolated-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PROBE_TABLE = '__automation_acceptance_probe';
@@ -49,10 +51,113 @@ const BIOME_T1_EVIDENCE_PATH = 'reports/canonical-migration/canonical-biome-t1-a
 const NPC_T1_OPERATION_ID = 'canonical-npc-t1-acceptance';
 const NPC_T1_INPUT_PATH = 'reports/authorization/canonical/canonical-npc-apply.input.json';
 const NPC_T1_COMPLETION_PATH = 'reports/authorization/canonical/canonical-npc-apply.completion.json';
+const ISOLATED_API_JAR_RELATIVE_PATH = 'services/catalog-api/target/terrapedia-catalog-api-1.0.0.jar';
 
 function requireRunKey(runKey) {
   if (!/^[a-z0-9]{1,3}_[0-9a-f]{16}$/.test(runKey ?? '')) throw new Error('live acceptance runKey is invalid');
   return runKey;
+}
+
+export function buildRunOwnedApiCredentials({
+  mysql,
+  apiAccount,
+  redisPassword,
+  runKey,
+  randomBytesImpl = randomBytes,
+} = {}) {
+  requireRunKey(runKey);
+  if (!mysql || mysql.host !== '127.0.0.1' || Number(mysql.port) !== 13306) {
+    throw new Error('run-owned API credentials require the isolated loopback MySQL endpoint');
+  }
+  if (!apiAccount || !['apiReadonly', 'apiV2Test'].includes(apiAccount.role)
+      || !String(apiAccount.username ?? '').trim() || !String(apiAccount.password ?? '').trim()) {
+    throw new Error('run-owned API credentials require a distinct isolated API account');
+  }
+  if (!String(redisPassword ?? '').trim()) throw new Error('run-owned API credentials require a private Redis password');
+  const secret = (label, size = 32) => {
+    const value = Buffer.from(randomBytesImpl(size)).toString('hex');
+    if (value.length < 32) throw new Error(`${label} generator returned an unsafe secret`);
+    return value;
+  };
+  return Object.freeze({
+    mysql: Object.freeze({ host: mysql.host, port: Number(mysql.port) }),
+    apiAccount: Object.freeze({
+      role: apiAccount.role,
+      username: apiAccount.username,
+      password: apiAccount.password,
+    }),
+    redisPassword: String(redisPassword),
+    admin: Object.freeze({
+      username: `e8pr_${runKey}`,
+      password: secret('run-owned admin password'),
+    }),
+    authTokenSecret: secret('run-owned auth token secret'),
+    userTokenSecret: secret('run-owned user token secret'),
+  });
+}
+
+export function buildIsolatedApiLifecycle({
+  allocation,
+  mode = 'consumer-readback',
+  credentials,
+  migrationEvidence,
+  routes,
+  sourceStatePath,
+  sourceManifestPath,
+  validateResponse,
+  startImpl,
+  readbackImpl,
+  stopImpl,
+} = {}) {
+  if (!allocation || !credentials || !migrationEvidence || !Array.isArray(routes) || routes.length === 0) {
+    throw new Error('isolated API lifecycle requires allocation, credentials, migration evidence, and declared routes');
+  }
+  const jarPath = path.join(path.resolve(allocation.executionRoot), ISOLATED_API_JAR_RELATIVE_PATH);
+  const jarSha256 = `sha256:${createHash('sha256').update(fs.readFileSync(jarPath)).digest('hex')}`;
+  return createEightDomainApiLifecycle({
+    allocation,
+    mode,
+    credentials,
+    migrationEvidence,
+    routes,
+    sourceStatePath,
+    sourceManifestPath,
+    validateResponse,
+    jarPath,
+    expectedJarSha256: jarSha256,
+    ...(startImpl ? { startImpl } : {}),
+    ...(readbackImpl ? { readbackImpl } : {}),
+    ...(stopImpl ? { stopImpl } : {}),
+  });
+}
+
+export function assertIsolatedApiLifecycleBinding({ lifecycle, allocation, manifest, apiAccounts } = {}) {
+  const binding = lifecycle?.binding;
+  const accountRole = binding?.mode === 'isolated-v2-attempt' ? 'apiV2Test' : 'apiReadonly';
+  if (!binding || !allocation || !manifest || !apiAccounts?.[accountRole]) {
+    throw new Error('isolated API lifecycle is missing its run binding');
+  }
+  const expected = {
+    domain: allocation.domain,
+    runId: allocation.runId,
+    runKey: allocation.runKey,
+    mode: binding.mode,
+    mysql: {
+      host: allocation.mysql.host,
+      port: allocation.mysql.port,
+      databases: allocation.mysql.databases,
+      apiAccountRole: accountRole,
+      apiAccountUsername: apiAccounts[accountRole].username,
+    },
+    redis: allocation.redis,
+    api: allocation.api,
+    leasePath: path.join(ROOT, allocation.automaticArtifactRoot, 'api.lease.json'),
+    migrationEvidenceHash: manifest.migrationEvidence?.inputManifestHash,
+  };
+  if (JSON.stringify(binding) !== JSON.stringify(expected)) {
+    throw new Error('isolated API lifecycle binding differs from the allocation, account, or migration evidence');
+  }
+  return true;
 }
 
 export function buildLiveResourceNames({ profile, runKey } = {}) {
@@ -68,6 +173,10 @@ export function buildLiveResourceNames({ profile, runKey } = {}) {
     accounts: Object.freeze({
       provisioner: `automation_prov_${suffix}`,
       readonly: `automation_ro_${suffix}`
+    }),
+    isolatedApiAccounts: Object.freeze({
+      apiReadonly: `automation_apiro_${suffix}`,
+      apiV2Test: `automation_apiv2_${suffix}`,
     })
   });
 }
@@ -117,9 +226,44 @@ export function parseProbeCounts(output) {
   return parsed;
 }
 
+export async function executeIsolatedApiLifecycle({ lifecycle, context, acceptance } = {}) {
+  if (!lifecycle || typeof lifecycle.start !== 'function'
+      || typeof lifecycle.readback !== 'function' || typeof lifecycle.stop !== 'function'
+      || typeof acceptance !== 'function') {
+    throw new Error('isolated API lifecycle requires start, readback, stop, and acceptance functions');
+  }
+  let started;
+  let primaryError;
+  let acceptanceResult;
+  let readbackResult;
+  let stopResult;
+  try {
+    started = await lifecycle.start(context);
+    acceptanceResult = await acceptance(started);
+    readbackResult = await lifecycle.readback({ ...context, started, acceptance: acceptanceResult });
+  } catch (error) {
+    primaryError = error;
+  }
+  if (started) {
+    try {
+      stopResult = await lifecycle.stop({ ...context, started, acceptance: acceptanceResult, readback: readbackResult });
+      if (stopResult?.stopped !== true || stopResult?.cleanupVerified !== true) {
+        throw new Error('isolated API stop did not verify its owned process and cleanup');
+      }
+    } catch (error) {
+      if (primaryError) {
+        throw new AggregateError([primaryError, error], `isolated API lifecycle failed: ${primaryError.message}; stop or cleanup failed: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+  if (primaryError) throw primaryError;
+  return Object.freeze({ acceptance: acceptanceResult, readback: readbackResult, stop: stopResult, start: started });
+}
+
 export function resolveAcceptanceScope(scope, executor) {
   if (scope === undefined || scope === null || scope === '') return null;
-  if (!['item-groups', 'npc-canonical', 'recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'].includes(scope)) {
+  if (!['item-groups', 'items-maintained', 'npc-canonical', 'npc-hybrid-maintained', 'recipe-canonical', 'boss-canonical', 'projectile-canonical', 'audio-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'].includes(scope)) {
     throw new Error(`unsupported live acceptance scope: ${scope}`);
   }
   if (typeof executor !== 'function') throw new Error(`${scope} acceptance executor is required`);
@@ -171,10 +315,35 @@ export async function runLiveAutomationAcceptance({
   scope,
   acceptanceExecutor,
   completion,
-  onResources = () => {}
+  dependencyManifest = null,
+  dependencyManifestFactory = null,
+  isolatedApiLifecycle = null,
+  isolatedApiLifecycleFactory = null,
+  onResources = () => {},
+  isolatedAllocation = null,
 } = {}) {
   if (!['t0', 't1'].includes(profile)) throw new Error('live acceptance profile must be t0 or t1');
   if (!runId || !privateDirectory) throw new Error('runId and privateDirectory are required');
+  const isolatedBinding = isolatedAllocation == null
+    ? null
+    : assertEightDomainAcceptanceBinding({ profile, runId, mysql, redis, allocation: isolatedAllocation });
+  if (isolatedBinding != null && isolatedApiLifecycle == null && typeof isolatedApiLifecycleFactory !== 'function') {
+    throw new Error('eight-domain isolated acceptance requires a run-owned API lifecycle or factory');
+  }
+  if (isolatedAllocation == null && (isolatedApiLifecycle != null || isolatedApiLifecycleFactory != null)) {
+    throw new Error('isolated API lifecycle requires the reviewed eight-domain allocation');
+  }
+  if (isolatedAllocation != null) {
+    const expectedPrivateRoot = path.resolve(
+      ROOT,
+      isolatedAllocation.automaticArtifactRoot,
+    );
+    const resolvedPrivateDirectory = path.resolve(privateDirectory);
+    const privateRelative = path.relative(expectedPrivateRoot, resolvedPrivateDirectory);
+    if (!privateRelative || privateRelative === '..' || privateRelative.startsWith(`..${path.sep}`) || path.isAbsolute(privateRelative)) {
+      throw new Error('isolated acceptance private directory must be a child of its run-owned automatic artifact root');
+    }
+  }
   const logicalDb = assertAutomationRedisLogicalDb(redis?.logicalDb, 'Redis logical DB');
   const scopedExecutor = resolveAcceptanceScope(scope, acceptanceExecutor);
   const npcT1Completion = profile === 't1' && scope === 'npc-canonical'
@@ -185,22 +354,42 @@ export async function runLiveAutomationAcceptance({
   const mappings = openDurableRunKeyRegistry(path.join(privateDirectory, 'run-keys.json'));
   const names = buildAutomationDatabaseNames({ profile, runId, mappings });
   const resources = buildLiveResourceNames({ profile, runKey: names.runKey });
+  if (isolatedBinding != null && (isolatedBinding.runKey !== names.runKey
+      || JSON.stringify(resources.databases) !== JSON.stringify(isolatedAllocation.mysql.databases))) {
+    throw new Error('isolated acceptance derived runKey/databases disagree with the fixed allocation');
+  }
   if (JSON.stringify(resources.databases) !== JSON.stringify({ local: names.local, maint: names.maint, relation: names.relation })) {
     throw new Error('derived live resource names disagree with the durable runKey contract');
   }
-  await onResources({ ...resources, redis: { host: redis.host, port: redis.port, logicalDb } });
+  const accountNames = isolatedAllocation == null
+    ? resources.accounts
+    : { ...resources.accounts, ...resources.isolatedApiAccounts };
+  await onResources({
+    ...resources,
+    accounts: accountNames,
+    redis: { host: redis.host, port: redis.port, logicalDb },
+  });
 
   const accountPasswords = {
     provisioner: randomBytes(32).toString('hex'),
-    readonly: randomBytes(32).toString('hex')
+    readonly: randomBytes(32).toString('hex'),
+    ...(isolatedAllocation == null ? {} : {
+      apiReadonly: randomBytes(32).toString('hex'),
+      apiV2Test: randomBytes(32).toString('hex'),
+    }),
   };
   const adapter = await createLiveAutomationAdapter({
     repoRoot: ROOT, mysql, redis, environmentId,
-    accountNames: resources.accounts, accountPasswords, maxRowsPerTable
+    accountNames, accountPasswords, maxRowsPerTable,
+    ...(isolatedAllocation == null ? {} : {
+      isolatedApiDatabases: resources.databases,
+      isolatedApiDomain: isolatedAllocation.domain,
+    }),
   });
   let manifest;
   let primaryError;
   let result;
+  let effectiveDependencyManifest = dependencyManifest;
   try {
     const observed = await adapter.inspectServer();
     manifest = await provisionAutomationDatabases({
@@ -211,11 +400,20 @@ export async function runLiveAutomationAcceptance({
       manifestPath: path.join(privateDirectory, `${profile}-manifest.json`),
       environmentId,
       expectedServerIdentity: observed,
-      sourceSnapshot: profile === 't1' ? { snapshotId: `${runId}-readonly-snapshot` } : undefined
+      sourceSnapshot: profile === 't1' ? { snapshotId: `${runId}-readonly-snapshot` } : undefined,
+      dependencyManifest,
+      dependencyManifestFactory,
     });
-    const snapshotVerification = profile === 't1'
-      ? await adapter.verifyCopiedSnapshot({ sourceSnapshot: manifest.sourceSnapshot, targetDatabases: manifest.databases })
-      : null;
+    effectiveDependencyManifest = manifest.dependencyManifest ?? dependencyManifest;
+    const snapshotVerification = profile !== 't1'
+      ? null
+      : effectiveDependencyManifest == null
+        ? await adapter.verifyCopiedSnapshot({ sourceSnapshot: manifest.sourceSnapshot, targetDatabases: manifest.databases })
+        : {
+          verified: manifest.dependencySeedEvidence?.readbackVerified === true,
+          verificationHash: manifest.dependencySeedEvidence?.manifestSha256 ?? null,
+          tables: manifest.dependencySeedEvidence?.dependencies ?? [],
+        };
     const snapshotBinding = npcT1Completion
       ? buildNpcCanonicalT1SnapshotBinding({
         completion: npcT1Completion,
@@ -227,7 +425,7 @@ export async function runLiveAutomationAcceptance({
     const probeCounts = parseProbeCounts(await adapter.provisionerClient.query(
       buildAcceptanceProbeSql(resources.databases, probeId)
     ));
-    const acceptance = scopedExecutor ? await scopedExecutor({
+    const acceptanceContext = {
       profile,
       runId,
       repoRoot: ROOT,
@@ -237,7 +435,13 @@ export async function runLiveAutomationAcceptance({
       snapshotVerification,
       completion: npcT1Completion,
       snapshotBinding,
-      mysql: ['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'].includes(scope) ? {
+      dependencyManifest: effectiveDependencyManifest,
+      dependencySeedEvidence: manifest.dependencySeedEvidence ?? null,
+      migrationEvidence: manifest.migrationEvidence ?? null,
+      apiAccounts: adapter.apiAccounts,
+      apiAccountGrantEvidence: adapter.getApiAccountGrantEvidence?.() ?? null,
+      readonlyClient: adapter.readonlyClient,
+      mysql: isolatedAllocation != null || ['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'].includes(scope) ? {
         host: mysql.host,
         port: mysql.port,
         username: resources.accounts.provisioner,
@@ -245,7 +449,45 @@ export async function runLiveAutomationAcceptance({
         readonlyUsername: resources.accounts.readonly,
         readonlyPassword: accountPasswords.readonly,
       } : mysql,
-    }) : null;
+    };
+    const effectiveIsolatedApiLifecycle = isolatedApiLifecycle
+      ?? (typeof isolatedApiLifecycleFactory === 'function'
+        ? await isolatedApiLifecycleFactory({
+          manifest,
+          resources,
+          adapter,
+          accountPasswords,
+          redis,
+          mysql,
+        })
+        : null);
+    if (effectiveIsolatedApiLifecycle != null && !scopedExecutor) {
+      throw new Error('isolated API lifecycle requires a scoped acceptance executor');
+    }
+    if (effectiveIsolatedApiLifecycle != null) {
+      assertIsolatedApiLifecycleBinding({
+        lifecycle: effectiveIsolatedApiLifecycle,
+        allocation: isolatedAllocation,
+        manifest,
+        apiAccounts: adapter.apiAccounts,
+      });
+    }
+    const isolatedApiResult = effectiveIsolatedApiLifecycle == null
+      ? null
+      : await executeIsolatedApiLifecycle({
+        lifecycle: effectiveIsolatedApiLifecycle,
+        context: {
+          ...acceptanceContext,
+          manifest,
+          migrationEvidence: manifest.migrationEvidence ?? null,
+          dependencySeedEvidence: manifest.dependencySeedEvidence ?? null,
+          apiAccounts: adapter.apiAccounts,
+          apiAccountGrantEvidence: adapter.getApiAccountGrantEvidence?.() ?? null,
+        },
+        acceptance: (started) => scopedExecutor({ ...acceptanceContext, apiSession: started }),
+      });
+    const acceptance = isolatedApiResult?.acceptance
+      ?? (scopedExecutor ? await scopedExecutor(acceptanceContext) : null);
     result = {
       profile,
       runId,
@@ -265,6 +507,12 @@ export async function runLiveAutomationAcceptance({
         verificationHash: snapshotVerification.verificationHash
       } : null,
       snapshotBinding,
+      dependencyManifest: effectiveDependencyManifest,
+      dependencySeedEvidence: manifest.dependencySeedEvidence ?? null,
+      migrationEvidence: manifest.migrationEvidence ?? null,
+      apiAccounts: adapter.apiAccounts,
+      apiAccountGrantEvidence: adapter.getApiAccountGrantEvidence?.() ?? null,
+      isolatedApi: isolatedApiResult,
       probeCounts,
       acceptance,
       cleanupPassed: false,

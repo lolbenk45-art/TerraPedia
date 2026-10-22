@@ -2,7 +2,34 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createRecordKey } from './relation-trace.mjs';
-import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
+import { buildBuffSourceNpcRelations, buildSecondaryRelations } from './secondary-relation-processor.mjs';
+
+test('buildBuffSourceNpcRelations writes only stable Buff-page inflicting and immune facts', () => {
+  const rows = buildBuffSourceNpcRelations({
+    maintBuffRows: [{
+      id: 100,
+      record_key: 'buff-maint-key',
+      source_id: 1,
+      internal_name: 'ObsidianSkin',
+      raw_json: JSON.stringify({
+        inflictingNpcs: [
+          { npcId: 10, internalName: 'Hornet', name: 'Hornet', buffTime: 60 },
+          { internalName: 'UnknownNpc', resolveStatus: 'unresolved' },
+        ],
+        immuneNpcs: [{ npcId: -20, internalName: 'SandPoacher', name: 'Sand Poacher' }],
+      }),
+    }],
+    maintNpcRows: [
+      { id: 200, source_id: 10, internal_name: 'Hornet', english_name: 'Hornet' },
+      { id: 201, source_id: -20, internal_name: 'DesertScorpionWalk', english_name: 'Desert Scorpion' },
+    ],
+  });
+
+  assert.deepEqual(rows.map((row) => [row.npcSourceId, row.npcInternalName, row.buffSourceId, row.relationType]), [
+    [10, 'Hornet', 1, 'inflicts'],
+    [-20, 'DesertScorpionWalk', 1, 'immune'],
+  ]);
+});
 
 test('buildSecondaryRelations promotes matched item and npc projectile facts', () => {
   const actual = buildSecondaryRelations({

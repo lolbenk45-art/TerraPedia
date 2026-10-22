@@ -119,6 +119,48 @@ test('import-standardized apply updates changed existing item rows', async () =>
   assert.equal(conn.executeCalls.some((call) => /\bUPDATE items\b/i.test(call.sql)), true);
 });
 
+test('isolated Item import preserves manifest-bound source IDs on inserted local rows', async () => {
+  const conn = createFakeConnection({ categories: [{ id: 7, code: 'MATERIAL' }] });
+  const records = [
+    { ...standardizedItemRecord(), id: 2, internalName: 'Item2', name: 'Item 2' },
+    { ...standardizedItemRecord(), id: 4, internalName: 'Item4', name: 'Item 4' },
+  ];
+  await runStandardizedImportWithConnection(conn, {
+    dryRun: false,
+    preserveItemSourceIds: true,
+    datasets: {
+      manifest: null,
+      itemsDataset: { records },
+      relationsDataset: { records: {} },
+      wikiBiomesDataset: null,
+    },
+    redisConfig: {},
+  });
+  const inserts = conn.executeCalls.filter(({ sql }) => /^\s*INSERT INTO items/i.test(sql));
+  assert.deepEqual(inserts.map(({ sql, params }) => [/\(id, name,/.test(sql), params[0]]), [[true, 2], [true, 4]]);
+});
+
+test('isolated Item import rejects missing or duplicate stable source IDs before business DML', async () => {
+  for (const records of [
+    [{ ...standardizedItemRecord(), id: 2 }, { ...standardizedItemRecord(), id: undefined, internalName: 'Item4', name: 'Item 4' }],
+    [{ ...standardizedItemRecord(), id: 2 }, { ...standardizedItemRecord(), id: 2, internalName: 'Item2b', name: 'Item 2b' }],
+  ]) {
+    const conn = createFakeConnection({ categories: [{ id: 7, code: 'MATERIAL' }] });
+    await assert.rejects(() => runStandardizedImportWithConnection(conn, {
+      dryRun: false,
+      preserveItemSourceIds: true,
+      datasets: {
+        manifest: null,
+        itemsDataset: { records },
+        relationsDataset: { records: {} },
+        wikiBiomesDataset: null,
+      },
+      redisConfig: {},
+    }), /stable Item source IDs/i);
+    assert.equal(conn.executeCalls.some(({ sql }) => /INSERT INTO items/i.test(sql)), false);
+  }
+});
+
 test('base-item import updates only Items and fails closed on a missing category', async () => {
   const conn = createFakeConnection({
     categories: [{ id: 7, code: 'MATERIAL' }],

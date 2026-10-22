@@ -6,6 +6,7 @@ import path from 'node:path';
 
 import {
   buildBossImportProjection,
+  assertBossIsolatedTarget,
   reconcileBossNameZh,
   reconcileBossNotes,
   reconcileBossMembers,
@@ -22,10 +23,10 @@ test('boss importer resolves mysql2 through the repository module loader', () =>
 
 test('boss image helpers receive managed URL prefixes explicitly', () => {
   const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
-  assert.match(source, /async function localizeBossImage\(\s*record,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
+  assert.match(source, /async function localizeBossImage\(\s*record,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*bossImageCache\s*=\s*null\s*\)/);
   assert.match(source, /async function reconcileBossMemberImages\(\s*members,\s*generatedNpcMap,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
   assert.match(source, /function resolveBossImageUrl\(\s*record,\s*members,\s*managedUrlPrefixes,?\s*\)/);
-  assert.match(source, /await localizeBossImage\(\s*record,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
+  assert.match(source, /await localizeBossImage\(\s*record,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*bossImageCache,?\s*\)/);
   assert.match(source, /await reconcileBossMemberImages\(\s*memberMapping\.members,\s*generatedNpcMap,\s*uploader,\s*summary,\s*managedUrlPrefixes,?\s*\)/);
   assert.match(source, /const imageUrl = resolveBossImageUrl\(\s*\{[^}]*\},\s*memberMapping\.members,\s*managedUrlPrefixes,?\s*\)/);
 });
@@ -38,6 +39,22 @@ test('offline boss import cannot create a backend image uploader', () => {
   const source = fs.readFileSync(new URL('./import-wiki-bosses-to-db.mjs', import.meta.url), 'utf8');
   assert.match(source, /requiredPassword:\s*!dryRun\s*&&\s*!offline/);
   assert.match(source, /offline,\s*\n\s*strictMode/);
+});
+
+test('Boss importer isolated target guard accepts only the exact run-derived local schema', () => {
+  const connection = { config: { database: 'terria_v1_automation_acceptance_e8p_e1cd44a30171d90d_local', host: '127.0.0.1', port: 13306 } };
+  assert.equal(assertBossIsolatedTarget(connection, {
+    profile: 't1',
+    runKey: 'e8p_e1cd44a30171d90d',
+    database: connection.config.database,
+    host: '127.0.0.1',
+    port: 13306,
+  }), true);
+  assert.throws(() => assertBossIsolatedTarget({ config: { database: 'terria_v1_local' } }, {
+    profile: 't1',
+    runKey: 'e8p_e1cd44a30171d90d',
+    database: 'terria_v1_local',
+  }), /run-derived T1 local schema/);
 });
 
 test('runBossImport leaves a caller-owned offline transaction open', async () => {
@@ -156,6 +173,91 @@ test('runBossImport can suppress report publication for a caller-owned automatic
   assert.equal(result.totalBosses, 1);
   assert.equal(result.reportPath, null);
   assert.equal(fs.existsSync(reportPath), false);
+});
+
+test('runBossImport can bind a Boss-code read-only image cache without invoking an uploader', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'boss-import-image-cache-'));
+  const inputPath = path.join(tempDir, 'bosses.json');
+  fs.writeFileSync(inputPath, JSON.stringify({ records: [{
+    titleEn: 'King Slime',
+    titleZh: '史莱姆王',
+    groupType: 'PRE_HARDMODE',
+    progressionOrder: 1,
+    sourceUrl: 'https://terraria.wiki.gg/wiki/King_Slime',
+    imageUrl: 'https://terraria.wiki.gg/images/King_Slime.gif',
+    revisionTimestamp: '2026-08-11T22:35:00Z',
+  }] }));
+  const managedImageUrl = 'http://127.0.0.1:19100/tp-e8pr-bosses-20261017/e8pr/bosses/e8pr-bosses-20261017-v1/bosses/king-slime.gif';
+  const statements = [];
+  const connection = {
+    config: { database: 'terria_v1_local' },
+    async query(sql) {
+      if (/SELECT id, game_id, internal_name/i.test(sql)) return [[{
+        id: 10, game_id: 50, internal_name: 'KingSlime', name: 'King Slime', name_zh: '史莱姆王', is_boss: 1, raw_json: '{}',
+      }]];
+      return [[]];
+    },
+    async execute(sql, params = []) {
+      statements.push({ sql, params });
+      if (/SELECT id, image_url FROM boss_groups/i.test(sql)) return [[{ id: 7, image_url: null }]];
+      if (/SELECT id, boss_group_id, boss_role\s+FROM npcs/i.test(sql)) return [[{ id: 10, boss_group_id: 7, boss_role: 'primary' }]];
+      return [{ affectedRows: 1 }];
+    },
+  };
+  const result = await runBossImport({
+    input: inputPath,
+    offline: 'true',
+    strict: 'false',
+    'write-report': 'false',
+    managedUrlPrefix: 'http://127.0.0.1:19100/tp-e8pr-bosses-20261017/e8pr/bosses/e8pr-bosses-20261017-v1',
+  }, {
+    connection,
+    transactionOwner: 'caller',
+    generatedNpcMap: null,
+    managedUrlPrefixes: ['http://127.0.0.1:19100/tp-e8pr-bosses-20261017'],
+    bossImageCache: { KING_SLIME: managedImageUrl },
+    imageUploader: { uploadImageUrl: async () => { throw new Error('read-only Boss image cache must not upload'); } },
+  });
+
+  const upsert = statements.find((entry) => /INSERT INTO boss_groups|UPDATE boss_groups/i.test(entry.sql));
+  assert.ok(upsert);
+  assert.equal(upsert.params.includes(managedImageUrl), true);
+  assert.equal(result.bossImageCandidates, 1);
+  assert.equal(result.bossImagesFromReadOnlyCache, 1);
+  assert.equal(result.pendingBossImages, 0);
+});
+
+test('runBossImport can use a bound managed Boss image cache when the local source image is absent', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'boss-import-missing-image-cache-'));
+  const inputPath = path.join(tempDir, 'bosses.json');
+  fs.writeFileSync(inputPath, JSON.stringify({ records: [{
+    titleEn: 'Solar Pillar',
+    titleZh: '日耀柱',
+    groupType: 'LUNAR_PILLARS',
+    progressionOrder: 30,
+    sourceUrl: 'https://terraria.wiki.gg/wiki/Lunar_Pillars',
+    imageUrl: null,
+    revisionTimestamp: '2026-08-11T22:35:00Z',
+  }] }));
+  const managedImageUrl = 'http://localhost:9000/terrapedia-images/bosses/solar-pillar.gif';
+  const statements = [];
+  const connection = {
+    config: { database: 'terria_v1_local' },
+    async query(sql) { if (/SELECT id, game_id, internal_name/i.test(sql)) return [[{ id: 10, game_id: 50, internal_name: 'LunarTowerSolar', name: 'Solar Pillar', name_zh: '日耀柱', is_boss: 0, raw_json: '{}' }]]; return [[]]; },
+    async execute(sql, params = []) { statements.push({ sql, params }); if (/SELECT id, image_url FROM boss_groups/i.test(sql)) return [[{ id: 7, image_url: null }]]; if (/SELECT id, boss_group_id, boss_role\s+FROM npcs/i.test(sql)) return [[{ id: 10, boss_group_id: null, boss_role: null }]]; return [{ affectedRows: 1 }]; },
+  };
+  const result = await runBossImport({ input: inputPath, offline: 'true', strict: 'false', 'write-report': 'false' }, {
+    connection,
+    transactionOwner: 'caller',
+    generatedNpcMap: null,
+    managedUrlPrefixes: ['http://localhost:9000/terrapedia-images/bosses'],
+    bossImageCache: { SOLAR_PILLAR: managedImageUrl },
+  });
+  const upsert = statements.find((entry) => /INSERT INTO boss_groups|UPDATE boss_groups/i.test(entry.sql));
+  assert.ok(upsert);
+  assert.equal(upsert.params.includes(managedImageUrl), true);
+  assert.equal(result.localizedBossImages, 0);
+  assert.equal(result.bossImagesFromReadOnlyCache, 1);
 });
 
 test('reconcileBossMembers skips unchanged existing boss member assignments', async () => {
@@ -307,8 +409,8 @@ test('buildBossImportProjection rejects unresolved members and unmanaged images 
 test('buildBossImportProjection covers the complete 33-record Boss source snapshot', () => {
   const source = JSON.parse(fs.readFileSync(new URL('../../data/generated/wiki-bosses.latest.json', import.meta.url), 'utf8'));
   const npcSource = JSON.parse(fs.readFileSync(new URL('../../data/standardized/npcs.standardized.json', import.meta.url), 'utf8'));
-  const npcRows = npcSource.records.map((record, index) => ({
-    id: index + 1,
+  const npcRows = npcSource.records.map((record) => ({
+    id: record.id,
     game_id: record.id,
     internal_name: record.internalName,
     name: record.name,

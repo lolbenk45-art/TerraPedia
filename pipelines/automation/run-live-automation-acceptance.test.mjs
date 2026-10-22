@@ -11,6 +11,8 @@ import { runBossCanonicalT1Acceptance } from '../boss/boss-canonical-t1-acceptan
 import { runProjectileCanonicalT1Acceptance } from '../projectile/projectile-canonical-t1-acceptance.mjs';
 import { runBuffCanonicalT1Acceptance } from '../buff/buff-canonical-t1-acceptance.mjs';
 import { runBiomeCanonicalT1Acceptance } from '../biome/biome-canonical-t1-acceptance.mjs';
+import { openDurableRunKeyRegistry } from './automation-database-contract.mjs';
+import { buildEightDomainAllocationPlan } from './eight-domain-isolated-allocation.mjs';
 
 const npcT1Acceptance = await import('../npc-canonical/npc-canonical-t1-acceptance.mjs').catch(() => ({}));
 
@@ -19,6 +21,10 @@ const {
   buildLiveResourceNames,
   parseProbeCounts,
   resolveAcceptanceScope,
+  executeIsolatedApiLifecycle,
+  buildIsolatedApiLifecycle,
+  assertIsolatedApiLifecycleBinding,
+  buildRunOwnedApiCredentials,
 } = liveAcceptance;
 
 const T1_COMPLETION = {
@@ -64,7 +70,15 @@ test('live resource names are exact runKey-isolated databases and bounded tempor
   });
   assert.match(value.accounts.provisioner, /^automation_prov_[0-9a-f]{12}$/);
   assert.match(value.accounts.readonly, /^automation_ro_[0-9a-f]{12}$/);
+  assert.match(value.isolatedApiAccounts.apiReadonly, /^automation_apiro_[0-9a-f]{12}$/);
+  assert.match(value.isolatedApiAccounts.apiV2Test, /^automation_apiv2_[0-9a-f]{12}$/);
+  assert.equal(new Set(Object.values(value.accounts)).size, 2);
+  assert.equal(new Set([...Object.values(value.accounts), ...Object.values(value.isolatedApiAccounts)]).size, 4);
   assert.equal(value.accounts.provisioner.length <= 32, true);
+});
+
+test('live acceptance accepts the dedicated NPC hybrid maintained scope', () => {
+  assert.doesNotThrow(() => resolveAcceptanceScope('npc-hybrid-maintained', async () => ({ status: 'passed' })));
 });
 
 test('live acceptance rejects DB14 before creating or announcing isolated resources', async () => {
@@ -86,6 +100,78 @@ test('live acceptance rejects DB14 before creating or announcing isolated resour
   );
 
   assert.equal(resourcesAnnounced, false);
+  assert.equal(fs.existsSync(privateDirectory), false);
+});
+
+test('eight-domain isolated allocation rejects a drifted Redis DB before creating or announcing resources', async () => {
+  const privateDirectory = path.join(
+    process.cwd(),
+    'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic/acceptance-runtime',
+  );
+  let resourcesAnnounced = false;
+  let adapterCreated = false;
+  await assert.rejects(() => liveAcceptance.runLiveAutomationAcceptance({
+    profile: 't1',
+    runId: 'e8pr-items-20261017-v1',
+    privateDirectory,
+    mysql: { host: '127.0.0.1', port: 13306, username: 'writer', password: 'secret' },
+    redis: { host: '127.0.0.1', port: 16380, logicalDb: 2 },
+    isolatedAllocation: {
+      domain: 'items',
+      runId: 'e8pr-items-20261017-v1',
+      runKey: 'e8p_547b4e28fb4004a0',
+      executionRoot: process.cwd(),
+      evidenceRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0',
+      automaticArtifactRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic',
+      mysql: {
+        host: '127.0.0.1', port: 13306, serverUuid: 'b4ae6728-4f72-11f1-bcc9-00155d37eadf',
+        databases: {
+          local: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_local',
+          maint: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_maint',
+          relation: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_relation',
+        },
+      },
+      redis: { host: '127.0.0.1', port: 16380, logicalDb: 1 },
+      api: { host: '127.0.0.1', port: 18280 },
+      preflight: { status: 'ready', observedAt: new Date().toISOString() },
+    },
+    createAdapterImpl: async () => { adapterCreated = true; throw new Error('adapter must not be created'); },
+    onResources: () => { resourcesAnnounced = true; },
+  }), /Redis.*(logical DB|allocation|identity)/i);
+  assert.equal(resourcesAnnounced, false);
+  assert.equal(adapterCreated, false);
+  assert.equal(fs.existsSync(privateDirectory), false);
+});
+
+test('eight-domain isolated acceptance rejects a missing or stale live preflight before adapter creation', async () => {
+  const privateDirectory = path.join(
+    process.cwd(),
+    'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic/stale-preflight',
+  );
+  const allocation = {
+    domain: 'items',
+    runId: 'e8pr-items-20261017-v1',
+    runKey: 'e8p_547b4e28fb4004a0',
+    executionRoot: process.cwd(),
+    evidenceRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0',
+    automaticArtifactRoot: 'reports/runtime/eight-domain-production-readiness/20261017/items/e8p_547b4e28fb4004a0/automatic',
+    mysql: { host: '127.0.0.1', port: 13306, serverUuid: 'b4ae6728-4f72-11f1-bcc9-00155d37eadf', databases: {
+      local: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_local',
+      maint: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_maint',
+      relation: 'terria_v1_automation_acceptance_e8p_547b4e28fb4004a0_relation',
+    } },
+    redis: { host: '127.0.0.1', port: 16380, logicalDb: 1 },
+    api: { host: '127.0.0.1', port: 18280 },
+    preflight: { status: 'ready', observedAt: new Date(Date.now() - 180_000).toISOString() },
+  };
+  let adapterCreated = false;
+  await assert.rejects(() => liveAcceptance.runLiveAutomationAcceptance({
+    profile: 't1', runId: allocation.runId, privateDirectory,
+    mysql: { host: '127.0.0.1', port: 13306, username: 'writer', password: 'secret' },
+    redis: { host: '127.0.0.1', port: 16380, logicalDb: 1 }, isolatedAllocation: allocation,
+    createAdapterImpl: async () => { adapterCreated = true; throw new Error('adapter must not be created'); },
+  }), /stale|preflight/i);
+  assert.equal(adapterCreated, false);
   assert.equal(fs.existsSync(privateDirectory), false);
 });
 
@@ -113,10 +199,12 @@ test('live acceptance resolves only explicit registered scopes', () => {
   assert.equal(resolveAcceptanceScope(), null);
   const executor = () => {};
   assert.equal(resolveAcceptanceScope('item-groups', executor), executor);
+  assert.equal(resolveAcceptanceScope('items-maintained', executor), executor);
   assert.equal(resolveAcceptanceScope('npc-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('recipe-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('boss-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('projectile-canonical', executor), executor);
+  assert.equal(resolveAcceptanceScope('audio-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('biome-canonical', executor), executor);
   assert.equal(resolveAcceptanceScope('shimmer-canonical-isolated', executor), executor);
   assert.equal(resolveAcceptanceScope('armor-canonical-isolated', executor), executor);
@@ -127,12 +215,125 @@ test('live acceptance resolves only explicit registered scopes', () => {
 
 test('live acceptance passes the run identity to the scoped executor', () => {
   const source = fs.readFileSync(new URL('./run-live-automation-acceptance.mjs', import.meta.url), 'utf8');
-  assert.match(source, /scopedExecutor\(\{[\s\S]*?profile,\s*runId,\s*repoRoot:/);
+  assert.match(source, /const acceptanceContext = \{[\s\S]*?profile,\s*runId,\s*repoRoot:/);
+  assert.match(source, /acceptanceContext[\s\S]*?migrationEvidence:\s*manifest\.migrationEvidence/);
+  assert.match(source, /result = \{[\s\S]*?migrationEvidence:\s*manifest\.migrationEvidence/);
+  assert.match(source, /apiAccounts:\s*adapter\.apiAccounts/);
+  assert.match(source, /apiAccountGrantEvidence:\s*adapter\.getApiAccountGrantEvidence/);
+  assert.match(source, /dependencyManifest/);
+  assert.match(source, /dependencySeedEvidence:\s*manifest\.dependencySeedEvidence/);
+  assert.match(source, /executeIsolatedApiLifecycle/);
+  assert.match(source, /isolatedApiLifecycle/);
   assert.match(source, /username:\s*resources\.accounts\.provisioner/);
   assert.match(source, /password:\s*accountPasswords\.provisioner/);
   assert.match(source, /readonlyUsername:\s*resources\.accounts\.readonly/);
   assert.match(source, /readonlyPassword:\s*accountPasswords\.readonly/);
-  assert.match(source, /\['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'\]\.includes\(scope\)/);
+  assert.match(source, /isolatedAllocation != null \|\| \['recipe-canonical', 'boss-canonical', 'projectile-canonical', 'buff-canonical', 'biome-canonical', 'shimmer-canonical-isolated', 'armor-canonical-isolated'\]\.includes\(scope\)/);
+});
+
+test('isolated API lifecycle starts before acceptance, reads back after acceptance, and stops on success', async () => {
+  const events = [];
+  const result = await executeIsolatedApiLifecycle({
+    lifecycle: {
+      async start(context) { events.push(['start', context.runId]); return { pid: 1234, mode: 'consumer-readback' }; },
+      async readback(context) { events.push(['readback', context.runId, context.acceptance.status]); return { routes: 2 }; },
+      async stop(context) { events.push(['stop', context.runId]); return { stopped: true, cleanupVerified: true }; },
+    },
+    context: { runId: 'e8pr-items-20261017-v1' },
+    acceptance: async () => { events.push(['acceptance']); return { status: 'passed' }; },
+  });
+  assert.deepEqual(events, [
+    ['start', 'e8pr-items-20261017-v1'],
+    ['acceptance'],
+    ['readback', 'e8pr-items-20261017-v1', 'passed'],
+    ['stop', 'e8pr-items-20261017-v1'],
+  ]);
+  assert.deepEqual(result, { acceptance: { status: 'passed' }, readback: { routes: 2 }, stop: { stopped: true, cleanupVerified: true }, start: { pid: 1234, mode: 'consumer-readback' } });
+});
+
+test('isolated API lifecycle stops after an acceptance failure and preserves the primary error', async () => {
+  const events = [];
+  await assert.rejects(() => executeIsolatedApiLifecycle({
+    lifecycle: {
+      async start() { events.push('start'); return { pid: 1234 }; },
+      async readback() { events.push('readback'); throw new Error('readback must not run after acceptance failure'); },
+      async stop() { events.push('stop'); return { stopped: true, cleanupVerified: true }; },
+    },
+    context: { runId: 'e8pr-items-20261017-v1' },
+    acceptance: async () => { events.push('acceptance'); throw new Error('import failed'); },
+  }), /import failed/);
+  assert.deepEqual(events, ['start', 'acceptance', 'stop']);
+});
+
+test('run-live API lifecycle builder derives the JAR hash and binds the exact allocated run', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-api-lifecycle-builder-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const jarPath = path.join(root, 'catalog.jar');
+  fs.writeFileSync(jarPath, 'isolated-api-lifecycle-test-jar');
+  const registry = openDurableRunKeyRegistry(path.join(root, 'keys.json'));
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(process.cwd(), 'reports/runtime/eight-domain-production-readiness/20261017/execution-manifest.json'),
+    'utf8',
+  ));
+  manifest.executionRoot = process.cwd();
+  manifest.sourceRoot = process.cwd();
+  const allocation = {
+    ...buildEightDomainAllocationPlan({ manifest, domain: 'items', repoRoot: process.cwd(), runKeyRegistry: registry }),
+    preflight: { status: 'ready', observedAt: new Date().toISOString() },
+  };
+  const migrationEvidence = { status: 'verified', inputManifestHash: `sha256:${'a'.repeat(64)}` };
+  const lifecycle = buildIsolatedApiLifecycle({
+    allocation,
+    credentials: {
+      mysql: { host: '127.0.0.1', port: 13306 },
+      apiAccount: { role: 'apiReadonly', username: 'api_readonly', password: 'a'.repeat(32) },
+      redisPassword: 'r'.repeat(32),
+      admin: { username: 'run-admin', password: 'p'.repeat(32) },
+      authTokenSecret: 't'.repeat(48),
+      userTokenSecret: 'u'.repeat(48),
+    },
+    migrationEvidence,
+    routes: [{ routeId: 'public-items', params: {} }],
+    jarPath,
+  });
+  assert.equal(lifecycle.binding.domain, 'items');
+  assert.equal(lifecycle.binding.runId, allocation.runId);
+  assert.equal(lifecycle.binding.mysql.databases.local, allocation.mysql.databases.local);
+  assert.equal(lifecycle.binding.redis.logicalDb, allocation.redis.logicalDb);
+  assert.equal(lifecycle.binding.mode, 'consumer-readback');
+  assert.equal(lifecycle.binding.migrationEvidenceHash, migrationEvidence.inputManifestHash);
+  assert.equal(typeof lifecycle.start, 'function');
+  assert.equal(typeof lifecycle.readback, 'function');
+  assert.equal(typeof lifecycle.stop, 'function');
+  assert.equal(assertIsolatedApiLifecycleBinding({
+    lifecycle,
+    allocation,
+    manifest: { migrationEvidence: { inputManifestHash: migrationEvidence.inputManifestHash } },
+    apiAccounts: { apiReadonly: { username: 'api_readonly' } },
+  }), true);
+});
+
+test('run-owned API credentials are isolated, distinct, and require the private Redis credential', () => {
+  let sequence = 0;
+  const credentials = buildRunOwnedApiCredentials({
+    mysql: { host: '127.0.0.1', port: 13306 },
+    apiAccount: { role: 'apiReadonly', username: 'automation_apiro_0123456789ab', password: 'mysql-api-password' },
+    redisPassword: 'private-run-redis-password',
+    runKey: 'e8p_0123456789abcdef',
+    randomBytesImpl: (size) => Buffer.alloc(size, ++sequence),
+  });
+  assert.equal(credentials.admin.username, 'e8pr_e8p_0123456789abcdef');
+  assert.equal(credentials.apiAccount.role, 'apiReadonly');
+  assert.equal(credentials.redisPassword, 'private-run-redis-password');
+  assert.notEqual(credentials.admin.password, credentials.authTokenSecret);
+  assert.notEqual(credentials.authTokenSecret, credentials.userTokenSecret);
+  assert.equal(credentials.authTokenSecret.length, 64);
+  assert.equal(credentials.userTokenSecret.length, 64);
+  assert.throws(() => buildRunOwnedApiCredentials({
+    mysql: { host: '127.0.0.1', port: 13306 },
+    apiAccount: credentials.apiAccount,
+    runKey: 'e8p_0123456789abcdef',
+  }), /Redis/i);
 });
 
 test('NPC canonical selects a distinct T1 executor instead of the fixture executor', () => {

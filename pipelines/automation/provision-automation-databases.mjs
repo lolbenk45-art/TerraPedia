@@ -6,7 +6,8 @@ import {
   buildAutomationTestManifest,
   assertReadOnlySourceSnapshot
 } from './automation-test-profile.mjs';
-import { normalizeRunKey } from './automation-database-contract.mjs';
+import { buildAutomationDatabaseNames, normalizeRunKey } from './automation-database-contract.mjs';
+import { validateDependencyManifest } from './eight-domain-dependency-seeder.mjs';
 
 const REQUIRED_ADAPTER_METHODS = Object.freeze([
   'inspectServer', 'inspectProvisioner', 'allocateRedisLogicalDb', 'verifyRedisReservation',
@@ -83,6 +84,71 @@ function assertRedisReservation(expected, observed, runKey) {
   }
 }
 
+function assertMigrationEvidence(evidence, databases, runKey) {
+  if (!evidence || evidence.status !== 'verified'
+      || !/^sha256:[a-f0-9]{64}$/.test(evidence.inputManifestHash ?? '')
+      || evidence.inputManifest?.schemaVersion !== 1
+      || !Array.isArray(evidence.applied) || evidence.applied.length !== 3) {
+    throw new Error('verified migration evidence and schema fingerprints are required for isolated API provisioning');
+  }
+  const seen = new Set();
+  for (const [role, database] of Object.entries(databases)) {
+    const row = evidence.applied.find((entry) => entry?.role === role && entry?.database === database.name);
+    if (!row || seen.has(role) || row.inputManifestHash !== evidence.inputManifestHash
+        || !Array.isArray(row.appliedSqlSha256) || row.appliedSqlSha256.length === 0
+        || row.appliedSqlSha256.some((hash) => !/^sha256:[a-f0-9]{64}$/.test(hash ?? ''))
+        || row.schemaFingerprint?.database !== database.name
+        || !/^sha256:[a-f0-9]{64}$/.test(row.schemaFingerprint?.tablesSha256 ?? '')
+        || !Number.isInteger(row.schemaFingerprint?.tableCount) || row.schemaFingerprint.tableCount < 1
+        || !database.name.includes(`_${runKey}_`)) {
+      throw new Error(`migration evidence or schema fingerprint is invalid for ${role}`);
+    }
+    seen.add(role);
+  }
+  return Object.freeze({
+    status: 'verified',
+    inputManifest: evidence.inputManifest,
+    inputManifestHash: evidence.inputManifestHash,
+    applied: Object.freeze(evidence.applied.map((entry) => Object.freeze({
+      role: entry.role,
+      database: entry.database,
+      inputManifestHash: entry.inputManifestHash,
+      appliedSqlSha256: Object.freeze([...entry.appliedSqlSha256]),
+      schemaFingerprint: Object.freeze({ ...entry.schemaFingerprint }),
+    }))),
+  });
+}
+
+function assertIsolatedApiGrantEvidence(evidence, databases) {
+  const expectedDatabases = Object.fromEntries(
+    Object.entries(databases ?? {}).map(([role, database]) => [role, database?.name]),
+  );
+  if (!evidence || evidence.status !== 'verified'
+      || !databases || Object.keys(databases).sort().join(',') !== 'local,maint,relation'
+      || !['local', 'maint', 'relation'].every((role) => evidence.databases?.[role] === expectedDatabases[role])
+      || Object.keys(evidence.databases ?? {}).sort().join(',') !== 'local,maint,relation') {
+    throw new Error('verified isolated API account grant evidence is required before T1 API acceptance');
+  }
+  for (const role of ['apiReadonly', 'apiV2Test']) {
+    const account = evidence[role];
+    if (!account || !/^[a-z0-9_]+$/.test(account.username ?? '')
+        || !Number.isInteger(account.grantCount) || account.grantCount < 1
+        || !/^sha256:[a-f0-9]{64}$/.test(account.grantsSha256 ?? '')) {
+      throw new Error(`isolated API ${role} grant evidence is invalid`);
+    }
+  }
+  if (evidence.apiReadonly.grantCount !== 3 || evidence.apiV2Test.grantCount < 4) {
+    throw new Error('isolated API accounts do not have the required exact read and V2 table grants');
+  }
+  return Object.freeze({
+    status: 'verified',
+    domain: String(evidence.domain ?? ''),
+    databases: Object.freeze({ ...evidence.databases }),
+    apiReadonly: Object.freeze({ ...evidence.apiReadonly }),
+    apiV2Test: Object.freeze({ ...evidence.apiV2Test }),
+  });
+}
+
 function withProvisioningState(manifest, state, createdDatabases, cleanupErrors = []) {
   return {
     ...manifest,
@@ -102,9 +168,15 @@ export async function provisionAutomationDatabases({
   manifestPath,
   environmentId,
   sourceSnapshot,
-  expectedServerIdentity
+  dependencyManifest = null,
+  dependencyManifestFactory = null,
+  expectedServerIdentity,
+  requireMigrationEvidence = adapter?.migrationEvidenceRequired === true,
 } = {}) {
   requireAdapter(adapter, profile);
+  if (dependencyManifest != null && dependencyManifestFactory != null) {
+    throw new Error('provide a dependency manifest or a dependency manifest factory, not both');
+  }
   const manifestReservation = reserveManifestPath(manifestPath);
   try {
   if (profile === 't1' && !String(sourceSnapshot?.snapshotId ?? '').trim()) {
@@ -119,14 +191,29 @@ export async function provisionAutomationDatabases({
   if (observedProvisioner?.credentialRole !== 'automation-provisioner') {
     throw new Error('provisioner credential role mismatch');
   }
+  const runKey = normalizeRunKey(runId, { mappings });
+  const derivedNames = buildAutomationDatabaseNames({ profile, runId, mappings });
+  const derivedDatabaseNames = Object.fromEntries(['local', 'maint', 'relation'].map((role) => [role, derivedNames[role]]));
+  const producedDependencyManifest = dependencyManifestFactory == null
+    ? dependencyManifest
+    : await dependencyManifestFactory({
+      runId,
+      runKey,
+      databases: Object.freeze({ ...derivedDatabaseNames }),
+      readonlyClient: adapter.readonlyClient,
+    });
+  const verifiedDependencyManifest = producedDependencyManifest == null
+    ? null
+    : validateDependencyManifest(producedDependencyManifest, { databases: derivedDatabaseNames });
   let verifiedSnapshot;
   if (profile === 't1') {
-    verifiedSnapshot = await adapter.verifyReadOnlySnapshot({ snapshotId: sourceSnapshot.snapshotId });
+    verifiedSnapshot = await adapter.verifyReadOnlySnapshot({
+      snapshotId: sourceSnapshot.snapshotId,
+      ...(verifiedDependencyManifest ? { dependencyManifest: verifiedDependencyManifest } : {}),
+    });
     if (verifiedSnapshot?.snapshotId !== sourceSnapshot.snapshotId) throw new Error('snapshot identity mismatch');
     assertReadOnlySourceSnapshot(verifiedSnapshot);
   }
-
-  const runKey = normalizeRunKey(runId, { mappings });
   let redisReservation;
   let redisReservationVerified = false;
   let verifiedRedisIdentity;
@@ -164,6 +251,11 @@ export async function provisionAutomationDatabases({
       redisIdentity: expectedRedis,
       sourceSnapshot: verifiedSnapshot
     });
+    const provisionedDatabaseNames = Object.fromEntries(Object.entries(manifest.databases).map(([role, database]) => [role, database.name]));
+    if (!['local', 'maint', 'relation'].every((role) => derivedDatabaseNames[role] === provisionedDatabaseNames[role])) {
+      throw new Error('derived dependency schema set differs from the provisioned manifest');
+    }
+    manifest = Object.freeze({ ...manifest, dependencyManifest: verifiedDependencyManifest });
     writeManifestAtomic(manifestReservation, withProvisioningState(manifest, 'provisioning', createdDatabases));
     for (const database of Object.values(manifest.databases)) {
       createdDatabases.push(database);
@@ -182,11 +274,12 @@ export async function provisionAutomationDatabases({
         runKey: manifest.runKey
       });
     }
-    const observedGrants = await adapter.verifyProvisionerGrants({
+    let observedGrants = await adapter.verifyProvisionerGrants({
       credentialRole: manifest.provisioner.credentialRole,
       allowedPrefix: manifest.provisioner.allowedPrefix,
       deniedDatabases: manifest.provisioner.deniedDatabases,
-      runKey: manifest.runKey
+      runKey: manifest.runKey,
+      apiTableGrantsPending: requireMigrationEvidence,
     });
     if (observedGrants?.credentialRole !== manifest.provisioner.credentialRole
       || observedGrants.allowedPrefix !== manifest.provisioner.allowedPrefix
@@ -195,10 +288,42 @@ export async function provisionAutomationDatabases({
       || manifest.provisioner.deniedDatabases.some((name) => !observedGrants.deniedDatabases.includes(name))) {
       throw new Error('observed provisioner grants do not enforce the runKey/T2 boundary');
     }
-    for (const database of Object.values(manifest.databases)) {
-      await adapter.migrateDatabase({ name: database.name, role: database.role, runKey: manifest.runKey, profile });
+    if (requireMigrationEvidence && observedGrants.apiDatabaseAccountsVerified !== true) {
+      throw new Error('isolated API database-level accounts were not independently verified');
     }
-    if (profile === 't1') {
+    let apiAccountGrantEvidence = null;
+    const migrationResults = [];
+    for (const database of Object.values(manifest.databases)) {
+      migrationResults.push(await adapter.migrateDatabase({ name: database.name, role: database.role, runKey: manifest.runKey, profile }));
+    }
+    let migrationEvidence;
+    if (requireMigrationEvidence) {
+      migrationEvidence = assertMigrationEvidence(
+        adapter.getMigrationEvidence?.() ?? { status: 'unavailable' },
+        manifest.databases,
+        manifest.runKey,
+      );
+      if (migrationResults.some((row) => !row || !migrationEvidence.applied.some((entry) => (
+        entry.role === row.role && entry.database === row.database
+          && entry.schemaFingerprint.tablesSha256 === row.schemaFingerprint?.tablesSha256
+      )))) {
+        throw new Error('migration results differ from the verified migration evidence manifest');
+      }
+    }
+    let dependencySeedEvidence = null;
+    if (profile === 't1' && verifiedDependencyManifest) {
+      if (typeof adapter.seedExactDependencies !== 'function') {
+        throw new Error('exact dependency manifest requires the maintained isolated dependency seeder');
+      }
+      dependencySeedEvidence = await adapter.seedExactDependencies({
+        manifest: verifiedDependencyManifest,
+        targetDatabases: manifest.databases,
+        runKey: manifest.runKey,
+      });
+      if (dependencySeedEvidence?.status !== 'verified' || dependencySeedEvidence.readbackVerified !== true) {
+        throw new Error('exact dependency seed did not produce verified independent readback evidence');
+      }
+    } else if (profile === 't1') {
       await adapter.copyReadOnlySnapshot({
         sourceSnapshot: manifest.sourceSnapshot,
         targetDatabases: manifest.databases,
@@ -206,7 +331,47 @@ export async function provisionAutomationDatabases({
         runKey: manifest.runKey
       });
     }
-    const readyManifest = withProvisioningState(manifest, 'ready', createdDatabases);
+    if (requireMigrationEvidence && profile === 't1') {
+      migrationEvidence = assertMigrationEvidence(
+        await adapter.refreshMigrationSchemaFingerprints?.({ databases: manifest.databases })
+          ?? { status: 'unavailable' },
+        manifest.databases,
+        manifest.runKey,
+      );
+    }
+    if (requireMigrationEvidence) {
+      if (typeof adapter.grantIsolatedApiTablePrivileges !== 'function') {
+        throw new Error('isolated API table grants require the post-migration grant adapter');
+      }
+      await adapter.grantIsolatedApiTablePrivileges({ databases: manifest.databases, runKey: manifest.runKey });
+      const finalGrants = await adapter.verifyProvisionerGrants({
+        credentialRole: manifest.provisioner.credentialRole,
+        allowedPrefix: manifest.provisioner.allowedPrefix,
+        deniedDatabases: manifest.provisioner.deniedDatabases,
+        runKey: manifest.runKey,
+        apiTableGrantsPending: false,
+      });
+      if (finalGrants?.credentialRole !== manifest.provisioner.credentialRole
+          || finalGrants.allowedPrefix !== manifest.provisioner.allowedPrefix
+          || finalGrants.t2WriteDenied !== true
+          || !Array.isArray(finalGrants.deniedDatabases)
+          || manifest.provisioner.deniedDatabases.some((name) => !finalGrants.deniedDatabases.includes(name))) {
+        throw new Error('post-migration provisioner grants do not enforce the runKey/T2 boundary');
+      }
+      if (finalGrants.apiAccountsVerified !== true) {
+        throw new Error('isolated API account grants were not independently verified');
+      }
+      apiAccountGrantEvidence = assertIsolatedApiGrantEvidence(
+        adapter.getApiAccountGrantEvidence?.(),
+        manifest.databases,
+      );
+    }
+    const readyManifest = withProvisioningState({
+      ...manifest,
+      ...(migrationEvidence ? { migrationEvidence } : {}),
+      ...(apiAccountGrantEvidence ? { apiAccountGrantEvidence } : {}),
+      ...(dependencySeedEvidence ? { dependencySeedEvidence } : {}),
+    }, 'ready', createdDatabases);
     writeManifestAtomic(manifestReservation, readyManifest);
     return readyManifest;
   } catch (error) {
