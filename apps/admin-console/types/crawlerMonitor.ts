@@ -295,6 +295,48 @@ export interface CrawlerMonitorDispatchResult {
   message?: string | null
 }
 
+export interface PcVersionUpdateTarget {
+  domain: string
+  entityType: string
+  stableIdentity: { kind: string; value: string }
+  displayName: string
+  impactFields: string[]
+  impactStatus?: string | null
+  provenance?: { domain?: string; sourcePath?: string; generatedAt?: string | null }
+}
+
+export interface PcVersionUpdateCandidate {
+  candidateId: string
+  releaseVersion: string
+  bulletinId: string
+  sectionTitle?: string | null
+  position?: number | null
+  sourceLine?: number | null
+  text: string
+  mappingStatus: 'mapped' | 'unmapped' | 'not_eight_domain_data' | string
+  mappingReason?: string | null
+  impactStatus?: string | null
+  target?: PcVersionUpdateTarget | null
+  handlingAllowed: boolean
+  handlingStatus: 'pending' | 'handled' | 'informational' | string
+  handledBy?: string | null
+  handledAt?: string | null
+  handlingNote?: string | null
+  releaseSource?: { pageTitle?: string; pageUrl?: string; revisionId?: number; revisionTimestamp?: string }
+  releaseReportPath?: string | null
+}
+
+export interface PcVersionUpdateState {
+  schemaVersion: string
+  stateRevision: number
+  lastEvaluatedDesktopVersion: string
+  updatedAt?: string | null
+  candidates: PcVersionUpdateCandidate[]
+  identityCatalogProvenance?: Record<string, CrawlerMonitorPayload> | null
+  lastProbe?: CrawlerMonitorPayload | null
+  probeProgress?: CrawlerMonitorPayload | null
+}
+
 export interface CrawlerMonitorAutoDispatchSettings {
   enabled?: boolean
   mode?: string | null

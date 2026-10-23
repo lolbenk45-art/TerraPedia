@@ -15,6 +15,7 @@ import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
+import com.terraria.skills.dto.PcVersionUpdateHandlingRequestDTO;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import com.terraria.skills.service.CrawlerV2SchedulerActivationPreflightService;
@@ -24,6 +25,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,6 +67,37 @@ public class AdminCrawlerMonitorController {
     @Operation(summary = "Preview a crawler monitor report")
     public ApiResponse<CrawlerMonitorReportDetailDTO> report(@RequestParam String path) {
         return ApiResponse.success(crawlerMonitorService.getReportDetail(path));
+    }
+
+    @GetMapping("/pc-version-updates")
+    @Operation(summary = "Read the PC version update candidate worklist")
+    public ApiResponse<Map<String, Object>> pcVersionUpdates(HttpServletRequest request) {
+        requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.getPcVersionUpdateState());
+    }
+
+    @PostMapping("/pc-version-updates/probe")
+    @Operation(summary = "Run one read-only Desktop/PC version probe")
+    public ApiResponse<CrawlerMonitorDispatchResultDTO> runPcVersionUpdateProbe(HttpServletRequest request) {
+        requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.runPcVersionUpdateProbeOnce());
+    }
+
+    @PutMapping("/pc-version-updates/{candidateId}/handling")
+    @Operation(summary = "Update manual handling state for one PC version candidate")
+    public ApiResponse<Map<String, Object>> updatePcVersionUpdateHandling(
+        HttpServletRequest request,
+        @PathVariable String candidateId,
+        @Valid @RequestBody PcVersionUpdateHandlingRequestDTO payload
+    ) {
+        AdminTokenClaims claims = requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.updatePcVersionUpdateHandling(
+            candidateId,
+            payload.getHandlingStatus(),
+            payload.getExpectedStateRevision(),
+            claims.getUsername(),
+            payload.getNote()
+        ));
     }
 
     @PostMapping("/dispatch")

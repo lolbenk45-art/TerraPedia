@@ -36,6 +36,16 @@
       @domain-action="handleDomainBoardAction"
     />
 
+    <PcVersionUpdateTriagePanel
+      :state="pcVersionState"
+      :loading="pcVersionLoading"
+      :probe-loading="pcVersionProbeLoading"
+      :handling-id="pcVersionHandlingId"
+      :error="pcVersionError"
+      @probe="runPcVersionUpdateProbe"
+      @handling="updatePcVersionCandidateHandling"
+    />
+
     <section v-if="v2State" class="operation-catalog" aria-labelledby="operation-catalog-title">
       <header class="operation-catalog__head">
         <div>
@@ -330,6 +340,7 @@ import { resolveDomainState } from './crawler-monitor.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
 import CrawlerTriageBoard from '~/components/crawler-monitor/CrawlerTriageBoard.vue'
 import CrawlerQueueHealthBanner from '~/components/crawler-monitor/CrawlerQueueHealthBanner.vue'
+import PcVersionUpdateTriagePanel from '~/components/crawler-monitor/PcVersionUpdateTriagePanel.vue'
 import DomainDetailDrawer from '~/components/crawler-monitor/DomainDetailDrawer.vue'
 import SystemDrawer from '~/components/crawler-monitor/SystemDrawer.vue'
 import type {
@@ -343,6 +354,8 @@ import type {
   CrawlerMonitorWikiDispatch,
   CrawlerMonitorWikiDomain,
   CrawlerMonitorWikiQueueItem,
+  PcVersionUpdateCandidate,
+  PcVersionUpdateState,
   CrawlerQueueV2Attempt,
   CrawlerQueueV2Operation,
 } from '~/types/crawlerMonitor'
@@ -389,6 +402,11 @@ const domainDetailDrawerOpen = ref(false)
 const activityDrawerOpen = ref(false)
 const systemDrawerOpen = ref(false)
 const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
+const pcVersionState = ref<PcVersionUpdateState | null>(null)
+const pcVersionLoading = ref(false)
+const pcVersionProbeLoading = ref(false)
+const pcVersionHandlingId = ref('')
+const pcVersionError = ref('')
 const commandPreviewDomainKey = ref('')
 const cancelConfirmDomainKey = ref('')
 const dispatchConfirmDomainKey = ref('')
@@ -397,6 +415,7 @@ const pendingOperationDomain = ref('')
 const destructiveConfirmed = ref(false)
 const operationStartLoading = ref(false)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
+let pcVersionRefreshTimer: ReturnType<typeof setInterval> | null = null
 const refreshFailureStreak = ref(0)
 const authRefreshHalted = ref(false)
 let v2ReloadTimer: ReturnType<typeof setTimeout> | null = null
@@ -1056,6 +1075,7 @@ onMounted(async () => {
       lastOverviewRefreshAt.value = new Date().toISOString()
     }
   }
+  await loadPcVersionState()
   syncAutoRefresh()
   syncMonitorTransport()
   if (import.meta.client) {
@@ -1067,6 +1087,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearRefreshTimer()
+  clearPcVersionRefreshTimer()
   stopV2EventStream()
   clearV2FallbackPolling()
   if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
@@ -1108,6 +1129,81 @@ async function loadOverview() {
     showToast(error?.data?.message || error?.message || '加载爬取监控失败', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+async function loadPcVersionState() {
+  pcVersionLoading.value = true
+  pcVersionError.value = ''
+  try {
+    const response: any = await get('/admin/crawler-monitor/pc-version-updates')
+    pcVersionState.value = (response?.data ?? response) || null
+    syncPcVersionRefresh()
+  } catch (error: any) {
+    pcVersionError.value = error?.data?.message || error?.message || '读取 PC 版本候选失败'
+  } finally {
+    pcVersionLoading.value = false
+  }
+}
+
+function syncPcVersionRefresh() {
+  clearPcVersionRefreshTimer()
+  if (pcVersionState.value?.probeProgress?.status !== 'running' || !import.meta.client) return
+  pcVersionRefreshTimer = setInterval(() => {
+    if (!document.hidden && !pcVersionLoading.value) void loadPcVersionState()
+  }, 2000)
+}
+
+function clearPcVersionRefreshTimer() {
+  if (pcVersionRefreshTimer) {
+    clearInterval(pcVersionRefreshTimer)
+    pcVersionRefreshTimer = null
+  }
+}
+
+async function runPcVersionUpdateProbe() {
+  pcVersionProbeLoading.value = true
+  pcVersionError.value = ''
+  try {
+    const response: any = await post('/admin/crawler-monitor/pc-version-updates/probe', {})
+    const result = (response?.data ?? response) || null
+    if (result?.accepted === false) {
+      showToast(result.message || 'PC 版本检查未启动', 'warning')
+    } else {
+      showToast('PC 版本检查已启动', 'success')
+    }
+    await loadPcVersionState()
+  } catch (error: any) {
+    pcVersionError.value = error?.data?.message || error?.message || '启动 PC 版本检查失败'
+    showToast(pcVersionError.value, 'error')
+  } finally {
+    pcVersionProbeLoading.value = false
+  }
+}
+
+async function updatePcVersionCandidateHandling(
+  candidate: PcVersionUpdateCandidate,
+  handlingStatus: 'pending' | 'handled'
+) {
+  if (!pcVersionState.value || !candidate?.candidateId || !candidate.handlingAllowed) return
+  pcVersionHandlingId.value = candidate.candidateId
+  pcVersionError.value = ''
+  try {
+    await put(`/admin/crawler-monitor/pc-version-updates/${encodeURIComponent(candidate.candidateId)}/handling`, {
+      handlingStatus,
+      expectedStateRevision: pcVersionState.value.stateRevision,
+    })
+    showToast(handlingStatus === 'handled' ? '候选已标记为已处理' : '候选已恢复为待处理', 'success')
+    await loadPcVersionState()
+  } catch (error: any) {
+    const statusCode = Number(error?.statusCode ?? error?.response?.status ?? error?.data?.statusCode ?? 0)
+    pcVersionError.value = statusCode === 409
+      ? '候选状态已被其他操作更新，正在读取最新状态'
+      : error?.data?.message || error?.message || '更新候选处理状态失败'
+    showToast(pcVersionError.value, statusCode === 409 ? 'warning' : 'error')
+    if (statusCode === 409) await loadPcVersionState()
+  } finally {
+    pcVersionHandlingId.value = ''
   }
 }
 

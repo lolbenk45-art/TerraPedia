@@ -74,6 +74,18 @@ public interface CrawlerMonitorService {
 
     CrawlerMonitorDispatchResultDTO cleanupWikiMonitorDomainSmoke();
 
+    CrawlerMonitorDispatchResultDTO runPcVersionUpdateProbeOnce();
+
+    Map<String, Object> getPcVersionUpdateState();
+
+    Map<String, Object> updatePcVersionUpdateHandling(
+        String candidateId,
+        String handlingStatus,
+        long expectedStateRevision,
+        String operator,
+        String note
+    );
+
     CrawlerMonitorAutoDispatchDTO getAutoDispatchSettings();
 
     CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettings(CrawlerMonitorAutoDispatchDTO settings);

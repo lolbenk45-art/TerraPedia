@@ -1,12 +1,18 @@
 # Current Devlog
 
-Last updated: 2026-10-22 16:35 CST by Codex
+Last updated: 2026-10-23 17:44 CST by Codex
 
 Active branch: `main`
-Active focus: The eight-domain isolated maintained-chain T1 baseline is integrated into local `main`; all eight reports are preserved under `reports/runtime/eight-domain-production-readiness/20261017/`, and the execution branch/worktree are removed. T1 is closed; V2 remains unrun with three reviewed blockers. Wiki freshness/parity, full production readiness, and formal publication remain open. Next: discuss the V2 contract and resolve the blockers before any V2 execution. Post-merge validation: Node `v26.1.0` `626 passed / 1 skipped`, Maven `403/403`, syntax and whitespace checks passed.
+Active focus: Continue the user's eight-domain V2 automatic-ingestion work in the `main` worktree. The PC version triage feature is closed for local integration into `main`; its feature branch/worktree are retained as unpushed recovery. Preserve the separate dirty eight-domain plan in the main worktree.
 
 ## Open Work
 
+- Eight-domain production readiness: owner Codex; status `active`; branch `main`; worktree `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness-main`; parent entry `docs/devlog/entries/2026-10-16-eight-domain-production-readiness-plan.md`; T1 closeout child entry `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`; dependency: integrated T1 baseline; blocked-by: V2 source/runner and attempt-identity issues recorded in the parent entry; contract handoff: T1 proves isolated maintained-chain writes/readback only. Next: discuss the V2 contract and resolve the blockers before any V2 execution.
+
+## Recently closed
+
+- PC version update triage: status `closed`; local merge target `main`; commit SHA pending in final response; no remote push requested. Feature worktree is retained as unpushed recovery.
+- Eight-domain isolated maintained-chain T1 baseline: all eight domain reports passed; closeout record `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`.
 - Eight-domain production readiness: owner Codex; status `active`; branch `main`; worktree `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness-main`; parent entry `docs/devlog/entries/2026-10-16-eight-domain-production-readiness-plan.md`; T1 closeout child entry `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`; dependency: integrated T1 baseline; blocked-by: V2 source/runner and attempt-identity issues recorded in the parent entry; contract handoff: T1 proves isolated maintained-chain writes/readback only. Next: discuss the V2 contract and resolve the recorded blockers before any V2 execution.
 
 ## Isolated real automation ingestion - 2026-10-14

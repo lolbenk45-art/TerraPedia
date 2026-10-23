@@ -6,6 +6,7 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.ResourceNotFoundException;
 import com.terraria.skills.dto.CrawlerQueueV2ErrorDTO;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
+import com.terraria.skills.service.impl.PcVersionUpdateStateStore;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 @Slf4j
 @RestControllerAdvice
@@ -39,6 +42,19 @@ public class GlobalExceptionHandler {
             .status(exception.httpStatus())
             .contentType(MediaType.APPLICATION_JSON)
             .body(ApiResponse.error(exception.httpStatus().value(), reason.messageZh(), data));
+    }
+
+    @ExceptionHandler(PcVersionUpdateStateStore.StateRevisionConflictException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handlePcVersionUpdateStateRevisionConflict(
+        PcVersionUpdateStateStore.StateRevisionConflictException exception
+    ) {
+        LinkedHashMap<String, Object> data = new LinkedHashMap<>();
+        data.put("reasonCode", "PC_VERSION_UPDATE_STATE_REVISION_CONFLICT");
+        data.put("expectedRevision", exception.expectedRevision());
+        data.put("actualRevision", exception.actualRevision());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(ApiResponse.error(HttpStatus.CONFLICT.value(), exception.getMessage(), data));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

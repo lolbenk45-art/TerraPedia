@@ -3933,6 +3933,212 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldExposePcVersionProbeAsAnIndependentNonDomainRegisteredTask() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = taskById(
+            service.getOverview().getRegisteredTasks(),
+            "pc-version-update-probe"
+        );
+
+        assertEquals("PC version update probe", task.getLabel());
+        assertEquals("missing", task.getStatus());
+        assertEquals("reports/crawler-monitor/pc-version-update-triage/progress.latest.json", task.getProgressPath());
+        assertEquals("PC version/history pages -> temporary candidate worklist", task.getDataStage());
+        assertFalse(task.isProgressReadable());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void pcVersionHandlingSurvivesReloadThroughANewMonitorServiceInstance() {
+        ObjectMapper mapper = new ObjectMapper();
+        Clock clock = Clock.fixed(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC);
+        PcVersionUpdateStateStore stateStore = new PcVersionUpdateStateStore(mapper, clock);
+        Map<String, Object> source = Map.of(
+            "pageTitle", "1.4.5.9",
+            "pageId", 29,
+            "revisionId", 209,
+            "revisionTimestamp", "2026-10-01T00:00:00Z",
+            "pageUrl", "https://terraria.wiki.gg/wiki/1.4.5.9"
+        );
+        Map<String, Object> target = Map.of(
+            "domain", "items",
+            "entityType", "item",
+            "displayName", "Last Prism",
+            "stableIdentity", Map.of("kind", "item_internal_name", "value", "LastPrism"),
+            "impactFields", List.of(),
+            "impactStatus", "unspecified_by_release_note"
+        );
+        Map<String, Object> bulletin = Map.of(
+            "bulletinId", "1.4.5.9:stable-bulletin-hash",
+            "sectionTitle", "Changes",
+            "text", "Changed Last Prism",
+            "mappingStatus", "mapped",
+            "category", "content_change",
+            "impactStatus", "unspecified_by_release_note",
+            "targets", List.of(target)
+        );
+        Map<String, Object> release = Map.of("version", "1.4.5.9", "source", source, "bulletins", List.of(bulletin));
+        Map<String, Object> report = Map.ofEntries(
+            Map.entry("schemaVersion", "pc-version-update-probe/v1"),
+            Map.entry("actionId", "pc-version-update-probe"),
+            Map.entry("runId", "service-reload-test-01"),
+            Map.entry("targetPlatform", "Desktop/PC"),
+            Map.entry("baselineVersion", "1.4.5.8"),
+            Map.entry("lastEvaluatedDesktopVersion", "1.4.5.8"),
+            Map.entry("currentDesktopVersion", "1.4.5.9"),
+            Map.entry("plannedReleaseVersions", List.of("1.4.5.9")),
+            Map.entry("currentVersionSource", Map.of("pageTitle", "Template:Current versions", "pageId", 10, "revisionId", 100, "revisionTimestamp", "2026-10-01T00:00:00Z", "pageUrl", "https://terraria.wiki.gg/wiki/Template:Current_versions")),
+            Map.entry("historySource", Map.of("pageTitle", "Desktop version history", "pageId", 20, "revisionId", 200, "revisionTimestamp", "2026-10-01T00:00:00Z", "pageUrl", "https://terraria.wiki.gg/wiki/Desktop_version_history")),
+            Map.entry("generatedAt", "2026-10-23T12:00:00Z"),
+            Map.entry("releases", List.of(release))
+        );
+        stateStore.mergeProbeReport(repoRoot, report);
+
+        CrawlerMonitorServiceImpl firstService = new CrawlerMonitorServiceImpl(mapper, repoRoot, clock);
+        Map<String, Object> state = firstService.getPcVersionUpdateState();
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) state.get("candidates");
+        String candidateId = String.valueOf(candidates.get(0).get("candidateId"));
+        firstService.updatePcVersionUpdateHandling(candidateId, "handled", 1L, "admin", "checked");
+
+        CrawlerMonitorServiceImpl reloadedService = new CrawlerMonitorServiceImpl(mapper, repoRoot, clock);
+        Map<String, Object> reloaded = reloadedService.getPcVersionUpdateState();
+        List<Map<String, Object>> reloadedCandidates = (List<Map<String, Object>>) reloaded.get("candidates");
+
+        assertEquals("handled", reloadedCandidates.get(0).get("handlingStatus"));
+        assertEquals("admin", reloadedCandidates.get(0).get("handledBy"));
+        assertEquals("checked", reloadedCandidates.get(0).get("handlingNote"));
+        assertEquals("1.4.5.9", reloaded.get("lastEvaluatedDesktopVersion"));
+    }
+
+    @Test
+    void manualPcVersionProbeUsesItsOwnActionAndProbeLockWithoutDomainDispatch() throws Exception {
+        CompletedProcess process = new CompletedProcess(1);
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC), launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.runPcVersionUpdateProbeOnce();
+        Map<String, Object> progress = awaitPcVersionProbeProgress(repoRoot);
+
+        assertTrue(result.isAccepted());
+        assertEquals("pc-version-update-probe", result.getActionId());
+        assertEquals("running", result.getStatus());
+        assertEquals("failed", progress.get("status"));
+        assertEquals(1, launcher.launchCount);
+        assertEquals("node", launcher.lastRequest.command().get(0));
+        assertEquals("pipelines/monitor/pc-version-update-probe.mjs", launcher.lastRequest.command().get(1));
+        assertTrue(launcher.lastRequest.command().contains("--progress-path=reports/crawler-monitor/pc-version-update-triage/progress.latest.json"));
+        assertTrue(launcher.lastRequest.command().contains("--output-path=reports/crawler-monitor/pc-version-update-triage/runs/" + result.getDispatchId() + ".json"));
+        assertEquals("pc-version-update-probe", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals("reports/crawler-monitor/pc-version-update-triage/progress.latest.json", progress.get("childStatusPath"));
+        assertFalse(CrawlerMonitorActionRegistry.defaults().all().stream()
+            .anyMatch(action -> "pc-version-update-probe".equals(action.actionId())));
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/source-update-monitor.latest.json")));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")));
+    }
+
+    @Test
+    void manualPcVersionProbeRejectsSymlinkedRunDirectoryBeforeLaunchingProcess() throws Exception {
+        Path triageDirectory = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor/pc-version-update-triage"));
+        Path externalRuns = Files.createDirectories(tempDir.resolve("external-pc-version-runs"));
+        Path runDirectory = triageDirectory.resolve("runs");
+        Files.createSymbolicLink(runDirectory, externalRuns);
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new CompletedProcess(1));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot, Clock.systemUTC(), launcher);
+
+        CrawlerMonitorDispatchResultDTO result = service.runPcVersionUpdateProbeOnce();
+        Map<String, Object> progress = awaitPcVersionProbeProgress(repoRoot);
+
+        assertTrue(result.isAccepted());
+        assertEquals("failed", progress.get("status"));
+        assertEquals(0, launcher.launchCount);
+        try (var externalEntries = Files.list(externalRuns)) {
+            assertEquals(0L, externalEntries.count());
+        }
+    }
+
+    @Test
+    void pcVersionStateDoesNotFollowSymlinkedProgressFile() throws Exception {
+        Path triageDirectory = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor/pc-version-update-triage"));
+        Path externalProgress = tempDir.resolve("external-pc-version-progress.json");
+        writeJson(externalProgress, Map.of(
+            "actionId", "pc-version-update-probe",
+            "status", "completed",
+            "message", "external progress must not be read"
+        ));
+        Files.createSymbolicLink(triageDirectory.resolve("progress.latest.json"), externalProgress);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        Map<String, Object> state = service.getPcVersionUpdateState();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> progress = (Map<String, Object>) state.get("probeProgress");
+
+        assertEquals("failed", progress.get("status"));
+        assertEquals("PC 版本探针进度文件无法读取", progress.get("message"));
+    }
+
+    private Map<String, Object> awaitPcVersionProbeProgress(Path root) throws Exception {
+        Path path = root.resolve("reports/crawler-monitor/pc-version-update-triage/progress.latest.json");
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        while (System.nanoTime() < deadline) {
+            if (Files.isRegularFile(path)) {
+                Map<String, Object> progress = readJson(path);
+                String status = String.valueOf(progress.get("status"));
+                if ("completed".equals(status) || "failed".equals(status)) return progress;
+            }
+            Thread.sleep(10L);
+        }
+        throw new AssertionError("PC version probe did not publish terminal progress before timeout");
+    }
+
+    @Test
+    void scheduledPcVersionProbeSkipsWhileAnOperatorOwnsTheProbeClaim() throws Exception {
+        PcVersionUpdateStateStore store = new PcVersionUpdateStateStore(new ObjectMapper(), Clock.systemUTC());
+        try (PcVersionUpdateStateStore.ProbeClaim claim = store.tryAcquireProbeClaim(repoRoot)) {
+            assertNotNull(claim);
+            RecordingProcessLauncher launcher = new RecordingProcessLauncher(new CompletedProcess(0));
+            CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+                new ObjectMapper(), repoRoot, Clock.fixed(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC), launcher
+            );
+
+            service.scheduledPcVersionUpdateProbe();
+
+            assertEquals(0, launcher.launchCount);
+        }
+    }
+
+    @Test
+    void unverifiedPcProbeCleanupKeepsRunningLeaseAndBlocksASecondAttempt() throws Exception {
+        CleanupFailureBlockingProcess process = new CleanupFailureBlockingProcess();
+        AtomicBoolean cleanupAttempted = new AtomicBoolean(false);
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public boolean destroy(Process ignored) {
+                cleanupAttempted.set(true);
+                return false;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC), launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO started = service.runPcVersionUpdateProbeOnce();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        while (!cleanupAttempted.get() && System.nanoTime() < deadline) Thread.sleep(10L);
+        assertTrue(cleanupAttempted.get(), "probe cleanup should be observed before checking the lease");
+        CrawlerMonitorDispatchResultDTO second = service.runPcVersionUpdateProbeOnce();
+
+        assertTrue(started.isAccepted());
+        assertEquals("running", readJson(repoRoot.resolve("reports/crawler-monitor/pc-version-update-triage/progress.latest.json")).get("status"));
+        assertFalse(second.isAccepted());
+        assertEquals("locked", second.getStatus());
+        assertEquals(1, launcher.launchCount);
+        process.markDead();
+    }
+
+    @Test
     void shouldUseArmorSetBonusesSourceCommandForArmorSetMonitorRule() throws Exception {
         writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
             "checkedAt", "2026-06-20T01:00:00Z",

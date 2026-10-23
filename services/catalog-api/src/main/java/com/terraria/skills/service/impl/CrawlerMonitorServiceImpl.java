@@ -131,6 +131,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path WIKI_MONITOR_DISPATCH_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.lock.json");
     private static final Path WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke-progress.latest.json");
     private static final Path WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke.lock.json");
+    private static final Path PC_VERSION_UPDATE_PROGRESS_FILE = Path.of(
+        "reports", "crawler-monitor", "pc-version-update-triage", "progress.latest.json"
+    );
+    private static final Duration PC_VERSION_UPDATE_PROBE_TIMEOUT = Duration.ofMinutes(15);
+    private static final Duration PC_VERSION_UPDATE_PROGRESS_LEASE = Duration.ofMinutes(20);
     private static final Duration WIKI_MONITOR_DISPATCH_COOLDOWN = Duration.ofMinutes(30);
     private static final Duration WIKI_MONITOR_DISPATCH_TIMEOUT = Duration.ofMinutes(90);
     private static final int WIKI_MONITOR_RETRY_LIMIT = 3;
@@ -206,6 +211,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final ProcessLauncher processLauncher;
     private final CrawlerQueueEngineRouter queueEngineRouter;
     private final CrawlerQueueV2ApplicationService queueV2ApplicationService;
+    private final PcVersionUpdateStateStore pcVersionUpdateStateStore;
     private CrawlerAutomationPolicyService crawlerAutomationPolicyService;
     private CrawlerQueueV2CutoverService queueV2CutoverService;
     private volatile JdbcTemplate jdbcTemplate;
@@ -337,6 +343,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         this.processLauncher = processLauncher == null ? new ProcessBuilderLauncher() : processLauncher;
         this.queueEngineRouter = queueEngineRouter == null ? CrawlerQueueEngineRouter.v1Only() : queueEngineRouter;
         this.queueV2ApplicationService = queueV2ApplicationService;
+        this.pcVersionUpdateStateStore = new PcVersionUpdateStateStore(objectMapper, this.clock);
     }
 
     @Autowired
@@ -7112,6 +7119,303 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
+    @Override
+    public CrawlerMonitorDispatchResultDTO runPcVersionUpdateProbeOnce() {
+        Path repoRoot = resolveRepoRoot().toAbsolutePath().normalize();
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setActionId(PcVersionUpdateStateStore.PROBE_ACTION_ID);
+        String dispatchId = "pc-version-update-" + UUID.randomUUID();
+        result.setDispatchId(dispatchId);
+        String progressPath = PC_VERSION_UPDATE_PROGRESS_FILE.toString().replace('\\', '/');
+        String reportPath = "reports/crawler-monitor/pc-version-update-triage/runs/" + dispatchId + ".json";
+        String logPath = "reports/crawler-monitor/pc-version-update-triage/runs/" + dispatchId + ".log";
+        result.setProgressPath(progressPath);
+        result.setReportPath(reportPath);
+        result.setRequestedAt(Instant.now(clock).toString());
+
+        PcVersionUpdateStateStore.ProbeClaim claim;
+        try {
+            if (pcVersionUpdateStateStore.hasRecentRunningProbe(repoRoot, PC_VERSION_UPDATE_PROGRESS_LEASE)) {
+                result.setAccepted(false);
+                result.setStatus("locked");
+                result.setMessage("上一次 PC 版本探针仍在运行，等待其完成或进度超时后再试");
+                return result;
+            }
+            claim = pcVersionUpdateStateStore.tryAcquireProbeClaim(repoRoot);
+        } catch (RuntimeException exception) {
+            result.setAccepted(false);
+            result.setStatus("failed");
+            result.setMessage("PC 版本探针锁不可用：" + compactException(exception));
+            return result;
+        }
+        if (claim == null) {
+            result.setAccepted(false);
+            result.setStatus("locked");
+            result.setMessage("PC 版本探针正在运行，请稍后再试");
+            return result;
+        }
+
+        Instant startedAt = Instant.now(clock);
+        try {
+            publishPcVersionProbeProgress(repoRoot, progressPath, reportPath, "running", "launch", "正在检查 PC 版本公告", startedAt);
+            result.setAccepted(true);
+            result.setStatus("running");
+            result.setMessage("PC 版本公告检查已启动");
+            Thread worker = new Thread(
+                () -> executePcVersionProbe(repoRoot, dispatchId, progressPath, reportPath, logPath, startedAt, claim),
+                "pc-version-update-probe-" + dispatchId
+            );
+            worker.setDaemon(true);
+            worker.start();
+        } catch (Exception exception) {
+            try {
+                claim.close();
+            } catch (RuntimeException closeException) {
+                exception.addSuppressed(closeException);
+            }
+            failPcVersionProbe(result, repoRoot, progressPath, reportPath, startedAt, compactException(exception));
+        }
+        return result;
+    }
+
+    private void executePcVersionProbe(
+        Path repoRoot,
+        String dispatchId,
+        String progressPath,
+        String reportPath,
+        String logPath,
+        Instant startedAt,
+        PcVersionUpdateStateStore.ProbeClaim claim
+    ) {
+        Process process = null;
+        try (claim) {
+            Path logFile = pcVersionUpdateStateStore.resolveSafeRepositoryPath(repoRoot, Path.of(logPath));
+            pcVersionUpdateStateStore.resolveSafeRepositoryPath(repoRoot, Path.of(reportPath));
+            pcVersionUpdateStateStore.resolveSafeRepositoryPath(repoRoot, PC_VERSION_UPDATE_PROGRESS_FILE);
+            LaunchRequest request = new LaunchRequest(
+                List.of(
+                    "node",
+                    resolvePcVersionUpdateProbeCommand(),
+                    "--progress-path=" + progressPath,
+                    "--output-path=" + reportPath
+                ),
+                repoRoot.toFile(),
+                Map.of(
+                    "WORKTREE_ROOT", repoRoot.toString(),
+                    "TERRAPEDIA_CRAWLER_ACTION_ID", PcVersionUpdateStateStore.PROBE_ACTION_ID,
+                    "TERRAPEDIA_CRAWLER_PROGRESS_PATH", progressPath,
+                    "TERRAPEDIA_CRAWLER_PROCESS_GROUP_TOKEN", dispatchId
+                ),
+                logFile.toFile()
+            );
+            process = processLauncher.launch(request);
+            if (process == null) throw new IllegalStateException("PC 版本探针进程没有启动");
+            List<ProcessHandle> observedDescendants = snapshotSourceUpdateDescendants(process);
+            if (observedDescendants == null) {
+                destroySourceUpdateProcess(process, "PC version probe descendant inspection unavailable");
+                throw new IllegalStateException("无法验证 PC 版本探针进程树");
+            }
+            boolean completed = process.waitFor(PC_VERSION_UPDATE_PROBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            if (!completed) {
+                ensurePcVersionProbeCleanup(process, observedDescendants, "PC version probe timed out");
+                throw new IllegalStateException("PC 版本探针超过 15 分钟未完成");
+            }
+            if (isProcessAlive(process)) {
+                ensurePcVersionProbeCleanup(process, observedDescendants, "PC version probe root remained alive after wait");
+                throw new IllegalStateException("PC 版本探针主进程未退出");
+            }
+            if (observedDescendants.stream().anyMatch(ProcessHandle::isAlive)) {
+                if (!destroySourceUpdateDescendants(observedDescendants, "PC version probe left child processes running")
+                    || observedDescendants.stream().anyMatch(ProcessHandle::isAlive)) {
+                    throw new PcVersionProbeCleanupUnverifiedException("PC 版本探针子进程清理状态未验证");
+                }
+                throw new IllegalStateException("PC 版本探针仍有子进程运行");
+            }
+            if (process.exitValue() != 0) throw new IllegalStateException("PC 版本探针失败，退出码=" + process.exitValue());
+
+            Map<String, Object> reportPayload = pcVersionUpdateStateStore.readProbeReport(repoRoot, Path.of(reportPath));
+            Map<String, Object> progressPayload = pcVersionUpdateStateStore.readProbeProgress(repoRoot);
+            if (progressPayload == null
+                || !"completed".equalsIgnoreCase(asString(progressPayload.get("status")))) {
+                throw new IllegalStateException("PC 版本探针报告或进度终态身份无效");
+            }
+            pcVersionUpdateStateStore.mergeProbeReport(repoRoot, reportPayload);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            if (process != null && isProcessAlive(process)) {
+                try {
+                    ensurePcVersionProbeCleanup(process, List.of(), "PC version probe interrupted");
+                    failPcVersionProbe(null, repoRoot, progressPath, reportPath, startedAt, "PC 版本探针被中断");
+                } catch (PcVersionProbeCleanupUnverifiedException cleanupException) {
+                    log.error("PC version probe cleanup is unverified; keeping progress active", cleanupException);
+                }
+            } else {
+                failPcVersionProbe(null, repoRoot, progressPath, reportPath, startedAt, "PC 版本探针被中断");
+            }
+        } catch (Exception exception) {
+            if (process != null && isProcessAlive(process)) {
+                try {
+                    ensurePcVersionProbeCleanup(process, List.of(), "PC version probe failed");
+                } catch (PcVersionProbeCleanupUnverifiedException cleanupException) {
+                    log.error("PC version probe cleanup is unverified; keeping progress active", cleanupException);
+                    return;
+                }
+            }
+            if (exception instanceof PcVersionProbeCleanupUnverifiedException) {
+                log.error("PC version probe cleanup is unverified; keeping progress active", exception);
+            } else {
+                failPcVersionProbe(null, repoRoot, progressPath, reportPath, startedAt, compactException(exception));
+            }
+        }
+    }
+
+    private void ensurePcVersionProbeCleanup(Process process, List<ProcessHandle> descendants, String reason) {
+        if (!destroySourceUpdateProcess(process, reason)) {
+            throw new PcVersionProbeCleanupUnverifiedException("PC 版本探针进程树清理未确认");
+        }
+        if (isProcessAlive(process)) throw new PcVersionProbeCleanupUnverifiedException("PC 版本探针主进程仍在运行");
+        if (descendants != null && descendants.stream().anyMatch(ProcessHandle::isAlive)) {
+            if (!destroySourceUpdateDescendants(descendants, reason)
+                || descendants.stream().anyMatch(ProcessHandle::isAlive)) {
+                throw new PcVersionProbeCleanupUnverifiedException("PC 版本探针子进程清理未确认");
+            }
+        }
+    }
+
+    private static final class PcVersionProbeCleanupUnverifiedException extends IllegalStateException {
+        private PcVersionProbeCleanupUnverifiedException(String message) {
+            super(message);
+        }
+    }
+
+    @Override
+    public Map<String, Object> getPcVersionUpdateState() {
+        Path repoRoot = resolveRepoRoot();
+        LinkedHashMap<String, Object> state = new LinkedHashMap<>(pcVersionUpdateStateStore.readState(repoRoot));
+        ReadResult progress = readPcVersionUpdateProgress(repoRoot);
+        if (progress.readable()) {
+            state.put("probeProgress", progress.payload());
+        } else if (progress.found()) {
+            state.put("probeProgress", Map.of(
+                "actionId", PcVersionUpdateStateStore.PROBE_ACTION_ID,
+                "status", "failed",
+                "message", "PC 版本探针进度文件无法读取",
+                "error", firstNonBlank(progress.errorMessage(), "progress file is unreadable")
+            ));
+        }
+        return state;
+    }
+
+    private ReadResult readPcVersionUpdateProgress(Path repoRoot) {
+        Path progressPath = repoRoot.resolve(PC_VERSION_UPDATE_PROGRESS_FILE).normalize();
+        try {
+            Map<String, Object> progress = pcVersionUpdateStateStore.readProbeProgress(repoRoot);
+            return progress == null
+                ? ReadResult.missing(progressPath)
+                : new ReadResult(progressPath, false, true, true, progress, null);
+        } catch (RuntimeException exception) {
+            return new ReadResult(
+                progressPath,
+                false,
+                true,
+                false,
+                Collections.emptyMap(),
+                compactException(exception)
+            );
+        }
+    }
+
+    @Override
+    public Map<String, Object> updatePcVersionUpdateHandling(
+        String candidateId,
+        String handlingStatus,
+        long expectedStateRevision,
+        String operator,
+        String note
+    ) {
+        return pcVersionUpdateStateStore.updateHandling(
+            resolveRepoRoot(), candidateId, handlingStatus, expectedStateRevision, operator, note, Instant.now(clock).toString()
+        );
+    }
+
+    @Scheduled(fixedDelayString = "${terrapedia.crawler-monitor.pc-version-update-triage.poll-ms:21600000}")
+    public void scheduledPcVersionUpdateProbe() {
+        try {
+            CrawlerMonitorDispatchResultDTO result = runPcVersionUpdateProbeOnce();
+            if (!result.isAccepted()) log.info("PC version probe skipped: {}", result.getMessage());
+        } catch (RuntimeException exception) {
+            log.warn("PC version update probe failed: {}", exception.getMessage(), exception);
+        }
+    }
+
+    private void publishPcVersionProbeProgress(
+        Path repoRoot,
+        String progressPath,
+        String reportPath,
+        String status,
+        String phase,
+        String message,
+        Instant startedAt
+    ) {
+        String now = Instant.now(clock).toString();
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+        payload.put("actionId", PcVersionUpdateStateStore.PROBE_ACTION_ID);
+        payload.put("status", status);
+        payload.put("phase", phase);
+        payload.put("message", message);
+        payload.put("current", 0);
+        payload.put("total", 2);
+        payload.put("startedAt", startedAt.toString());
+        payload.put("generatedAt", now);
+        payload.put("lastHeartbeatAt", now);
+        payload.put("childStatusPath", progressPath);
+        payload.put("outputPath", reportPath);
+        payload.put("reportPath", reportPath);
+        pcVersionUpdateStateStore.publishProbeProgress(repoRoot, payload);
+    }
+
+    private void failPcVersionProbe(
+        CrawlerMonitorDispatchResultDTO result,
+        Path repoRoot,
+        String progressPath,
+        String reportPath,
+        Instant startedAt,
+        String message
+    ) {
+        if (result != null) {
+            result.setAccepted(true);
+            result.setStatus("failed");
+            result.setMessage(message);
+        }
+        try {
+            publishPcVersionProbeProgress(repoRoot, progressPath, reportPath, "failed", "error", message, startedAt);
+        } catch (RuntimeException progressException) {
+            log.error("Failed to publish PC version probe terminal progress", progressException);
+        }
+    }
+
+    private String resolvePcVersionUpdateProbeCommand() {
+        String configuredRoot = AdminTextUtils.trimToNull(configuredQueueV2CommandRoot);
+        if (configuredRoot == null) return "pipelines/monitor/pc-version-update-probe.mjs";
+        Path commandRoot = Path.of(configuredRoot).toAbsolutePath().normalize();
+        Path command = commandRoot.resolve("pipelines/monitor/pc-version-update-probe.mjs").normalize();
+        if (!command.startsWith(commandRoot)
+            || Files.isSymbolicLink(commandRoot)
+            || !Files.isDirectory(commandRoot, LinkOption.NOFOLLOW_LINKS)
+            || Files.isSymbolicLink(command)
+            || !Files.isRegularFile(command, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalStateException("configured command root does not contain the PC version probe script");
+        }
+        return command.toString();
+    }
+
+    private static String compactException(Throwable exception) {
+        String message = String.valueOf(
+            exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage()
+        ).replaceAll("\\s+", " ");
+        return message.substring(0, Math.min(400, message.length()));
+    }
+
     private Optional<Instant> processStartInstant(Process process) {
         if (process == null) {
             return Optional.empty();
@@ -8396,6 +8700,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult wikiAudioAssetsProgress = readJsonMap(repoRoot.resolve(WIKI_AUDIO_ASSETS_PROGRESS_FILE).normalize());
         ReadResult domainSmokeProgress = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
         ReadResult sourceUpdateMonitorProgress = readJsonMap(repoRoot.resolve(SOURCE_UPDATE_MONITOR_PROGRESS_FILE).normalize());
+        ReadResult pcVersionUpdateProgress = readPcVersionUpdateProgress(repoRoot);
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
@@ -8494,6 +8799,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "p0",
             "wiki/API source fingerprints -> crawler monitor source state",
             "Review changed covered sources, then dispatch eligible refresh actions."
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            PcVersionUpdateStateStore.PROBE_ACTION_ID,
+            "PC version update probe",
+            PC_VERSION_UPDATE_PROGRESS_FILE,
+            "reports/crawler-monitor/pc-version-update-triage/runs/<run-id>.json",
+            pcVersionUpdateProgress,
+            "p0",
+            "PC version/history pages -> temporary candidate worklist",
+            "Review the manual PC version update worklist. This action does not dispatch domain crawlers."
         ));
         tasks.add(buildStaticTask(
             "item-pages-retry-failures",

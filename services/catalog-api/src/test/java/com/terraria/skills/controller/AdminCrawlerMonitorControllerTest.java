@@ -14,6 +14,7 @@ import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.PcVersionUpdateHandlingRequestDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
 import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
@@ -24,6 +25,7 @@ import com.terraria.skills.service.CrawlerV2SchedulerActivationPreflightService;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
+import com.terraria.skills.service.impl.PcVersionUpdateStateStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +48,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -248,6 +251,81 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.registeredTasks[1].nextStep").value("Review boss source snapshot evidence."));
 
         verify(crawlerMonitorService).getOverview();
+    }
+
+    @Test
+    void pcVersionUpdateEndpointsRequireAdminAndUseAuthenticatedActor() throws Exception {
+        when(crawlerMonitorService.getPcVersionUpdateState()).thenReturn(Map.of(
+            "schemaVersion", "pc-version-update-state/v1",
+            "stateRevision", 2,
+            "lastEvaluatedDesktopVersion", "1.4.5.9",
+            "candidates", List.of(Map.of("candidateId", "candidate-1", "handlingStatus", "pending"))
+        ));
+        CrawlerMonitorDispatchResultDTO probe = new CrawlerMonitorDispatchResultDTO();
+        probe.setAccepted(true);
+        probe.setActionId("pc-version-update-probe");
+        probe.setStatus("running");
+        when(crawlerMonitorService.runPcVersionUpdateProbeOnce()).thenReturn(probe);
+        Map<String, Object> handled = Map.of("stateRevision", 3, "handledBy", "admin");
+        when(crawlerMonitorService.updatePcVersionUpdateHandling(
+            eq("candidate-1"), eq("handled"), eq(2L), eq("admin"), eq("reviewed")
+        )).thenReturn(handled);
+
+        mockMvc.perform(get("/admin/crawler-monitor/pc-version-updates"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.stateRevision").value(2))
+            .andExpect(jsonPath("$.data.lastEvaluatedDesktopVersion").value("1.4.5.9"));
+        mockMvc.perform(post("/admin/crawler-monitor/pc-version-updates/probe"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.actionId").value("pc-version-update-probe"));
+        mockMvc.perform(put("/admin/crawler-monitor/pc-version-updates/candidate-1/handling")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"handlingStatus\":\"handled\",\"expectedStateRevision\":2,\"note\":\"reviewed\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.handledBy").value("admin"));
+
+        verify(crawlerMonitorService).getPcVersionUpdateState();
+        verify(crawlerMonitorService).runPcVersionUpdateProbeOnce();
+        verify(crawlerMonitorService).updatePcVersionUpdateHandling(
+            "candidate-1", "handled", 2L, "admin", "reviewed"
+        );
+    }
+
+    @Test
+    void pcVersionUpdateEndpointsRejectViewerClaims() throws Exception {
+        AdminTokenClaims viewerClaims = AdminTokenClaims.builder()
+            .username("viewer")
+            .displayName("Viewer")
+            .role("VIEWER")
+            .build();
+
+        mockMvc.perform(get("/admin/crawler-monitor/pc-version-updates")
+                .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, viewerClaims))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(post("/admin/crawler-monitor/pc-version-updates/probe")
+                .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, viewerClaims))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(put("/admin/crawler-monitor/pc-version-updates/candidate-1/handling")
+                .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, viewerClaims)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"handlingStatus\":\"handled\",\"expectedStateRevision\":1}"))
+            .andExpect(status().isForbidden());
+
+        verifyNoInteractions(crawlerMonitorService);
+    }
+
+    @Test
+    void pcVersionUpdateHandlingReturnsConflictForStaleStateRevision() throws Exception {
+        when(crawlerMonitorService.updatePcVersionUpdateHandling(
+            eq("candidate-1"), eq("handled"), eq(1L), eq("admin"), isNull()
+        )).thenThrow(new PcVersionUpdateStateStore.StateRevisionConflictException(1L, 2L));
+
+        mockMvc.perform(put("/admin/crawler-monitor/pc-version-updates/candidate-1/handling")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"handlingStatus\":\"handled\",\"expectedStateRevision\":1}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.data.expectedRevision").value(1))
+            .andExpect(jsonPath("$.data.actualRevision").value(2));
     }
 
     @Test
