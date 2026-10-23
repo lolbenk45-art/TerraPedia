@@ -1,9 +1,9 @@
 # Current Devlog
 
-Last updated: 2026-10-23 17:44 CST by Codex
+Last updated: 2026-10-23 17:48 CST by Codex
 
 Active branch: `main`
-Active focus: Continue the user's eight-domain V2 automatic-ingestion work in the `main` worktree. The PC version triage feature is closed for local integration into `main`; its feature branch/worktree are retained as unpushed recovery. Preserve the separate dirty eight-domain plan in the main worktree.
+Active focus: Continue the user's eight-domain V2 automatic-ingestion work in the `main` worktree. PC version triage commit `742901e5` is merged locally; its feature branch/worktree are retained as unpushed recovery. Preserve the separate dirty eight-domain plan in the main worktree.
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Active focus: Continue the user's eight-domain V2 automatic-ingestion work in th
 
 ## Recently closed
 
-- PC version update triage: status `closed`; local merge target `main`; commit SHA pending in final response; no remote push requested. Feature worktree is retained as unpushed recovery.
+- PC version update triage: status `closed`; feature commit `742901e5fbbd05fdd1a0dbeaff0f60909d6d1d7a` fast-forward merged into local `main`; no remote push requested. Feature worktree is retained as unpushed recovery.
 - Eight-domain isolated maintained-chain T1 baseline: all eight domain reports passed; closeout record `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`.
 - Eight-domain production readiness: owner Codex; status `active`; branch `main`; worktree `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness-main`; parent entry `docs/devlog/entries/2026-10-16-eight-domain-production-readiness-plan.md`; T1 closeout child entry `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`; dependency: integrated T1 baseline; blocked-by: V2 source/runner and attempt-identity issues recorded in the parent entry; contract handoff: T1 proves isolated maintained-chain writes/readback only. Next: discuss the V2 contract and resolve the recorded blockers before any V2 execution.
 

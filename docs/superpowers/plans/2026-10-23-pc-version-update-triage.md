@@ -186,8 +186,8 @@ PC 版本探针不得写普通来源状态或 manifest，不得调用 `run-wiki-
 - [x] 运行回归 `node --test pipelines/monitor/check-source-updates.test.mjs pipelines/workflow/run-wiki-sync.test.mjs`；28/28 通过。定向监控服务 Maven 测试包含 347/347 后端回归。隔离测试确认专用 PC action 不注册到普通域动作表、不创建来源监控或 wiki 派发状态；未启动共享数据库或访问域数据库。
 - [x] 用 MockMvc/controller 测试 GET/手动探针/状态更新授权与冲突响应；另用临时仓库根创建新 monitor service/store 实例，确认人工状态跨实例读回。符号链接测试确认运行目录链接会阻止启动、进度链接被报告为不可读。没有启动共享本地栈或数据库。
 - [x] 用户授权后运行一次实时、只读 PC 版本页探针。报告 `reports/crawler-monitor/pc-version-update-triage/runs/task2-live-readonly.json` 确认版本仍为 `1.4.5.8`，只读当前版本页和 Desktop 历史页，未抓版本详情页；没有派发域、导入数据或写正式表。
-- [x] 运行 `git diff --check`、`git status --short` 和 `git diff --cached --stat`；没有暂存内容，也未提交或推送。
-- [x] 在 active devlog 记录测试输出、映射剩余风险、分支/worktree 和下一步。合并与集成留待单独决定。
+- [x] 运行 `git diff --check`、`git status --short` 和 `git diff --cached --stat`；仅暂存本功能 22 个明确文件并提交，未推送。
+- [x] 在已关闭 devlog 记录测试输出、映射剩余风险、分支/worktree 和提交状态。Feature commit `742901e5` 已 fast-forward 合并到本地 `main`。
 
 ## 验收标准
 

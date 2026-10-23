@@ -36,7 +36,7 @@
 
 ## Current Progress
 
-- Tasks 1-4 and Task 5 validation are complete. Integrated spec and code-quality reviews passed with no remaining code findings.
+- Tasks 1-4 and Task 5 validation are complete. Integrated spec and code-quality reviews passed with no remaining code findings. Feature commit `742901e5fbbd05fdd1a0dbeaff0f60909d6d1d7a` was fast-forward merged into local `main`.
 - The probe/state contract rejects partial release reports. A new regression test failed before the fix because a report omitting a planned version advanced the cursor; after adding `plannedReleaseVersions` comparison, the focused backend suite passed.
 - Symlink regression tests failed before the fix: the monitor read external progress and launched with a symlinked `runs` directory. The backend now validates log/report/progress paths before launch and uses guarded reads for run reports, candidate state, and registered monitor progress.
 - Read-only identity catalog load against the tracked datasets found `3,880` distinct Wiki-title keys. Seven maintained domain catalogs are available; Audio has no maintained identity catalog and its updates remain informational.
@@ -53,15 +53,17 @@
 - Existing service, route, and test paths cited by the plan were checked against the `main` worktree.
 - `git diff --check` passed for tracked documentation changes; no whitespace diagnostics were emitted for the two new untracked Markdown files. Targeted consistency scan confirmed the plan records the branch/worktree, PC baseline, schedule, manual state, and crawler/data-write boundaries.
 - Baseline regressions passed before implementation: `node --test pipelines/monitor/check-source-updates.test.mjs` (`14/14`) and `node --test pipelines/workflow/run-wiki-sync.test.mjs` (`14/14`).
-- Branch `feat/pc-version-update-triage` was created from `main@42ab9d1a7bcd939b2831bff20773e90383b78902`; this closeout stages only files belonging to the feature.
+- Branch `feat/pc-version-update-triage` was created from `main@42ab9d1a7bcd939b2831bff20773e90383b78902`; commit `742901e5fbbd05fdd1a0dbeaff0f60909d6d1d7a` is now the local `main` tip.
 - Fresh validation after the path-safety fix: probe/mapping/catalog fixture tests `42/42`; source-monitor and `run-wiki-sync` regressions `28/28`; backend `CrawlerMonitorServiceImplTest`, `AdminCrawlerMonitorControllerTest`, and `PcVersionUpdateStateStoreTest` `347/347`; admin typecheck passed and its panel/page tests passed `62/62`.
+- The same focused suites passed again after the fast-forward merge: Node `42/42` and `28/28`, backend `347/347`, Admin `62/62` plus typecheck. The merged `main` worktree lacks `node_modules`, so Admin verification ran in the retained feature worktree at the identical commit.
 - The authorized live read-only probe report `reports/crawler-monitor/pc-version-update-triage/runs/task2-live-readonly.json` records Desktop `1.4.5.8`, current-version source revision `1032950`, history source revision `1023996`, and `releases=[]`. It fetched only the two version sources and did not request release detail pages.
 - The local admin page responds with HTTP `302` to the login flow at `http://127.0.0.1:3030/operations/crawler-monitor`. No backend or shared local stack was started, so authenticated browser/API interaction was not exercised.
-- Pre-commit checks: `git diff --check` passed; `git status` and `git diff --cached --stat` confirmed 22 staged feature files and no staged paths from the separate `main` worktree. No domain crawl, import, shared service lifecycle operation, or database write was performed.
+- Pre-commit checks: `git diff --check` passed; `git status` and `git diff --cached --stat` confirmed 22 staged feature files and no staged paths from the separate `main` worktree. Post-merge, the existing uncommitted eight-domain plan remains untouched. No domain crawl, import, shared service lifecycle operation, or database write was performed.
 
 ## Result
 
 - Implemented the PC version probe, catalog-backed conservative mapping, file-backed temporary candidate state, admin-only API, and separate admin panel in the dedicated branch/worktree.
+- Committed as `742901e5fbbd05fdd1a0dbeaff0f60909d6d1d7a` and fast-forward merged into local `main`.
 - The separate `main` session remains the user's workspace for V2 automatic-ingestion discussion; its modified eight-domain plan is outside this staged commit and must remain intact.
 
 ## Residual Risks
@@ -73,8 +75,9 @@
 
 ## Follow-up
 
-- No implementation follow-up remains. The user requested a local merge into `main`; no remote push was requested.
+- No implementation follow-up remains. The local merge is complete; remote push was not requested. Keep the feature branch/worktree as unpushed recovery.
 
 ## Commits
 
-- Commit SHA pending in final response.
+- Feature commit: `742901e5fbbd05fdd1a0dbeaff0f60909d6d1d7a`.
+- Merge closeout documentation commit SHA pending in final response.
