@@ -777,5 +777,17 @@
   {
     "decisionIdentity": "armor-image-cache-a63-20260927-33",
     "dispatchPermitHash": "sha256:1bad37a3b0996f60f241fd3e0432c07ea667d2f1eb6853db36aebbfbdc2f0a05"
+  },
+  {
+    "decisionIdentity": "shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654",
+    "dispatchPermitHash": "sha256:4cf99814f9ffef0934daef44a1f1b2a263f88d0f35b6310f7ebd8bdeccbdc9fa"
+  },
+  {
+    "decisionIdentity": "shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c",
+    "dispatchPermitHash": "sha256:131cba7848a6159d08dc14160edc491898c3b35caba7afc60178a6d02fae5002"
+  },
+  {
+    "decisionIdentity": "shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6",
+    "dispatchPermitHash": "sha256:a5e6011a78061a1f18cb3ec98dead2d38ef0b5a8437725d8fa89d8d30060491b"
   }
 ]

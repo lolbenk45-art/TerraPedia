@@ -1,15 +1,15 @@
 {
   "actionId": "domain-source-shimmer",
-  "generatedAt": "2026-08-17T00:22:50.634Z",
+  "generatedAt": "2026-09-29T21:18:45.684Z",
   "status": "completed",
   "childStatusPath": "/home/lolben/TerraPedia/data/generated/domain-source-shimmer-progress.latest.preview.json",
   "current": 3,
-  "lastHeartbeatAt": "2026-08-17T00:22:50.634Z",
+  "lastHeartbeatAt": "2026-09-29T21:18:45.684Z",
   "message": "prepared shimmer L1 frozen bundle",
-  "outputPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-shimmer-first-l1.source.json",
+  "outputPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6i42u_oh2n/source.json",
   "percent": 100,
   "phase": "preview",
-  "reportPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-shimmer-first-l1.bundle.json",
-  "startedAt": "2026-08-17T00:22:50.362Z",
+  "reportPath": "/home/lolben/TerraPedia/reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6i42u_oh2n/bundle.json",
+  "startedAt": "2026-09-29T21:18:45.030Z",
   "total": 3
 }

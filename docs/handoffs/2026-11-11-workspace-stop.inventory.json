@@ -1,0 +1,1231 @@
+{
+  "branch": "feat/supplementary-domains-readiness",
+  "previousHead": "f84d42931a6621b6fe170425baa5caad6e601080",
+  "previousUpstream": "origin/feat/supplementary-domains-readiness",
+  "originalWorktree": "/home/lolben/TerraPedia",
+  "originalChanges": [
+    {
+      "status": " M",
+      "path": "data/generated/domain-source-shimmer-progress.latest.preview.json",
+      "oldPath": null,
+      "size": 724
+    },
+    {
+      "status": " M",
+      "path": "data/generated/shimmer/wiki-shimmer-current-generation.json",
+      "oldPath": null,
+      "size": 491
+    },
+    {
+      "status": " M",
+      "path": "data/standardized/items.standardized.json",
+      "oldPath": null,
+      "size": 5642326
+    },
+    {
+      "status": " M",
+      "path": "docs/devlog/current.md",
+      "oldPath": null,
+      "size": 107515
+    },
+    {
+      "status": " M",
+      "path": "docs/superpowers/plans/2026-06-08-front-typography-theme-spacing.md",
+      "oldPath": null,
+      "size": 6032
+    },
+    {
+      "status": " M",
+      "path": "reports/authorization/canonical/canonical-shimmer-generation.input.json",
+      "oldPath": null,
+      "size": 787
+    },
+    {
+      "status": " M",
+      "path": "reports/authorization/canonical/used-decisions.json",
+      "oldPath": null,
+      "size": 39023
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-context.importable.json",
+      "oldPath": null,
+      "size": 366
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-decraft-rules.importable.json",
+      "oldPath": null,
+      "size": 151892
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-entity-transforms.importable.json",
+      "oldPath": null,
+      "size": 61744
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-item-transforms.importable.json",
+      "oldPath": null,
+      "size": 135981
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-manifest.json",
+      "oldPath": null,
+      "size": 3334
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-npc-transforms.importable.json",
+      "oldPath": null,
+      "size": 15622
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-title-resolution.evidence.json",
+      "oldPath": null,
+      "size": 88381
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer.raw.json",
+      "oldPath": null,
+      "size": 776667
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-context.importable.json",
+      "oldPath": null,
+      "size": 366
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-decraft-rules.importable.json",
+      "oldPath": null,
+      "size": 151892
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-entity-transforms.importable.json",
+      "oldPath": null,
+      "size": 61744
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-item-transforms.importable.json",
+      "oldPath": null,
+      "size": 135975
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-manifest.json",
+      "oldPath": null,
+      "size": 3334
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-npc-transforms.importable.json",
+      "oldPath": null,
+      "size": 15622
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-title-resolution.evidence.json",
+      "oldPath": null,
+      "size": 88384
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer.raw.json",
+      "oldPath": null,
+      "size": 776609
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-context.importable.json",
+      "oldPath": null,
+      "size": 366
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-decraft-rules.importable.json",
+      "oldPath": null,
+      "size": 151892
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-entity-transforms.importable.json",
+      "oldPath": null,
+      "size": 61744
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-item-transforms.importable.json",
+      "oldPath": null,
+      "size": 135981
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-manifest.json",
+      "oldPath": null,
+      "size": 3334
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-npc-transforms.importable.json",
+      "oldPath": null,
+      "size": 15622
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-title-resolution.evidence.json",
+      "oldPath": null,
+      "size": 88381
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer.raw.json",
+      "oldPath": null,
+      "size": 776604
+    },
+    {
+      "status": "??",
+      "path": "docs/devlog/entries/2026-10-12-workspace-storage-cleanup.md",
+      "oldPath": null,
+      "size": 2503
+    },
+    {
+      "status": "??",
+      "path": "docs/devlog/entries/2026-10-13-mysql-full-backup-binlog-purge-handoff.md",
+      "oldPath": null,
+      "size": 2999
+    },
+    {
+      "status": "??",
+      "path": "docs/devlog/entries/2026-10-16-eight-domain-production-readiness-plan.md",
+      "oldPath": null,
+      "size": 6559
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-14-isolated-real-automation-ingestion.md",
+      "oldPath": null,
+      "size": 5027
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-armor-sets.md",
+      "oldPath": null,
+      "size": 5466
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-audio.md",
+      "oldPath": null,
+      "size": 4528
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-bosses.md",
+      "oldPath": null,
+      "size": 4717
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-buffs.md",
+      "oldPath": null,
+      "size": 4698
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-items.md",
+      "oldPath": null,
+      "size": 5948
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-npcs.md",
+      "oldPath": null,
+      "size": 4635
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-projectiles.md",
+      "oldPath": null,
+      "size": 4381
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness-shimmer.md",
+      "oldPath": null,
+      "size": 5259
+    },
+    {
+      "status": "??",
+      "path": "docs/superpowers/plans/2026-10-16-eight-domain-production-readiness.md",
+      "oldPath": null,
+      "size": 44736
+    },
+    {
+      "status": "??",
+      "path": "logs/terrapedia-app.2026-08-13.0.log.gz",
+      "oldPath": null,
+      "size": 2087
+    },
+    {
+      "status": "??",
+      "path": "pipelines/automation/canonical-armor-relation-item-normalization-registration.test.mjs",
+      "oldPath": null,
+      "size": 1296
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/items/items_l1_auto_a8e3b8348ca3fd8110279fdc57c65b03/bundle.json",
+      "oldPath": null,
+      "size": 4641548
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/items/items_l1_auto_a8e3b8348ca3fd8110279fdc57c65b03/source.json",
+      "oldPath": null,
+      "size": 6556205
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_850156f36f7055f2c233f1ccef297b7c/operation.bundle.json",
+      "oldPath": null,
+      "size": 1235554
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_850156f36f7055f2c233f1ccef297b7c/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_9f99fd9dece2d6c671d75f7d1652d186/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_cfd84730eaf65f110aa55e3cd8665ec3/operation.bundle.json",
+      "oldPath": null,
+      "size": 1236430
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_cfd84730eaf65f110aa55e3cd8665ec3/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_dd6242b25e972b43082545e5130b5206/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1c6zy_6o7/bundle.json",
+      "oldPath": null,
+      "size": 1228219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1c6zy_6o7/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1or1l_1dzt/bundle.json",
+      "oldPath": null,
+      "size": 1228221
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1or1l_1dzt/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun4sg1a_eijj/bundle.json",
+      "oldPath": null,
+      "size": 1229097
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun4sg1a_eijj/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun56hjh_gh4a/bundle.json",
+      "oldPath": null,
+      "size": 1229097
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun56hjh_gh4a/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun593n3_gun8/bundle.json",
+      "oldPath": null,
+      "size": 1229097
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun593n3_gun8/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5fvkb_hs6m/bundle.json",
+      "oldPath": null,
+      "size": 1229097
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5fvkb_hs6m/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5js1y_icg3/bundle.json",
+      "oldPath": null,
+      "size": 1229097
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5js1y_icg3/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6c48j_n23g/bundle.json",
+      "oldPath": null,
+      "size": 1229097
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6c48j_n23g/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6i42u_oh2n/bundle.json",
+      "oldPath": null,
+      "size": 1229097
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6i42u_oh2n/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_preview_20260929195241/bundle.json",
+      "oldPath": null,
+      "size": 1228213
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_preview_20260929195241/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790704565338/bundle.json",
+      "oldPath": null,
+      "size": 1228201
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790704565338/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790706500000/bundle.json",
+      "oldPath": null,
+      "size": 1228201
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790706500000/source.json",
+      "oldPath": null,
+      "size": 927
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.execution-manifest.json",
+      "oldPath": null,
+      "size": 20851
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.input.json",
+      "oldPath": null,
+      "size": 877
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-44.preflight.json",
+      "oldPath": null,
+      "size": 17543
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-45.preflight.json",
+      "oldPath": null,
+      "size": 34271
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-45.proposal.json",
+      "oldPath": null,
+      "size": 25184
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-45.request.json",
+      "oldPath": null,
+      "size": 25830
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/candidate.json",
+      "oldPath": null,
+      "size": 2478
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/execution-manifest.json",
+      "oldPath": null,
+      "size": 1215
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/owner-input.json",
+      "oldPath": null,
+      "size": 518
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/packet.json",
+      "oldPath": null,
+      "size": 3662
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/request.json",
+      "oldPath": null,
+      "size": 3240
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/c79e259045a3872166fbf92b094f05a4cf467251a7252bf9ae0f177ed7a5905e/disposition.json",
+      "oldPath": null,
+      "size": 6539
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/execution-manifest.json",
+      "oldPath": null,
+      "size": 7029
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/owner-input.json",
+      "oldPath": null,
+      "size": 300
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/packet-result.json",
+      "oldPath": null,
+      "size": 276
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/packet.json",
+      "oldPath": null,
+      "size": 9661
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/request-result.json",
+      "oldPath": null,
+      "size": 282
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/request.json",
+      "oldPath": null,
+      "size": 9411
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/server.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/execution-manifest.json",
+      "oldPath": null,
+      "size": 7029
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/owner-input.json",
+      "oldPath": null,
+      "size": 312
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/packet.json",
+      "oldPath": null,
+      "size": 9673
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/request.json",
+      "oldPath": null,
+      "size": 9411
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/server.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/execution-manifest.json",
+      "oldPath": null,
+      "size": 7029
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/owner-input.json",
+      "oldPath": null,
+      "size": 312
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/packet.json",
+      "oldPath": null,
+      "size": 9673
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/request.json",
+      "oldPath": null,
+      "size": 9411
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/server.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/image-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1385
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/public-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 2387
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/relation-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1433
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 1893
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 1868
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1868
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/unresolved-audit-trend-2026-10-08.json",
+      "oldPath": null,
+      "size": 1042
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/audio/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 1114
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/audio/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 1089
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/audio/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1089
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/bosses/image-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1416
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/bosses/public-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 2500
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/bosses/relation-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1474
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/bosses/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 1384
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/bosses/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 1359
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/bosses/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1359
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/bosses/unresolved-audit-trend-2026-10-08.json",
+      "oldPath": null,
+      "size": 1034
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/buffs/image-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1330
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/buffs/public-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 2338
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/buffs/relation-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1058
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/buffs/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 1381
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/buffs/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 1356
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/buffs/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1356
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/buffs/unresolved-audit-trend-2026-10-08.json",
+      "oldPath": null,
+      "size": 1032
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/items/image-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 2272
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/items/public-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 2934
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/items/relation-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1024
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/items/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 946
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/items/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 921
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/items/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 921
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/items/unresolved-audit-trend-2026-10-08.json",
+      "oldPath": null,
+      "size": 1032
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/npcs/image-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1478
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/npcs/public-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1841
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/npcs/relation-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1022
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/npcs/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 1933
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/npcs/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 1908
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/npcs/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1908
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/npcs/unresolved-audit-trend-2026-10-08.json",
+      "oldPath": null,
+      "size": 1030
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/projectiles/image-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1557
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/projectiles/public-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 2404
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/projectiles/relation-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1650
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/projectiles/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 1430
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/projectiles/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 1405
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/projectiles/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1405
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/projectiles/unresolved-audit-trend-2026-10-08.json",
+      "oldPath": null,
+      "size": 1044
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/shimmer/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "oldPath": null,
+      "size": 1109
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/shimmer/source-readiness-2026-09-30.json",
+      "oldPath": null,
+      "size": 1084
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/shimmer/source-readiness-2026-10-08.json",
+      "oldPath": null,
+      "size": 1084
+    }
+  ],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-17-local-eight-domain-complete-chain.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-closure-remediation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-data-chain-closure-plan.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-23-remaining-closure-item-decision-checklist.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-31-automation-scheduler-activation-handoff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-19-automation-scheduler-authorization-list.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-22-automation-ingestion-plan-repair.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-armor-frozen-candidate-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-canonical-ownership-execution.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-26-armor-secondary-projection-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-27-armor-image-cache-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-28-armor-source-semantics-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-qualified-cell-diagnostics.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-set-source-evidence-contract.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-automation-domain-buff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-buff-bounded-landing-contract.md",
+      "previousStatus": "blocked"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-30-armor-closure-gap-audit.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-10-12-workspace-storage-cleanup.md",
+      "previousStatus": "see original entry and pre-stop inventory"
+    },
+    {
+      "path": "docs/devlog/entries/2026-10-13-mysql-full-backup-binlog-purge-handoff.md",
+      "previousStatus": "completed_with_restore_rehearsal_pending"
+    },
+    {
+      "path": "docs/devlog/entries/2026-10-16-eight-domain-production-readiness-plan.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [
+    "logs/terrapedia-app.2026-08-13.0.log.gz"
+  ],
+  "validation": {
+    "nodeSyntax": [
+      "pipelines/automation/canonical-armor-relation-item-normalization-registration.test.mjs"
+    ],
+    "json": [
+      "data/generated/domain-source-shimmer-progress.latest.preview.json",
+      "data/generated/shimmer/wiki-shimmer-current-generation.json",
+      "data/standardized/items.standardized.json",
+      "reports/authorization/canonical/canonical-shimmer-generation.input.json",
+      "reports/authorization/canonical/used-decisions.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-context.importable.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-decraft-rules.importable.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-entity-transforms.importable.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-item-transforms.importable.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-manifest.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-npc-transforms.importable.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-title-resolution.evidence.json",
+      "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer.raw.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-context.importable.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-decraft-rules.importable.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-entity-transforms.importable.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-item-transforms.importable.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-manifest.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-npc-transforms.importable.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer-title-resolution.evidence.json",
+      "data/generated/shimmer/generations/528cd5e330da59f5fbcd79cb042fa3c9522868a615ba943c9b2d813ae844e36b/wiki-shimmer.raw.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-context.importable.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-decraft-rules.importable.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-entity-transforms.importable.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-item-transforms.importable.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-manifest.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-npc-transforms.importable.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer-title-resolution.evidence.json",
+      "data/generated/shimmer/generations/92586a17fa70cf07a0577178719c37c93dfb5a10e8949ec5b48a269078d64651/wiki-shimmer.raw.json",
+      "reports/authorization/canonical/automatic/items/items_l1_auto_a8e3b8348ca3fd8110279fdc57c65b03/bundle.json",
+      "reports/authorization/canonical/automatic/items/items_l1_auto_a8e3b8348ca3fd8110279fdc57c65b03/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_850156f36f7055f2c233f1ccef297b7c/operation.bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_850156f36f7055f2c233f1ccef297b7c/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_9f99fd9dece2d6c671d75f7d1652d186/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_cfd84730eaf65f110aa55e3cd8665ec3/operation.bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_cfd84730eaf65f110aa55e3cd8665ec3/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_dd6242b25e972b43082545e5130b5206/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1c6zy_6o7/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1c6zy_6o7/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1or1l_1dzt/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun1or1l_1dzt/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun4sg1a_eijj/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun4sg1a_eijj/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun56hjh_gh4a/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun56hjh_gh4a/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun593n3_gun8/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun593n3_gun8/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5fvkb_hs6m/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5fvkb_hs6m/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5js1y_icg3/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun5js1y_icg3/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6c48j_n23g/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6c48j_n23g/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6i42u_oh2n/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_auto_preview_mun6i42u_oh2n/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_preview_20260929195241/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_preview_20260929195241/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790704565338/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790704565338/source.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790706500000/bundle.json",
+      "reports/authorization/canonical/automatic/shimmer/shimmer_l1_v3_1790706500000/source.json",
+      "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.execution-manifest.json",
+      "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.input.json",
+      "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.policy-rows.json",
+      "reports/authorization/canonical/automation-crawler-v2-scheduler-activation.retry-45.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-44.preflight.json",
+      "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-45.preflight.json",
+      "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-45.proposal.json",
+      "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-45.request.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/candidate.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/execution-manifest.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/owner-input.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/packet.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/policy-rows.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/request.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/server-fingerprint.json",
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/c79e259045a3872166fbf92b094f05a4cf467251a7252bf9ae0f177ed7a5905e/disposition.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/execution-manifest.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/owner-input.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/packet-result.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/packet.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/policy-rows.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/request-result.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/request.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6/server.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/execution-manifest.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/owner-input.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/packet.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/policy-rows.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/request.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-3de94f88-506c-445d-809a-f3b8699c716c/server.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/execution-manifest.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/owner-input.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/packet.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/policy-rows.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/request.json",
+      "reports/authorization/canonical/shimmer-source-v3/shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654/server.json",
+      "reports/domain/armor_sets/image-readiness-2026-10-08.json",
+      "reports/domain/armor_sets/public-readiness-2026-10-08.json",
+      "reports/domain/armor_sets/relation-readiness-2026-10-08.json",
+      "reports/domain/armor_sets/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/armor_sets/source-readiness-2026-09-30.json",
+      "reports/domain/armor_sets/source-readiness-2026-10-08.json",
+      "reports/domain/armor_sets/unresolved-audit-trend-2026-10-08.json",
+      "reports/domain/audio/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/audio/source-readiness-2026-09-30.json",
+      "reports/domain/audio/source-readiness-2026-10-08.json",
+      "reports/domain/bosses/image-readiness-2026-10-08.json",
+      "reports/domain/bosses/public-readiness-2026-10-08.json",
+      "reports/domain/bosses/relation-readiness-2026-10-08.json",
+      "reports/domain/bosses/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/bosses/source-readiness-2026-09-30.json",
+      "reports/domain/bosses/source-readiness-2026-10-08.json",
+      "reports/domain/bosses/unresolved-audit-trend-2026-10-08.json",
+      "reports/domain/buffs/image-readiness-2026-10-08.json",
+      "reports/domain/buffs/public-readiness-2026-10-08.json",
+      "reports/domain/buffs/relation-readiness-2026-10-08.json",
+      "reports/domain/buffs/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/buffs/source-readiness-2026-09-30.json",
+      "reports/domain/buffs/source-readiness-2026-10-08.json",
+      "reports/domain/buffs/unresolved-audit-trend-2026-10-08.json",
+      "reports/domain/items/image-readiness-2026-10-08.json",
+      "reports/domain/items/public-readiness-2026-10-08.json",
+      "reports/domain/items/relation-readiness-2026-10-08.json",
+      "reports/domain/items/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/items/source-readiness-2026-09-30.json",
+      "reports/domain/items/source-readiness-2026-10-08.json",
+      "reports/domain/items/unresolved-audit-trend-2026-10-08.json",
+      "reports/domain/npcs/image-readiness-2026-10-08.json",
+      "reports/domain/npcs/public-readiness-2026-10-08.json",
+      "reports/domain/npcs/relation-readiness-2026-10-08.json",
+      "reports/domain/npcs/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/npcs/source-readiness-2026-09-30.json",
+      "reports/domain/npcs/source-readiness-2026-10-08.json",
+      "reports/domain/npcs/unresolved-audit-trend-2026-10-08.json",
+      "reports/domain/projectiles/image-readiness-2026-10-08.json",
+      "reports/domain/projectiles/public-readiness-2026-10-08.json",
+      "reports/domain/projectiles/relation-readiness-2026-10-08.json",
+      "reports/domain/projectiles/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/projectiles/source-readiness-2026-09-30.json",
+      "reports/domain/projectiles/source-readiness-2026-10-08.json",
+      "reports/domain/projectiles/unresolved-audit-trend-2026-10-08.json",
+      "reports/domain/shimmer/source-readiness-2026-09-29-shimmer-preflight-repair.json",
+      "reports/domain/shimmer/source-readiness-2026-09-30.json",
+      "reports/domain/shimmer/source-readiness-2026-10-08.json"
+    ],
+    "failures": []
+  }
+}

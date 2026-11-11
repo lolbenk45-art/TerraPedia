@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-shimmer-import",
+  "generationId": "247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12",
+  "manifestPath": "data/generated/shimmer/generations/247cf4233b523e6c05d9af6c57fd736127e15232a661b5b0a263aeb157409f12/wiki-shimmer-manifest.json",
+  "manifestSha256": "sha256:4e2d4c1bf75aaf35f4fa908da2bdf873260ef59e2c03b8e1d5daac4bb1b2e13f",
+  "dataBundleSha256": "sha256:cd8f125c5778e8e5e93a62f1b22584765524734abaae601824af2a43b3073830",
+  "previewSha256": "sha256:fc46e6b9bb5e17f9d30c90b58f8396448eee77d2c3f1c35fbb3f914a701c627d",
+  "targetFingerprintSha256": "sha256:48d56246ed920bed2616226262ef7dd1603c198ba5f3e1d189fefc3f554f7448",
+  "providerScope": {
+    "provider": "wiki_zh",
+    "sourcePage": "微光",
+    "tables": [
+      "shimmer_item_transforms",
+      "shimmer_decraft_rules",
+      "shimmer_entity_transforms",
+      "shimmer_npc_transforms"
+    ]
+  }
+}

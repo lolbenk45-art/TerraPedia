@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Bounded monitor-visible fresh Shimmer source generation after registered v3 scope transition",
+  "authorizationReference": "user://conversation/automation-canonical-ownership-repair-approved-01",
+  "decisionIdentity": "shimmer-v3-source-a4bfc46d-bde3-490c-83ad-585e71484654"
+}

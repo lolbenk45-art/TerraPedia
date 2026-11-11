@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Task Contract
 
@@ -418,3 +418,10 @@ current next action are in `2026-09-24-armor-frozen-candidate-continuation.md`.
   no packet, permit, scheduler mutation, source probe, crawler/import, Redis
   write or business DML occurred. Full transaction/fence/recovery executor and
   terminal readback remain open; parent stays `active`.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.

@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Bounded monitor-visible fresh Shimmer source generation after Items input repair",
+  "authorizationReference": "user://conversation/automation-canonical-ownership-repair-approved-01",
+  "decisionIdentity": "shimmer-v3-source-20d9e2c6-2343-4326-ab56-12e0e350f1f6"
+}

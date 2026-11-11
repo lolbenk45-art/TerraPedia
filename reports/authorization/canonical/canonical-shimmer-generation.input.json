@@ -10,7 +10,7 @@
   "inputs": {
     "items": {
       "path": "data/standardized/items.standardized.json",
-      "sha256": "sha256:fdb1d2a73c9816dc7ac705e736a4525333f7805253d758fa76eb103643f4756c"
+      "sha256": "sha256:af773e0017ac55bfd234ab49c5d4b6cd3d4176f61c134d89831d6a0af1118f24"
     },
     "npcs": {
       "path": "data/standardized/npcs.standardized.json",
