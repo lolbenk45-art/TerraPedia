@@ -1,5 +1,17 @@
 # TerraPedia Decision Log
 
+## D-2026-11-11-01: Stop prior tasks and preserve separate recovery branches
+
+Decision owner: user, explicitly confirmed in the repository cleanup conversation.
+
+All existing tasks are stopped. Preserve source and evidence as independent GitHub branch snapshots, with a branch-specific Markdown handoff; do not integrate unfinished branches into main. Local task worktrees and branches may be removed only after clean-worktree checks, no-local-only-commit checks and exact remote recovery verification. Preserve machine configuration and non-rebuildable ignored evidence locally before removal.
+
+Four existing stashes are archived in a self-contained Git bundle on `archive/stashes-20261111`. Prior execution decisions, permits and historical acceptance evidence are not renewed by archival; resumption requires a new user objective and fresh gates.
+
+The clarified `.local` scope is only the inactive `.local/tmp/mysql-full-recrawl-20261013` physical MySQL directory, archived under `D:\Mysql\TerriaData` with per-file verification before source deletion. Formal MySQL `/var/lib/mysql`, other `.local` evidence and existing logical backups remain outside cleanup scope.
+
+Evidence and recovery index: `docs/handoffs/2026-11-11-cleanup-summary.md`.
+
 ## D-2026-09-24-01: Keep canonical upstream execution separate from local-only H8
 
 Decision owner: Codex within the user's bounded ownership-repair approval.

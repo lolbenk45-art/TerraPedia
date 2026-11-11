@@ -74,3 +74,9 @@
 3. 按需恢复已压缩报告和本地配置；不要复制过期 token、permit、决策或 Redis/MySQL 状态到正式运行环境。
 4. 重新检查分支差异、依赖、运行进程、数据库目标及历史未解决问题；先做对应最小测试，再考虑集成或执行。
 5. 任何数据库写入、scheduler/crawler 启动和旧决策重放均需重新满足现行授权门禁。
+
+## main 最终目录说明
+
+本分支交接生成时使用的是临时文档工作区；完成本地整理后，main 的唯一工作区位于 `/home/lolben/TerraPedia`。主目录原有 `.local` 除明确归档的 recrawl MySQL 目录外保留在原处，原 `feat/supplementary-domains-readiness` 的主目录运行证据不需要从已删除的临时工作区恢复。
+
+其他任务工作区的本地证据按 branch slug 保存在 `.local/tmp/workspace-closeout-20261111/preserved-worktrees/`；没有独立忽略文件的旧分支无需恢复该目录。全部分支和归档的最终结果见 `docs/handoffs/2026-11-11-cleanup-summary.md`。

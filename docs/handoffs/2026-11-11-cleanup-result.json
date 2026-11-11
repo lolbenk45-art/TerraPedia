@@ -1,0 +1,138 @@
+{
+  "date": "2026-11-11",
+  "scope": "User stopped prior tasks; independent GitHub recovery snapshots; local Git cleanup; recrawl MySQL only",
+  "remainingLocalBranch": "main",
+  "remainingRegisteredWorktrees": [
+    "/home/lolben/TerraPedia"
+  ],
+  "snapshotBranches": [
+    {
+      "branch": "feat/supplementary-domains-readiness",
+      "initialSnapshotCommit": "02057e4ee529516a4c9c681b999ab4f51b65e656",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "feat/automation-domain-armor",
+      "initialSnapshotCommit": "720ce52b56fcc40f6bf836d2143f78e8ed724e1d",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "feat/automation-domain-buff",
+      "initialSnapshotCommit": "0d0875d7221fb0f8d262e15f38f0f7e921f2def7",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "feat/automation-domain-shimmer",
+      "initialSnapshotCommit": "dc74e68d0d66283351e0f8bab63137ac43abbc7e",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "ops/recrawl-allocation-contract-20261013",
+      "initialSnapshotCommit": "eb00c399f854a4d63e4b5a2fdc66114807b8aa30",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "feat/local-formal-catch-up-automation",
+      "initialSnapshotCommit": "9bfa56e1a4cee0d55db568b1cc3f208b1ac915c7",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "ops/eight-domain-version-sample-20261022",
+      "initialSnapshotCommit": "526cf176b794fb5b1dbff5f8ed9e046044c38e7b",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "feat/pc-version-update-triage",
+      "initialSnapshotCommit": "088aacadd5c0b07f6275add34332a493c82d3c88",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "ops/recrawl-armor-20261013",
+      "initialSnapshotCommit": "4a6a1fdf06e8ed1eedd9463862a2a2b2ab5727de",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "ops/recrawl-buff-20261013",
+      "initialSnapshotCommit": "413563f7df38d890774826683b0ed6ed5bd2b188",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "ops/recrawl-shimmer-20261013",
+      "initialSnapshotCommit": "2b888b92c098fbaea7e28b35e45532c5c37e78a6",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "design/crawler-auto-ingestion-readiness",
+      "initialSnapshotCommit": "8ffb29796c9d974ebb90382a8484bd183ca35f90",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "feat/automation-ingestion-continuation",
+      "initialSnapshotCommit": "74265433a21b4246521e93700513ffc3e72eb117",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "feat/scheduler-permanent-enablement",
+      "initialSnapshotCommit": "aec13599f9160f2746d1c2f11df372b7d567aa47",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "fix/admin-p0-batch",
+      "initialSnapshotCommit": "ca0c708a2416338eb3f2abc12f5b7b4ad877a5db",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "fix/crawler-queue-v2-runtime",
+      "initialSnapshotCommit": "d96337635585471d9517c238b4121675c162bc3a",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "main",
+      "initialSnapshotCommit": "084a0c5086f5af499944e1729001cdcb140a02ea",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "refactor/close-structure-compat-window",
+      "initialSnapshotCommit": "84232ffda224940de40b2c571f0e523f7d446cbf",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "review/front-nuxt-visual",
+      "initialSnapshotCommit": "15b07e3aa12a54cd64b914b45909964ef34f7520",
+      "exactRemoteTipVerified": true
+    },
+    {
+      "branch": "archive/stashes-20261111",
+      "initialSnapshotCommit": "3d8a020a682c75998a757f4b3df0c9c7f2dceebb",
+      "exactRemoteTipVerified": true
+    }
+  ],
+  "removedWorktrees": 19,
+  "deletedLocalBranches": 19,
+  "stashesArchived": 4,
+  "handoffPathOnEachBranch": "docs/handoffs/2026-11-11-workspace-stop.md",
+  "localEvidenceRoot": ".local/tmp/workspace-closeout-20261111/preserved-worktrees",
+  "preservedIgnoredFilesOrLinks": 4358,
+  "preservedIgnoredLogicalBytes": 5512719319,
+  "compressedLargeReports": 28,
+  "validation": {
+    "javascriptSyntaxChecksPassed": 198,
+    "jsonParsingChecksPassed": 2497,
+    "functionalAcceptance": "not rerun for intentionally cancelled tasks",
+    "stashIndependentRecovery": "passed",
+    "stagedWhitespaceChecks": "passed before all snapshots"
+  },
+  "mysqlArchive": {
+    "source": "/home/lolben/TerraPedia/.local/tmp/mysql-full-recrawl-20261013",
+    "destination": "/mnt/d/Mysql/TerriaData/terrapedia-recrawl-mysql-20261111/mysql-full-recrawl-20261013.tar.gz",
+    "archiveDirectory": "/mnt/d/Mysql/TerriaData/terrapedia-recrawl-mysql-20261111",
+    "files": 577,
+    "logicalBytes": 33277803240,
+    "archiveBytes": 4093318674,
+    "sha256": "adfa5db7edc08dd034a1786af8a0aedd6964f408d3b2f8d8fa41e5b878df62cf",
+    "allFileHashesVerified": true,
+    "sourceRemoved": true,
+    "restoreRehearsal": "not run; this is an offline physical-data archive, not a new logical backup"
+  },
+  "mainFinalCommit": "See Git history; the main snapshot row above records the initial preservation commit, not this subsequent closeout commit."
+}

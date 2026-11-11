@@ -1,6 +1,12 @@
 # TerraPedia Risk Register
 
-Last updated: 2026-09-26
+Last updated: 2026-11-11
+
+## Stop and recovery checkpoint — 2026-11-11
+
+All prior implementation tasks are intentionally stopped. Existing risk rows remain unresolved historical records; their next-action text does not authorize continued work and requires fresh assessment on resumption. GitHub branch snapshots preserve source and handoffs; machine-only configuration and ignored runtime evidence remain local and require separate recovery from `.local/tmp/workspace-closeout-20261111/preserved-worktrees/` or the retained root `.local`.
+
+The recrawl MySQL archive is an offline physical-data preservation operation, not proof of a fresh logical restore or a production acceptance pass. Its per-file verification and final state are recorded in `docs/handoffs/2026-11-11-cleanup-summary.md`. No prior data-quality or automatic-ingestion risk is marked resolved by this cleanup.
 
 This file lists current project-management risks. Older May 2026 risk rows were
 collapsed into current risk themes on 2026-07-09 because their original evidence
