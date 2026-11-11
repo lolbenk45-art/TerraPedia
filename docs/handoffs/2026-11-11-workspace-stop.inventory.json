@@ -1,0 +1,44 @@
+{
+  "branch": "feat/automation-ingestion-continuation",
+  "previousHead": "edc40b4fe702aa11b9ec03d2d49ff9448d6eeb09",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.local/tmp/workspace-closeout-20261111/temporary-worktrees/feat--automation-ingestion-continuation",
+  "originalChanges": [],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-17-local-eight-domain-complete-chain.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-closure-remediation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-data-chain-closure-plan.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-23-remaining-closure-item-decision-checklist.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [],
+    "json": [],
+    "failures": []
+  }
+}

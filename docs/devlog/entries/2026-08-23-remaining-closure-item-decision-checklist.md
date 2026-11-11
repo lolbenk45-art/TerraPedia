@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 这是一份给操作者填写的“闭环 Item 任务决策表”，不是交接报告。每个空白项都代表一个可能让流程暂停的决定。代理只有在对应决定已填写后才继续。
 
@@ -252,3 +252,10 @@ Candidate disposition = 0 accepted + 1190 duplicate-only + 310 quarantine +
 | 2026-08-24 06:26 CST | Task 8 Biome evidence | 原 `47/47` 是假绿；修正审计后为 7/47 managed、40 条旧 `localhost:9000` origin | `fresh-042509/biome-managed-origin-regression-blocker.json` | readiness 默认值没有读当前 `19000` 配置，image-lineage 又无条件放行 Biome fallback | owning lane 一次 TDD 最小修复审计；数据保持阻断，需新精确 operation | 否，父任务保持 blocked |
 
 操作者：`admin（用户授权，Codex 代录证据）`  填写时间：`2026-08-24 05:28 CST`  最终复核：`2026-08-24 06:26 CST by Codex`  备注：`Boss/Shimmer 当前数据通过，但两者都缺 exact changed-row closeout metadata；Task 7/8 复核后为 5 个 blocker group、10 个独立根原因，详见 fresh closure index。`
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.
