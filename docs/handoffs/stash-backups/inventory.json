@@ -1,0 +1,39 @@
+{
+  "bundle": "2026-11-11-stashes.bundle",
+  "sha256": "489cec2bb8f4fbe78d1f86c21c34c1e460d6ce9e8fbb6bb2aff8e4f07c10fb26",
+  "bytes": 51608285,
+  "stashes": [
+    {
+      "hash": "feb9d13de6ff9b99c41bd3f31c062372a669bc2f",
+      "ref": "stash@{0}",
+      "subject": "On feat/supplementary-domains-readiness: pre-merge preserve used-decisions",
+      "newObjectCount": 7,
+      "largeBlobs": [],
+      "bundleRef": "refs/archive/workspace-stop-20261111/stash-01"
+    },
+    {
+      "hash": "96014fa0a5f9aed7745a731d5dcaec6289183568",
+      "ref": "stash@{1}",
+      "subject": "On feat/supplementary-domains-readiness: codex: preserve mixed worktree before workspace cleanup 2026-08-29",
+      "newObjectCount": 1483,
+      "largeBlobs": [],
+      "bundleRef": "refs/archive/workspace-stop-20261111/stash-02"
+    },
+    {
+      "hash": "c7703dee6cbaec8ed7cb3d4e63f14b53471ca2cf",
+      "ref": "stash@{2}",
+      "subject": "On feat/supplementary-domains-readiness: codex: protect primary changes before mixed-agent structure merge 2026-08-16",
+      "newObjectCount": 41,
+      "largeBlobs": [],
+      "bundleRef": "refs/archive/workspace-stop-20261111/stash-03"
+    },
+    {
+      "hash": "4452992c7633183a63ec0b2932bb8dad95411759",
+      "ref": "stash@{3}",
+      "subject": "On feat/supplementary-domains-readiness: runtime-evidence-2026-08-15-supplementary-acceptance",
+      "newObjectCount": 73,
+      "largeBlobs": [],
+      "bundleRef": "refs/archive/workspace-stop-20261111/stash-04"
+    }
+  ]
+}
