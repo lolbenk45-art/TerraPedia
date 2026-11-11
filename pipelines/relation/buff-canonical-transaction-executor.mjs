@@ -1,5 +1,6 @@
 import { BUFF_CANDIDATE_COLUMNS, normalizeBuffRowValue } from './sync-buffs-to-relation.mjs';
 import { assertBuffManifestPin } from './buff-canonical-governance-contract.mjs';
+import { assertBuffLandingMutationPlan } from '../landing/buff-bounded-landing-mutation.mjs';
 
 const TABLES = Object.freeze([
   'relation_buffs',
@@ -11,6 +12,17 @@ const TABLES = Object.freeze([
 
 const REQUIRED_PACKET_FIELDS = Object.freeze(['runId', 'fenceToken', 'serverUuid', 'actor']);
 const MAINT_COLUMNS = Object.freeze(('source_id internal_name english_name name_zh source_provider source_page source_revision_timestamp landing_source_id landing_source_key landing_source_page landing_content_hash landing_fetched_at landing_parsed_at module_generated_at terraria_version major_value combat_value defense_value use_time stack_size width height flags_json raw_json status deleted').split(' '));
+const MAINT_DATETIME_COLUMNS = new Set([
+  'source_revision_timestamp',
+  'landing_fetched_at',
+  'landing_parsed_at',
+  'module_generated_at',
+]);
+const RELATION_DATETIME_COLUMNS = new Set([
+  'source_revision_timestamp',
+  'created_at',
+  'updated_at',
+]);
 
 export async function executeBuffCanonicalTransaction({
   envelope,
@@ -94,10 +106,12 @@ export async function applyBuffCanonicalMutation({
       const changedColumns = change.changedColumns;
       if (changedColumns.length === 0) continue;
       const assignments = changedColumns.map((column) => `${quote(column)} = ?`);
-      const values = changedColumns.map((column) => after[column]);
+      const values = changedColumns.map((column) => RELATION_DATETIME_COLUMNS.has(column)
+        ? toMysqlDateTime(after[column])
+        : after[column]);
       if (writeTimestamp != null && !changedColumns.includes('updated_at')) {
         assignments.push(`${quote('updated_at')} = ?`);
-        values.push(writeTimestamp);
+        values.push(toMysqlDateTime(writeTimestamp));
       }
       values.push(keyValue);
       const [result] = await connection.execute(
@@ -114,7 +128,9 @@ export async function applyBuffCanonicalMutation({
       if (columns.length === 0) throw new Error(`Buff insert row is empty: ${table}`);
       const [result] = await connection.execute(
         `INSERT INTO ${quote(database)}.${quote(table)} (${columns.map(quote).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
-        columns.map((column) => values[column]),
+        columns.map((column) => RELATION_DATETIME_COLUMNS.has(column)
+          ? toMysqlDateTime(values[column])
+          : values[column]),
       );
       if (Number(result?.affectedRows ?? 0) !== 1) throw new Error(`Buff insert receipt is invalid: ${table}`);
       counts.inserts += 1;
@@ -132,7 +148,9 @@ export async function applyBuffMaintMutation({ envelope, connection, database = 
   const counts = { inserts: 0, updates: 0 };
   const columns = MAINT_COLUMNS;
   for (const row of plan.inserts) {
-    const values = columns.map(column => row[column]);
+    const values = columns.map(column => MAINT_DATETIME_COLUMNS.has(column)
+      ? toMysqlDateTime(row[column])
+      : row[column]);
     const [result] = await connection.execute(
       `INSERT INTO \`terria_v1_maint\`.\`maint_buffs\` (${columns.map(quote).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
       values,
@@ -145,7 +163,9 @@ export async function applyBuffMaintMutation({ envelope, connection, database = 
     if (columnsToUpdate.length === 0) continue;
     const [result] = await connection.execute(
       `UPDATE \`terria_v1_maint\`.\`maint_buffs\` SET ${columnsToUpdate.map(column => `${quote(column)} = ?`).join(', ')} WHERE \`id\` = ?`,
-      [...columnsToUpdate.map(column => change.after[column]), change.before.id],
+      [...columnsToUpdate.map(column => MAINT_DATETIME_COLUMNS.has(column)
+        ? toMysqlDateTime(change.after[column])
+        : change.after[column]), change.before.id],
     );
     if (Number(result?.affectedRows ?? 0) !== 1) throw new Error('Buff maint update receipt is invalid');
     counts.updates += 1;
@@ -153,13 +173,27 @@ export async function applyBuffMaintMutation({ envelope, connection, database = 
   return Object.freeze(counts);
 }
 
-function validateEnvelope(envelope) {
-  if (envelope?.upstream?.landing != null) {
-    throw new Error('Buff deferred landing lineage integration is incomplete');
+function toMysqlDateTime(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)) {
+    return value.slice(0, 19);
   }
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (!Number.isFinite(date.getTime())) throw new Error('Buff maint timestamp is invalid');
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function validateEnvelope(envelope) {
   if (!envelope || envelope.schemaVersion !== 'buff-full-chain-execution/v1'
       || envelope.executable !== true || envelope.executionBlocker != null) {
     throw new Error('Buff canonical transaction envelope is not executable');
+  }
+  if (envelope.upstream?.landing != null) {
+    assertBuffLandingMutationPlan(envelope.upstream.landing);
+    const frozenLandingRows = envelope.frozenLandingIdentity?.rows;
+    if (Array.isArray(frozenLandingRows) && frozenLandingRows.length !== 0) {
+      throw new Error('Buff deferred landing envelope cannot freeze a persisted landing identity');
+    }
   }
   if (!envelope.upstream?.maint || envelope.upstream.maint.table !== 'terria_v1_maint.maint_buffs') {
     throw new Error('Buff canonical transaction upstream maint plan is required');

@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired Armor Sets L2 evidence at current H8; bind primary evidence root; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/armor_sets/20261005-retry-35",
+  "decisionIdentity": "automation-armor-sets-l2-reauthorization-20261005-auth04-retry35-9c33e242-fb8e-4558-b100-b0b65a9de56d",
+  "authorizedAt": "2026-10-05T08:06:56.048Z"
+}

@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired Bosses L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/bosses/20261005-retry-49",
+  "decisionIdentity": "automation-bosses-l2-reauthorization-20261005-auth04-retry49-3f0f54ea-4542-4a97-9887-1f46ea661e44",
+  "authorizedAt": "2026-10-05T12:06:04.362Z"
+}

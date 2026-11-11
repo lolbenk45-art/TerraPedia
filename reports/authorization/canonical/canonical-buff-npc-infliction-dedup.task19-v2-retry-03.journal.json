@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-npc-infliction-dedup",
+  "phase": "committed",
+  "state": "COMMITTED",
+  "runId": "buff-infliction-dedup-20261007-task19-v2",
+  "fenceToken": "fence:buff-infliction-dedup-20261007-task19-v2",
+  "packetHash": "sha256:ab756641db304f2cc4354acc8f9a5310f8f3cacae888ac6847f1cff1fbb5747f",
+  "envelopeSha256": "sha256:28fb8fb48e643169e71747f8287c6ad81b7c4e96ff97db11936acddf0ffbe15e",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "committed",
+      "toState": "COMMITTED",
+      "occurredAt": "2026-10-07T07:07:54.057Z",
+      "evidence": {},
+      "previousRecordSha256": "sha256:89b48212d7bd903fab567a9722308c6a031e32d6b72256f5835722fb8c23d1b1"
+    }
+  ],
+  "recordSha256": "sha256:395d398f535921b6299db0d28528e162cbb9e911c78f5b95512999a20b974a93"
+}

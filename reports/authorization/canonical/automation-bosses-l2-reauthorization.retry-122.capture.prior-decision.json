@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-bosses-l2-reauthorization-20261008-auth04-retry97-2cf2e90a-805e-448a-bfb4-412c6d32ee7c",
+  "packetHash": "sha256:e0257c4986e87f62b7aacf880978ab5940f1177db8ea357245066bf85511e4de",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "expiresAt": "2026-10-09T00:48:48.000Z",
+  "domainId": "bosses"
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-npcs-l2-reauthorization",
+  "databaseName": "terria_v1_local",
+  "domainId": "npcs",
+  "reauthorization": true,
+  "currentPolicy": {
+    "domainId": "npcs",
+    "policyVersion": 2,
+    "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:987a5b29c38804aa3d6284b00f0384f7acc8a127b940a1db54acdd9510d01d80",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "minimumSuccessfulL1Runs": 3,
+    "fullReconciliation": true
+  },
+  "priorDecision": {
+    "decisionKind": "L2_PROMOTION",
+    "decisionIdentity": "automation-npcs-l2-reauthorization-20261008-auth04-retry92-5d4ae9bc-165e-4f84-a764-0fa1d9dbb792",
+    "packetHash": "sha256:9e4d3e58071165b2fa71462f1f086cb408edf8610c161b36b25f39097d708349",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+    "expiresAt": "2026-10-09T00:48:48.000Z",
+    "domainId": "npcs"
+  },
+  "targetPolicy": {
+    "domainId": "npcs",
+    "policyVersion": 2,
+    "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f"
+  },
+  "proposalOnly": false,
+  "proposalPath": "reports/authorization/canonical/automation-npcs-l2-reauthorization/b12eb6339c996773739724667ac9f0699cd1343f93ebfd6384148524d564b4a9/proposal.json",
+  "proposalSha256": "sha256:08d41e8e0e2f26b830ea753443fbcc54bbaeea4c5e09d8d50e55e8deecedf6ab",
+  "proposalHash": "sha256:b12eb6339c996773739724667ac9f0699cd1343f93ebfd6384148524d564b4a9"
+}

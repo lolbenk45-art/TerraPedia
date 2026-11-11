@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-full-chain",
+  "phase": "rolled-back",
+  "state": "ROLLED_BACK",
+  "runId": "buff-full-chain-20261006-task20-v9",
+  "fenceToken": "fence:641243681333cf8a1a1b593bdfe64d5a6fdf5ce6249457a6b5ce15887eb65e57",
+  "packetHash": "sha256:087c524a8cb2c41db84fb8cd4484117422d7781152b64139b4adb2dadcff1ea4",
+  "envelopeSha256": "sha256:d932fa0379160a49b4d03b590a704e62d4cd4bd7ba3ddfd0c8fe61111daa4002",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "rolled-back",
+      "toState": "ROLLED_BACK",
+      "occurredAt": "2026-10-06T02:29:19.534Z",
+      "evidence": {
+        "error": "Buff mutation row has an unowned column or missing value: relation_buffs"
+      },
+      "previousRecordSha256": "sha256:df610ace013001e41025182b46810ed58df5583fe185fbeaf7d3e2ecd8ab0841"
+    }
+  ],
+  "recordSha256": "sha256:0f48434b5ec0270d5b1810862a3617d7aedc8ba5fd4592a8aad8b8d61d84875c"
+}

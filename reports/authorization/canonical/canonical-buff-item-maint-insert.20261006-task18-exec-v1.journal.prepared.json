@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "buff-item-maint-journal/v1",
+  "state": "PREPARED",
+  "recordedAt": "2026-10-06T00:43:34.117Z",
+  "operationId": "canonical-buff-item-maint-insert",
+  "runId": "buff-items-20261006-task18-exec-v1",
+  "decisionIdentity": "buff-item-maint-20261006-admin-01",
+  "packetHash": "sha256:1da203d2619affe02acde7a2e9195eaecf076b37ef89d501a88ae4cbef657139",
+  "executionManifestHash": "sha256:ebc399eda8ff99a757f892c52c800eb00514f282c61c7d46a5c1eb1ee9c81924",
+  "contractHash": "sha256:14fae4a85c6efcd448de78ef62817dada526183d0c1fd17ca4e5025689da35e5",
+  "beforeHash": "sha256:21f0e05e52a7a935e00497cbda502db415b255b0854334284613743ecc13be78",
+  "landingId": null,
+  "maintReceipts": [],
+  "afterHash": null
+}

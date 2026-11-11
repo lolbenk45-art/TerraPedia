@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "buff-item-1340-source-disposition/v1",
+  "operationId": "canonical-buff-item-1340-source-disposition",
+  "status": "AWAITING_OWNER",
+  "readOnly": true,
+  "databaseWrites": false,
+  "networkRequests": 0,
+  "executable": false,
+  "applyAllowed": false,
+  "scope": {
+    "buffId": 395,
+    "buffInternalName": "PotentAcid",
+    "itemSourceId": 1340,
+    "relationType": "buff_source_item"
+  },
+  "sourceBindings": {
+    "candidate": {
+      "path": ".local/tmp/buff-insert-only-candidate-20261006-v2.json",
+      "fileSha256": "sha256:b3b1232a21eabbbaaeb365bc369fd57a7df7d4d3f63b353b9a5e8d6895693af0",
+      "declaredCandidateSha256": "sha256:fc3de11c0e969278457d8a5fcffa0a3d275cf186fb63af63811ffe711788ea85",
+      "declaredContractSha256": "sha256:1e29199bfb2db2edc83e00963bd18bd2b7237fb5623a1cdafe9da5bb56c77872",
+      "inputPath": "/home/lolben/TerraPedia/.worktrees/automation-domain-buff/.local/tmp/b1-a63-20260929-08/raw/template__getbuffinfo.parsed.latest.json",
+      "inputSha256": "sha256:76492e8414f58a66a23751a24e1ebd99079ee513513c14f49a9464b83f9ad751"
+    },
+    "buffPage": {
+      "sourcePage": "Template:GetBuffInfo",
+      "sourceRevisionTimestamp": "2026-08-22T05:46:54Z",
+      "landingSourceKey": "canonical.buff-page-immunity.buff-insert-only-20261006-v2-389-400",
+      "landingContentHash": "sha256:d6337ce273bef01492d674824f386b099cf7de5950aaa2d6e7bcde4da18c0e19",
+      "buffId": 395,
+      "buffInternalName": "PotentAcid",
+      "item": {
+        "name": "Flask of Venom",
+        "pageTitle": "Flask of Venom",
+        "internalName": "FlaskOfVenom",
+        "source": "buff-page-causes",
+        "sourceKind": "player",
+        "sourceSection": "From player",
+        "sourceOrder": 3
+      }
+    },
+    "iteminfo": {
+      "capturePath": ".local/tmp/buff-iteminfo-semantic-capture-20261001-v2/capture.json",
+      "captureSha256": "sha256:03e592ad63b922f78b9e69794721c25e6770088c901cf31f68f8e64c076534e2",
+      "pages": [
+        {
+          "pageTitle": "Module:Iteminfo/data",
+          "pageId": 18021,
+          "revisionId": 1023241,
+          "revisionTimestamp": "2026-08-22T03:26:22Z",
+          "sha256": "sha256:d2d02f055ceec3deb57e44ddba3905b6047db6d7d1e212efe2d8c82907fe6388"
+        },
+        {
+          "pageTitle": "Module:Iteminfo/doc",
+          "pageId": 18096,
+          "revisionId": 966449,
+          "revisionTimestamp": "2026-02-02T14:49:38Z",
+          "sha256": "sha256:daf444b36ee0cd20dedf45d2a6bc780555a30fd4ccc5116eee2f6f00de73b82f"
+        },
+        {
+          "pageTitle": "Module:Iteminfo/datagen",
+          "pageId": 18070,
+          "revisionId": 1023234,
+          "revisionTimestamp": "2026-08-22T03:03:08Z",
+          "sha256": "sha256:da4dc88e3577f6e7e2693b53a5ab3f09fc8bc84604156ed2b4cca3da93c0a75d"
+        }
+      ],
+      "generated": "2026-08-22 03:17:40 (+00:00)",
+      "terrariaVersion": "1.4.5.7",
+      "item": {
+        "sourceId": 1340,
+        "internalName": "FlaskofVenom",
+        "englishName": "Flask of Venom",
+        "buffType": 71,
+        "buffTime": 72000
+      }
+    }
+  },
+  "currentDatabase": {
+    "server": {
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "serverPort": 13306
+    },
+    "snapshotSha256": "sha256:06e03262acae01c7d552a4275cbddaa1214e2b95955629a259795878f74084b3",
+    "maintItem": {
+      "source_id": 1340,
+      "internal_name": "FlaskofVenom",
+      "english_name": "Flask of Venom",
+      "status": 1,
+      "deleted": 0
+    },
+    "relationBuff": {
+      "sourceId": 395,
+      "internalName": "PotentAcid",
+      "englishName": "Potent Acid",
+      "sourceItem": {
+        "name": "Flask of Venom",
+        "pageTitle": "Flask of Venom",
+        "internalName": "FlaskOfVenom",
+        "source": "buff-page-causes",
+        "sourceKind": "player",
+        "sourceSection": "From player",
+        "sourceOrder": 3
+      }
+    },
+    "projectionBuff": {
+      "sourceId": 395,
+      "internalName": "PotentAcid",
+      "englishName": "Potent Acid",
+      "sourceItem": {
+        "itemId": 1340,
+        "sourceId": 1340,
+        "internalName": "FlaskofVenom",
+        "itemInternalName": "FlaskofVenom",
+        "name": "Flask of Venom",
+        "nameZh": "毒液药剂",
+        "imageUrl": null,
+        "source": "buff-page-causes",
+        "sourceKind": "item",
+        "sourceSection": "From item",
+        "relationType": "buff_source_item",
+        "buffTime": null,
+        "chanceText": null,
+        "conditions": null,
+        "relationRecordKey": "c57db8b56830ddb2697ed6278d3ffd226dc003afda301a2a5cbe662e8891c29f",
+        "sourceProvider": "terraria.wiki.gg",
+        "sourcePage": "Template:GetBuffInfo",
+        "sourceRevisionTimestamp": "2026-08-22T05:46:54Z"
+      }
+    },
+    "itemBuffRelations": [
+      {
+        "item_source_id": 1341,
+        "item_internal_name": "VenomArrow",
+        "buff_source_id": 395,
+        "buff_internal_name": "PotentAcid",
+        "relation_type": "buff_source_item",
+        "status": 1,
+        "deleted": 0
+      },
+      {
+        "item_source_id": 1342,
+        "item_internal_name": "VenomBullet",
+        "buff_source_id": 395,
+        "buff_internal_name": "PotentAcid",
+        "relation_type": "buff_source_item",
+        "status": 1,
+        "deleted": 0
+      }
+    ]
+  },
+  "findings": [
+    {
+      "code": "source-internal-name-drift",
+      "severity": "important",
+      "observed": "Buff 395 page payload uses FlaskOfVenom; Iteminfo and maint_items use FlaskofVenom for source_id 1340."
+    },
+    {
+      "code": "iteminfo-buff-type-conflict",
+      "severity": "critical",
+      "observed": "Iteminfo source_id 1340 declares buffType 71, while the candidate page assigns it to Buff 395."
+    },
+    {
+      "code": "secondary-relation-absent",
+      "severity": "important",
+      "observed": "item_buff_relations has no active row for item_source_id 1340 and buff_source_id 395."
+    },
+    {
+      "code": "projection-canonicalizes-item",
+      "severity": "informational",
+      "observed": "projection_buffs.source_items_json carries item 1340 as FlaskofVenom even though relation_buffs retains the page spelling."
+    }
+  ],
+  "dispositionOptions": [
+    {
+      "id": "defer-semantic-conflict",
+      "recommended": true,
+      "writes": false,
+      "effect": "Keep item_buff_relations absent for (1340,395), preserve both source spellings and the buffType=71 evidence, and open a source correction review.",
+      "requiredOwnerDecision": "explicitly select defer-semantic-conflict"
+    },
+    {
+      "id": "accept-source-id-despite-buff-type",
+      "recommended": false,
+      "writes": true,
+      "effect": "Would require a new governed Item-Buff additive operation and explicit justification for overriding Iteminfo buffType=71; no operation, packet, permit, fence, or SQL write exists.",
+      "requiredOwnerDecision": "explicitly select accept-source-id-despite-buff-type and provide justification"
+    },
+    {
+      "id": "rewrite-source-payload",
+      "recommended": false,
+      "writes": true,
+      "effect": "Rewrite or alias the page payload; prohibited without a new source capture and separate governed operation.",
+      "requiredOwnerDecision": "not currently executable"
+    }
+  ],
+  "blockedBy": [
+    "iteminfo-buff-type-conflict",
+    "source-internal-name-drift",
+    "no-governed-item-buff-secondary-operation",
+    "no-owner-disposition"
+  ],
+  "generatedAt": "2026-10-06T10:58:25.049Z",
+  "artifactSha256": "sha256:eda24b9da1d83f78a63c9dd185f3f0b68d5fe073a7bc05d6369c6a70eba1294f"
+}

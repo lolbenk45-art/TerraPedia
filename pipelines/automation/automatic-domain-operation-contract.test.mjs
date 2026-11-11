@@ -35,6 +35,13 @@ test('all eight domains require activation-gated database apply', () => {
   }
 });
 
+test('Buff automatic owned tables preserve the persisted policy order', () => {
+  assert.deepEqual(requireAutoDomainOperation('buffs').ownedTables, [
+    { databaseRole: 'local', table: 'buff_source_items' },
+    { databaseRole: 'local', table: 'buffs' },
+  ]);
+});
+
 test('unknown domains fail closed', () => {
   assert.throws(() => requireAutoDomainOperation('npc_loot'), /unsupported automatic domain/);
 });

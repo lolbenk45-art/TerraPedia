@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-full-chain",
+  "phase": "committed",
+  "state": "COMMITTED",
+  "runId": "buff-source-correction-20261007-item-1340-v1",
+  "fenceToken": "fence:aec2e5c382d4da506a672a5a9d1cf07b234c7181ac4da2b8b7d6534f597f14a3",
+  "packetHash": "sha256:5876a2e7162a04bfc53c1aa12d1bdde9570e384e8bff6377f7e1dcfb45efa392",
+  "envelopeSha256": "sha256:3da2e221cc7746f3d15d341fe24585a5ea679e982db522a0e4affa0aad4ea7e3",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "committed",
+      "toState": "COMMITTED",
+      "occurredAt": "2026-10-07T10:30:49.974Z",
+      "evidence": {},
+      "previousRecordSha256": "sha256:5ce65eab7319c371cb210e2f32d824b13267bf4c950b273b634846af39811aef"
+    }
+  ],
+  "recordSha256": "sha256:a514e39da11c814f0aff13b5276128b659af97a92cd4b2f2bb6dc39af5bb01a0"
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-crawler-v2-scheduler-activation",
+  "databaseName": "terria_v1_local",
+  "domainId": "crawler_v2_scheduler",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "policyVersion": 1,
+  "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+  "minimumSuccessfulL1Runs": 2,
+  "canary": {
+    "actionId": "buff-page-immunity-refresh",
+    "domainId": "buffs"
+  },
+  "authorizedActionId": "buff-page-immunity-refresh",
+  "authorizationRequest": {
+    "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-63.request.json",
+    "fileSha256": "sha256:cc691e1c51c78aba8c53d6b926ff48528a265069363694a960124deb1adf1cac",
+    "requestHash": "sha256:a88e24d5d0f4ef3fd548852c86acfbd016c96fc73776f429f722ab1db1a9490c"
+  }
+}

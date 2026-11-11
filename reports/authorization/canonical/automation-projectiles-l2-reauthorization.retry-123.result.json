@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-projectiles-l2-reauthorization",
+  "domainId": "projectiles",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20261010-auth04-retry-123-ead09a4f-df95-4adf-8106-c858b2055993",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew projectiles L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-10/automation-scheduler-standing-01/AUTH-04/projectiles/20261010-retry-123",
+  "packetHash": "sha256:07f32dd4e3dbf0511f61068022e8c28990a65e109ec66022ede196363f109261",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "completedAt": "2026-10-10T12:43:35.274Z"
+}

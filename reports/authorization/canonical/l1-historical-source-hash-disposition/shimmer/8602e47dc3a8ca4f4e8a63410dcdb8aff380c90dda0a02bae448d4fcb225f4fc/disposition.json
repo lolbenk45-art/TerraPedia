@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "l1-historical-source-hash-disposition",
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "status": "approved",
+  "proposalOnly": false,
+  "generatedAt": "2026-10-10T12:20:05.855Z",
+  "databaseName": "terria_v1_local",
+  "domainId": "shimmer",
+  "currentPolicy": {
+    "domainId": "shimmer",
+    "level": "L1",
+    "operationalState": "ACTIVE",
+    "policyVersion": 1,
+    "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+  },
+  "disposition": "exclude_from_l1_qualification",
+  "reasonCode": "legacy_semantic_json_source_hash",
+  "entries": [
+    {
+      "domainId": "shimmer",
+      "runId": "shimmer_l1_20260824closure01",
+      "runStatus": "COMPLETED",
+      "applyStatus": "COMMITTED",
+      "bundle": {
+        "databasePrivatePath": "/home/lolben/TerraPedia/reports/authorization/canonical/automation-shimmer-first-l1.bundle.json",
+        "relativePath": "reports/authorization/canonical/automation-shimmer-first-l1.bundle.json",
+        "hash": "sha256:d5a8b8a3368b1041de9c8e29de5bd1137cf21a9eb1893814b2cb26f6e8102da1",
+        "fileSha256": "sha256:e046ef44badb8f1af2701341d093b1fb8b176c9760fbb50637c6723aed468b54",
+        "evidenceHash": "sha256:10b7e51959aff604e7c94cc3e21f15ffc363977973fdd43e2645c7d44f9b301f",
+        "baselineFingerprint": "sha256:438796ee0b6871383f5f0a7959a5363c4eadb1862bbd2ff3bedd3d74f59a2184",
+        "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629"
+      },
+      "source": {
+        "path": "reports/authorization/canonical/automation-shimmer-first-l1.source.json",
+        "declaredSha256": "sha256:85dff081c399c693b3ec0f9b03e598d2e776bffd5964f3397ed0e38c4ff68522",
+        "semanticJsonSha256": "sha256:85dff081c399c693b3ec0f9b03e598d2e776bffd5964f3397ed0e38c4ff68522",
+        "actualByteSha256": "sha256:abc3d6a0431e928bceb3adca37afaf3a2ac3c68803f38379dc5946ec612db911",
+        "bytes": 927,
+        "encoding": "utf8"
+      },
+      "exclusion": "legacy_semantic_json_source_hash"
+    }
+  ],
+  "approval": {
+    "actor": "admin",
+    "reason": "Standing AUTH-04: renew shimmer historical source-hash disposition for fresh L2 evidence; no policy scope expansion or business write",
+    "reference": "user://conversation/2026-10-10/automation-scheduler-standing-01/AUTH-04/shimmer/historical-disposition/ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a/retry",
+    "authorizationReference": "user://conversation/2026-10-10/automation-scheduler-standing-01/AUTH-04/shimmer/historical-disposition/ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a/retry",
+    "decisionIdentity": "automation-l1-historical-source-hash-disposition-shimmer-20261010-84ba07ed-1449-46ee-b455-fcfe0805a55c",
+    "packetHash": "sha256:b7e3bdd761e7d8a2476632429b51df34844d33d490f42fd361ac53be2acadcd4",
+    "packetPath": "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a/packet.json",
+    "packetFileSha256": "sha256:20ab6b8b772a0baca976c3caee0f36bd481f857ca4bb960ea9595b94c26db4c1",
+    "authorizedAt": "2026-10-10T12:25:06.271Z",
+    "expiresAt": "2026-10-11T12:25:03.632Z",
+    "approvedAt": "2026-10-10T12:25:06.271Z",
+    "technical": {
+      "operationId": "automation-l1-historical-source-hash-disposition",
+      "targetDatabases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ],
+      "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+      "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+      "schemaBundleEntries": [],
+      "dataBundleSha256": "sha256:2d6bae29c6a471315c77d55fac9de92f5bd7409e0a30141aa646c12a07c6e4cf",
+      "dataBundleEntries": [
+        {
+          "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a/candidate.json",
+          "sizeBytes": 2294,
+          "contentHash": "sha256:8e8c0436707a8be2fdab183e10c5e6ceb5abcf0eddc5edadb001b44f2673b3b6"
+        }
+      ],
+      "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+      "executionManifestHash": "sha256:8e9436a7b1598d761932d5fffee264e366cdc0b4de2e8be9ca40facbf3760392",
+      "executionManifest": {
+        "command": [
+          "node",
+          "pipelines/automation/historical-source-hash-disposition.mjs"
+        ],
+        "databaseWrites": false,
+        "executionClass": "historical_source_hash_disposition",
+        "historicalSourceHashDisposition": {
+          "candidateArtifactHash": "sha256:ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a",
+          "candidateFileSha256": "sha256:8e8c0436707a8be2fdab183e10c5e6ceb5abcf0eddc5edadb001b44f2673b3b6",
+          "candidatePath": "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a/candidate.json"
+        },
+        "inputPaths": [
+          "reports/authorization/canonical/l1-historical-source-hash-disposition/shimmer/ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a/candidate.json"
+        ],
+        "networkAccess": false,
+        "operationId": "automation-l1-historical-source-hash-disposition",
+        "outputPaths": [],
+        "progressPaths": [],
+        "reportPaths": [],
+        "schemaVersion": 1,
+        "scope": {
+          "candidateArtifactHash": "sha256:ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a",
+          "domainId": "shimmer",
+          "runId": "shimmer_l1_20260824closure01"
+        }
+      },
+      "requiredTechnicalFields": [
+        "serverFingerprint",
+        "schemaBundleSha256",
+        "dataBundleSha256",
+        "policySetHash",
+        "executionManifestHash"
+      ]
+    }
+  },
+  "scope": {
+    "domainId": "shimmer",
+    "runId": "shimmer_l1_20260824closure01",
+    "candidateArtifactHash": "sha256:ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a"
+  },
+  "artifactHash": "sha256:8602e47dc3a8ca4f4e8a63410dcdb8aff380c90dda0a02bae448d4fcb225f4fc"
+}

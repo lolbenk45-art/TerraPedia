@@ -4,19 +4,19 @@ const HASH = /^sha256:[0-9a-f]{64}$/;
 const PHASES = new Set(['prepared', 'commit-unknown', 'committed', 'rolled-back']);
 const STATES = new Set(['PREPARED', 'RECOVERY_REQUIRED', 'COMMITTED', 'ROLLED_BACK']);
 const TRANSITIONS = new Map([
-  ['prepared', new Set(['commit-unknown', 'rolled-back'])],
+  ['prepared', new Set(['commit-unknown', 'committed', 'rolled-back'])],
   ['commit-unknown', new Set(['committed', 'rolled-back'])],
   ['committed', new Set()],
   ['rolled-back', new Set()],
 ]);
 
-export function buildBuffRecoveryJournalRecord({ phase, packet, envelopeSha256, state } = {}) {
+export function buildBuffRecoveryJournalRecord({ phase, packet, envelopeSha256, state, operationId = 'canonical-buff-full-chain' } = {}) {
   requirePhase(phase);
   requireState(state);
   requireHash(envelopeSha256, 'Buff recovery journal envelopeSha256');
   const body = {
     schemaVersion: 'buff-recovery-journal/v1',
-    operationId: 'canonical-buff-full-chain',
+    operationId: requireText(operationId, 'Buff recovery journal operationId'),
     phase,
     state,
     runId: requireText(packet?.runId, 'Buff recovery journal runId'),
@@ -63,7 +63,8 @@ export function validateBuffRecoveryJournal(journal) {
     throw new Error('Buff recovery journal is required');
   }
   if (journal.schemaVersion !== 'buff-recovery-journal/v1'
-      || journal.operationId !== 'canonical-buff-full-chain') {
+      || !['canonical-buff-full-chain', 'canonical-buff-additive-relation-apply', 'canonical-buff-npc-secondary-apply',
+        'canonical-buff-npc-infliction-dedup'].includes(journal.operationId)) {
     throw new Error('Buff recovery journal identity is invalid');
   }
   requirePhase(journal.phase);
@@ -74,6 +75,15 @@ export function validateBuffRecoveryJournal(journal) {
   requireHash(journal.envelopeSha256, 'Buff recovery journal envelopeSha256');
   if (!Array.isArray(journal.history)) throw new Error('Buff recovery journal history is required');
   let previous = null;
+  if (journal.history.length > 0) {
+    const first = journal.history[0];
+    previous = hashWithoutRecord({
+      ...journal,
+      phase: first.fromPhase,
+      state: first.fromState,
+      history: [],
+    });
+  }
   for (const event of journal.history) {
     if (!event || event.previousRecordSha256 !== previous) {
       throw new Error('Buff recovery journal history is not hash chained');

@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew the Projectiles historical source-hash disposition prerequisite for fresh L2 evidence; no policy scope expansion or business write",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/projectiles/historical-disposition/20261005",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-projectiles-20261005-a7c384c3-620d-4851-b9c2-de2275fe239c",
+  "authorizedAt": "2026-10-05T07:59:24.308Z"
+}

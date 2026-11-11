@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20261008-auth04-retry93-b2676466-2a4e-4824-af1b-e3dea67cd31d",
+  "packetHash": "sha256:1fa070b58da748eef659ed07b0106012a021baa1f0ba8240b7e83da3f7dadee8",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "expiresAt": "2026-10-09T00:48:48.000Z",
+  "domainId": "projectiles"
+}

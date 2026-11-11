@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-npcs-l2-reauthorization-20261005-auth04-retry41-fd8d5f10-5ca7-4c18-907b-174ff28ac09b",
+  "packetHash": "sha256:a3fedf94deffb0fb41a6ae42afaa66564c6a8f8e98203be16033fb045c112060",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "expiresAt": "2026-10-05T13:11:24.000Z",
+  "domainId": "npcs"
+}

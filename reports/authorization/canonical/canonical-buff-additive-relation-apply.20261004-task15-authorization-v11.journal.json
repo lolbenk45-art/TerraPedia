@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-additive-relation-apply",
+  "phase": "rolled-back",
+  "state": "ROLLED_BACK",
+  "runId": "buff_additive_relation_20261004_task15_v11",
+  "fenceToken": "fence:91e070f21f9d4c257ed98125945134409ef4687af861d1846fa21872f9de7a7e",
+  "packetHash": "sha256:354d090cdda1aadc5e50c97facc30b00abb6c9a8bd5202306a229695a8796a40",
+  "envelopeSha256": "sha256:1280e5662282d28827da1074a6e259d89a2e2384096c7d78a888a8664769a97f",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "rolled-back",
+      "toState": "ROLLED_BACK",
+      "occurredAt": "2026-10-04T01:55:26.684Z",
+      "evidence": {
+        "error": "Buff additive relation after-set drifted"
+      },
+      "previousRecordSha256": "sha256:d236ce7b3985068e4d8ad6549a1d0ba231f3a28b193f0de45aea08de8806ba1f"
+    }
+  ],
+  "recordSha256": "sha256:907c24c413fe6320e6ddcc3406d3fbe88808384bb19dcb96387d88efa884f251"
+}

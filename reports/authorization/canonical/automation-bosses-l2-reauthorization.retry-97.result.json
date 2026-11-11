@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-bosses-l2-reauthorization",
+  "domainId": "bosses",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-bosses-l2-reauthorization-20261008-auth04-retry97-2cf2e90a-805e-448a-bfb4-412c6d32ee7c",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew bosses L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-08/automation-scheduler-standing-01/AUTH-04/bosses/20261008-retry-97",
+  "packetHash": "sha256:e0257c4986e87f62b7aacf880978ab5940f1177db8ea357245066bf85511e4de",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "completedAt": "2026-10-08T00:49:58.367Z"
+}

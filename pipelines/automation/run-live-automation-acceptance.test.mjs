@@ -67,6 +67,28 @@ test('live resource names are exact runKey-isolated databases and bounded tempor
   assert.equal(value.accounts.provisioner.length <= 32, true);
 });
 
+test('live acceptance rejects DB14 before creating or announcing isolated resources', async () => {
+  const privateDirectory = path.join(os.tmpdir(), `terrapedia-db14-rejection-${process.pid}-${Date.now()}`);
+  let resourcesAnnounced = false;
+
+  await assert.rejects(
+    () => liveAcceptance.runLiveAutomationAcceptance({
+      profile: 't0',
+      runId: 'db14-rejection-test',
+      privateDirectory,
+      mysql: {},
+      redis: { logicalDb: 14 },
+      onResources: () => {
+        resourcesAnnounced = true;
+        throw new Error('resources announced before Redis DB validation');
+      },
+    }),
+  );
+
+  assert.equal(resourcesAnnounced, false);
+  assert.equal(fs.existsSync(privateDirectory), false);
+});
+
 test('probe SQL touches only the exact isolated three-database set and covers rollback commit restore', () => {
   const resources = buildLiveResourceNames({ profile: 't0', runKey: 'abc_0123456789abcdef' });
   const sql = buildAcceptanceProbeSql(resources.databases, 'probe_123');

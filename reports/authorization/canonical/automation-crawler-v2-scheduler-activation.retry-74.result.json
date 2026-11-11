@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-crawler-v2-scheduler-activation",
+  "domainId": "crawler_v2_scheduler",
+  "status": "completed",
+  "authoritative": true,
+  "policyVersion": 1,
+  "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L1",
+  "operationalState": "ACTIVE",
+  "decisionKind": "SCHEDULER_ACTIVATION",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261010-retry-74-admin-6ff0fdc3-39e7-4637-8455-d08a5dd49665",
+  "actor": "admin",
+  "reason": "User-authorized bounded natural V2 scheduler activation for retry-74 with Buff canary buff-page-immunity-refresh/buffs on Redis DB16; observe one natural changed-only sweep, permit only the registered canary path, record probe-only when Buff is unchanged, restore scheduler disabled after the window, and require full Buff landing/maint/relation/projection/API/SQL readback plus expiry and restart soak for any real change.",
+  "authorizationReference": "user://conversation/2026-10-10/automation-scheduler-retry-74-authorized",
+  "packetHash": "sha256:a134092d6df932d821f37411c6827cce4b2a406a8b58e75fd9ebaaa85bf27d56",
+  "successfulL1Runs": null,
+  "completedAt": "2026-10-10T05:26:16.736Z"
+}

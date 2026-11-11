@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew the Items historical source-hash disposition prerequisite for fresh L2 evidence; no policy scope expansion or business write",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/items/historical-disposition/20261005-retry-29",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-items-20261005-3d25476d-67e3-4b4c-9b0d-61911c9637ce",
+  "authorizedAt": "2026-10-05T07:47:10.890Z"
+}

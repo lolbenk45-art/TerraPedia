@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired Projectiles L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/projectiles/20261005-retry-42",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20261005-auth04-retry42-041a42db-83d8-4b6e-9653-170dd574291d",
+  "authorizedAt": "2026-10-05T11:14:13.943Z"
+}

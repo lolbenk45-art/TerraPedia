@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Approve the exact Iteminfo-owned Buff correction: retain Item 1340 on Buff 71 WeaponImbueVenom, remove it from Buff 395 PotentAcid, insert item_buff_relations (1340,71), and repair the two projection source-item counts with no landing, maint, NPC, image, or destructive writes.",
+  "authorizationReference": "user://conversation/01a10936-edff-70c0-b375-7cfcacc3d19a/buff-source-correction-20261007-item-1340",
+  "decisionIdentity": "canonical-buff-full-chain-item-1340-ownership-correction-20261007-admin-01",
+  "authorizedAt": "2026-10-07T10:30:48.501Z"
+}

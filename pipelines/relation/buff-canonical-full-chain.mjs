@@ -22,6 +22,7 @@ export function buildBuffFullChainExecutionEnvelope({
   maintMutation,
   landingMutation = null,
   executionManifestHash,
+  allowDeferredLandingExecution = false,
 } = {}) {
   if (typeof executionManifestHash !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(executionManifestHash)) {
     throw new Error('Buff execution manifest hash is required');
@@ -40,12 +41,20 @@ export function buildBuffFullChainExecutionEnvelope({
   if (new Set(names).size !== names.length || names.length === 0) {
     throw new Error('Buff full-chain candidate must contain unique relation identities');
   }
-  for (const name of names) {
+  const changedNames = [
+    ...(candidate.changes?.relation_buffs?.inserts ?? []),
+    ...(candidate.changes?.relation_buffs?.updates ?? []).map((change) => change?.after),
+  ].map((row) => String(row?.internal_name ?? '').trim()).filter(Boolean);
+  const evidenceNames = landingPlan && changedNames.length > 0 ? [...new Set(changedNames)] : names;
+  const maintForEvidence = landingPlan
+    ? [...maint, ...(maintMutation.inserts ?? [])]
+    : maint;
+  for (const name of evidenceNames) {
     if (!evidence.has(name)) throw new Error(`Buff page immunity evidence is missing for ${name}`);
-    const matches = maint.filter((row) => row.internal_name === name);
+    const matches = maintForEvidence.filter((row) => row.internal_name === name);
     if (matches.length !== 1) throw new Error(`frozen maint identity is missing for ${name}`);
   }
-  if (evidence.size !== names.length) throw new Error('Buff page immunity evidence contains unrelated identities');
+  if (evidence.size !== evidenceNames.length) throw new Error('Buff page immunity evidence contains unrelated identities');
   if (runtimeManagedImagePolicySha256 !== candidate.managedImageUrlPrefixesSha256) {
     throw new Error('Buff managed image policy drifted between proposal and executor');
   }
@@ -53,8 +62,9 @@ export function buildBuffFullChainExecutionEnvelope({
     schemaVersion: 'buff-full-chain-execution/v1',
     executionManifestHash,
     domainId: 'buffs',
-    executable: landingPlan == null,
-    executionBlocker: landingPlan ? 'deferred-lineage-integration-required' : null,
+    executable: landingPlan == null || allowDeferredLandingExecution === true,
+    executionBlocker: landingPlan && allowDeferredLandingExecution !== true
+      ? 'deferred-lineage-integration-required' : null,
     tables: [...TABLES],
     candidateSha256: hashCanonical(candidate),
     frozenLandingIdentity: {
@@ -121,8 +131,35 @@ function assertCandidate(candidate) {
   if (!candidate.expectedRows || !Array.isArray(candidate.expectedRows.relation_buffs)) {
     throw new Error('Buff full-chain candidate relation projection is missing');
   }
+  const relationRows = [
+    ...candidate.expectedRows.relation_buffs,
+    ...(candidate.changes?.relation_buffs?.inserts ?? []),
+    ...(candidate.changes?.relation_buffs?.unchanged ?? []),
+    ...(candidate.changes?.relation_buffs?.preserved ?? []),
+    ...(candidate.changes?.relation_buffs?.updates ?? []).map((change) => change?.after),
+  ];
+  for (const row of relationRows) {
+    const sourceEvidence = parseJsonValue(row?.source_evidence_json);
+    const disposition = sourceEvidence?.partialFactDisposition;
+    if (disposition?.schemaVersion === 'buff-partial-fact-disposition/v1'
+        || disposition?.executionBlocker === 'partial-fact-contract-review-required') {
+      throw new Error('Buff full-chain candidate contains a partial-fact contract and is not executable');
+    }
+  }
   if (!HASH_PATTERN.test(String(candidate.managedImageUrlPrefixesSha256 ?? ''))) {
     throw new Error('Buff managed image policy hash is missing');
+  }
+}
+
+function parseJsonValue(value) {
+  if (value == null) return null;
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string') return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
   }
 }
 

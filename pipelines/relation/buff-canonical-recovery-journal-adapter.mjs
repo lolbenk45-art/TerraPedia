@@ -3,7 +3,7 @@ import {
   buildBuffRecoveryJournalRecord,
 } from './buff-canonical-recovery-journal.mjs';
 
-export function createBuffRecoveryJournalAdapter({ store, packet, envelopeSha256, clock = () => new Date().toISOString() } = {}) {
+export function createBuffRecoveryJournalAdapter({ store, packet, envelopeSha256, operationId = 'canonical-buff-full-chain', clock = () => new Date().toISOString() } = {}) {
   if (!store || typeof store.create !== 'function' || typeof store.advance !== 'function') {
     throw new Error('Buff recovery journal store is required');
   }
@@ -28,7 +28,7 @@ export function createBuffRecoveryJournalAdapter({ store, packet, envelopeSha256
         throw new Error('Buff recovery journal packet binding drifted');
       }
       const prepared = buildBuffRecoveryJournalRecord({
-        phase: 'prepared', packet, envelopeSha256, state: 'PREPARED',
+        phase: 'prepared', packet, envelopeSha256, state: 'PREPARED', operationId,
       });
       await store.create(prepared);
       state.current = prepared;

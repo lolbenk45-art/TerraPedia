@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-full-chain",
+  "phase": "rolled-back",
+  "state": "ROLLED_BACK",
+  "runId": "buff-full-chain-20261006-task20-v7",
+  "fenceToken": "fence:2dc539b3818cda1d967f268e1271b3118af843cd4b62b025fe1c4612d3ec9a08",
+  "packetHash": "sha256:ceb2f52a8a08438e8f1931e4116c24ea43435a9cefa6d3eb70a5a7302e3d3988",
+  "envelopeSha256": "sha256:1c95e7f668fcdd7ea8c730564f89ef4fbc102c98a1c6199ed7fc2d5725307611",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "rolled-back",
+      "toState": "ROLLED_BACK",
+      "occurredAt": "2026-10-06T02:24:40.418Z",
+      "evidence": {
+        "error": "Buff landing insert readback drifted"
+      },
+      "previousRecordSha256": "sha256:85a644fa24693c9de7d3ccc46d1834df9b8b508e7156ef72b5a2b86e5d0b5080"
+    }
+  ],
+  "recordSha256": "sha256:7f8ad54859916d9009dd1462aa9f7ed6aaeac3a553442d32750d7bdd0008f296"
+}

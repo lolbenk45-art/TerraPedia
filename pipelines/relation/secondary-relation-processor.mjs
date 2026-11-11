@@ -518,7 +518,7 @@ export function buildSecondaryRelations({
   });
 
   const npcBuffFactIssues = [];
-  const inflictingNpcBuffRelations = maintBuffRows.flatMap((row) => {
+  const inflictingNpcBuffRelationRows = maintBuffRows.flatMap((row) => {
     let parsed = {};
     try {
       parsed = typeof row.raw_json === 'string' ? JSON.parse(row.raw_json) : row.raw_json ?? {};
@@ -583,6 +583,24 @@ export function buildSecondaryRelations({
         }));
       });
   });
+  const inflictingNpcBuffRelationsByKey = new Map();
+  for (const relation of inflictingNpcBuffRelationRows) {
+    const factKey = JSON.stringify([
+      relation.npcSourceId,
+      relation.npcInternalName,
+      relation.buffSourceId,
+      relation.buffInternalName,
+      relation.relationType,
+      relation.durationTicks,
+      relation.chanceValue,
+      relation.chanceText,
+      relation.conditions
+    ]);
+    if (!inflictingNpcBuffRelationsByKey.has(factKey)) {
+      inflictingNpcBuffRelationsByKey.set(factKey, relation);
+    }
+  }
+  const inflictingNpcBuffRelations = [...inflictingNpcBuffRelationsByKey.values()];
 
   const immuneNpcBuffRelations = maintNpcRows.flatMap((row) => {
     const buffSourceIds = parseBuffImmuneSourceIds(row.raw_json);

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-buffs-l2-reauthorization",
+  "domainId": "buffs",
+  "policyVersion": 2,
+  "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-buffs-l2-reauthorization-20261005-auth04-retry36-3e854069-bf17-4c5e-adf8-6a563a2071ad",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired Buffs L2 evidence at current H8; preserve the independent Buff source and scope fences; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/buffs/20261005-retry-36",
+  "packetHash": "sha256:c6d445cf21cb6673de23c22403c6f9c342df4649a9bbbc7750e52cf38489d724",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-10-05T08:09:01.495Z"
+}

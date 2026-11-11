@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "buff-item-maint-journal/v1",
+  "state": "FENCE_HOLD_COMMITTED",
+  "recordedAt": "2026-10-06T00:43:33.281Z",
+  "operationId": "canonical-buff-item-maint-insert",
+  "runId": "buff-items-20261006-task18-exec-v1",
+  "decisionIdentity": "buff-item-maint-20261006-admin-01",
+  "packetHash": "sha256:1da203d2619affe02acde7a2e9195eaecf076b37ef89d501a88ae4cbef657139",
+  "fenceTokens": {
+    "landing": "fence:5af316b853fc102138b613fe920fcfbe385dadb25397249249a4a9d62ead52ba",
+    "maint": "fence:d1b4cb114cd583b509832b27658e68421928c6814c49e606127e795a3c15c998"
+  },
+  "holdDeadline": "9999-12-31 23:59:59"
+}

@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-10-06T02:35:42.544Z",
+  "expiresAt": "2026-10-06T04:35:42.544Z",
+  "operationId": "canonical-buff-full-chain",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:21c869606123a169b3b9d8ba08b11b84f9919a6b25ea022a46ef99c3d3b52728",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-buff-full-chain.task20-zero-baseline-v11.envelope.json",
+      "sizeBytes": 45835993,
+      "contentHash": "sha256:2c888aa8384ff305674d5159d16bad17019fac6dc43d0f618ebcec5c27263979"
+    }
+  ],
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "executionManifestHash": "sha256:c4f7b28ca181613183ff6f69c4a35b967c6d05ce80e7acbf61ba6ee7d2428f64",
+  "executionManifest": {
+    "artifactDate": "2026-10-06",
+    "buffFullChain": {
+      "envelopePath": "reports/authorization/canonical/canonical-buff-full-chain.task20-zero-baseline-v11.envelope.json",
+      "fenceToken": "fence:083dc84b42143f370bf8833dceb8f931eb0c22358185c9a0e738189f982de36c",
+      "journalPath": "reports/authorization/canonical/canonical-buff-full-chain.task20-zero-baseline-v11.journal.json",
+      "operationId": "canonical-buff-full-chain",
+      "resultLabel": "task20-zero-baseline-v11",
+      "resultPath": "reports/authorization/canonical/canonical-buff-full-chain.task20-zero-baseline-v11.result.json",
+      "runId": "buff-full-chain-20261006-task20-v11",
+      "schemaVersion": "buff-full-chain-operation-binding/v1"
+    },
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:777cf4257f3cc34afb5780830dff51058ebb87405a11abb21d5e69b1dc8cdcd5",
+        "path": "pipelines/relation/run-buff-canonical-ingestion.mjs"
+      },
+      {
+        "contentHash": "sha256:d3acf161becec5e4ac93a79c6f6bbd3df20b77373ef49a255afa446859fcb375",
+        "path": "pipelines/relation/buff-canonical-transaction-executor.mjs"
+      },
+      {
+        "contentHash": "sha256:779bbcea7ec09c10a96e39d3e2fc773471305dc74873aaaab2eb35e1bd8a660a",
+        "path": "pipelines/relation/buff-canonical-full-chain.mjs"
+      },
+      {
+        "contentHash": "sha256:7255ec9cfd93763ec35da9e59d9e8bf3821ee51aeccbc436ff8c44fa2e4ff0b7",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:c065d77f0f31efb0f4ff97e282859227cd11ae3f2b1287260df7d8aba830b371",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:fd760bd9ea92d2a3c894bc2fc4d1a874aa82153a35c7b22cc63edc8138d3a0d0",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:c3a75df1a24154ae6e1a48e3b78375ce49365211d25456d737da7b4281fad693",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:af76b8005b71747242a87850e3a618ff8dec17669970ccb4ccfa731b3f9cb15c",
+        "path": "pipelines/relation/sync-buffs-to-relation.mjs"
+      },
+      {
+        "contentHash": "sha256:47301fde842a305d27e205de7cb89848480137fb5d935e160a0a756426f36492",
+        "path": "pipelines/landing/buff-bounded-landing-mutation.mjs"
+      },
+      {
+        "contentHash": "sha256:a80f85e2d50803587c37a161cbebe920a647d2ecb589500361db350d1bd46dae",
+        "path": "pipelines/relation/buff-maint-mutation-plan.mjs"
+      },
+      {
+        "contentHash": "sha256:586e0f8a79f73d726dd190ea0ee337460e60bea7cdee0b0e3fa4de8ad10233b0",
+        "path": "pipelines/relation/buff-canonical-governance-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:2cbcdb16b515b09f9229820610cd3870b867fad8e272a3a5eacf8bd634b7f82c",
+        "path": "pipelines/relation/buff-canonical-recovery-journal-adapter.mjs"
+      },
+      {
+        "contentHash": "sha256:8c657f45fd9dc524ded56afbb952036c44e9728f4bdcb710ba9d9fb4cca75bf2",
+        "path": "pipelines/relation/buff-canonical-recovery-journal-store.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:8a700297609ced6900ce449a8632b602b4b84cb0f20bb9e6f95e5d9247b1d8cc",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:672edcbec486d524928b3954023d182f905ba9a37364e3acd15db23ed4287abe",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:8fe9e041db6d99a32644d73a44f19a8cc5968e63ca1094b0610cfb222eef3a7b",
+        "path": "pipelines/workflow/armor-image-cache.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:ec8c6c9dfc5b34e144ff5de902e72846350b515ba3b572f0f6fb5db8fecc662b",
+        "path": "pipelines/relation/buff-entity-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:2e715633d9b4e8553eb09fe9f48c873e597b93bba2a602c7149110af260c2a57",
+        "path": "pipelines/relation/relation-trace.mjs"
+      },
+      {
+        "contentHash": "sha256:685f76ad3d9217e073d54e6c313b8b20e6bea367e46a9ee41b3f1c8ba6a61122",
+        "path": "pipelines/relation/secondary-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:f14b0545473e0f53e88d8612b512f32b735fb01353898d2fc7e7bf3a295e5dc5",
+        "path": "pipelines/relation/projection-sync.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:825c3f168917c01f81338a9c4ddf73f6b12b7c69259af152cd7b7dae835e4f04",
+        "path": "pipelines/relation/buff-source-applicability.mjs"
+      },
+      {
+        "contentHash": "sha256:136561c25314d8ad30aa8242818049b6590c9cae4e7e2c89e8e23d983cc8cc87",
+        "path": "pipelines/maint/sync-landing-to-maint.mjs"
+      },
+      {
+        "contentHash": "sha256:a6a9b785be0f9cfca501c971fad666685df1e85c86b2f538185bc5698dfe494a",
+        "path": "pipelines/relation/buff-canonical-recovery-journal.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:a9e4044ea896b1e0a75daed7bf7f1291db1d90410dea9ba2b4d05fcf5f93e4e1",
+        "path": "pipelines/lib/wiki-item-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:703eaa4a0f2a24ea761c4cf23f2b812a866a74164a7fe6629f5f5e49e29460c4",
+        "path": "pipelines/maint/category-item-structured-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:11b90ff271b953e05036c1d8cfcab72314e665131ecd6179b42b7f728d53cb29",
+        "path": "pipelines/maint/page-recipe-structured-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:3e8a5593d5e1c7831e0c14f170e7b359af89810975692b5319db385724315ba2",
+        "path": "pipelines/maint/shimmer-structured-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:03d1141ce6f72bf6e2af8c0f8fdbfcb00243882be2c436335dd84ec7a0228f13",
+        "path": "pipelines/maint/item-page-statistics-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:c77290b1db5e5eca8aec12672b1fefbf552b0ecad5523b9497df5dff2208c75f",
+        "path": "pipelines/maint/zh-source-index.mjs"
+      },
+      {
+        "contentHash": "sha256:b68da11446219dde35275322b8e0e11c4f40f56b899cf989cab4a53eb06b2101",
+        "path": "pipelines/item-groups/item-group-canonical-sync.mjs"
+      },
+      {
+        "contentHash": "sha256:9a1ac7186763c5e9e773116399ac9f839cf99747bfa5a7ba37c4681b55b21f16",
+        "path": "pipelines/npc-canonical/npc-canonical-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:19dada99f8bc8a5e31af064f92073c07c037368b41129c67f28c54ab2375f3af",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:b19bcd0b9eb2f23b730e753e96eae9e4ce455b51a9b5ec0b480b7257e755a91d",
+        "path": "pipelines/lib/wiki-request-gate.mjs"
+      },
+      {
+        "contentHash": "sha256:cc5ec3ea555bf6404a650c314a4407c686e9fd088c3c8d2373a73bcc8cd8bba3",
+        "path": "pipelines/lib/wiki-user-agent.mjs"
+      },
+      {
+        "contentHash": "sha256:57de54a75212d1657321e418a232194d51f80bbbb59a5287bdd03314760df42d",
+        "path": "pipelines/lib/crawler-heartbeat.mjs"
+      },
+      {
+        "contentHash": "sha256:2d5b9621d356c8f65d3862c8590dc793a0ae2841b672e71e383f63e89873bd57",
+        "path": "pipelines/lib/wiki-page-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:190b7cede93202f233e8f7db2e8c9c85b4e0f80da77543c37ceb5776f2a61650",
+        "path": "pipelines/lib/recipe-material-reference.mjs"
+      },
+      {
+        "contentHash": "sha256:ff5b2aea26119759313f78116d4d9830a0688db3ab650a27209c8b14142df87c",
+        "path": "pipelines/audit/build-npc-bridge-retirement-report.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:f3c420eae97379c43554e875e31ab2c6d3f827131bcf5970265d1408c6d22fdc",
+        "path": "pipelines/lib/crawler-alerts.mjs"
+      },
+      {
+        "contentHash": "sha256:4e820dc1cc5cfc52d3490e46f375e36b352dc77478257338722aa33d6109e395",
+        "path": "pipelines/lib/flaresolverr-bridge.mjs"
+      },
+      {
+        "contentHash": "sha256:2ee2102f5feba92acfaaca41945f6c0952b2f5d72f04e3af144e1fb907883801",
+        "path": "pipelines/workflow/backend-refresh-runtime-state.mjs"
+      },
+      {
+        "contentHash": "sha256:2b70b9a5b5639ab8adb11cf1db7089d563d5d78c2dbcc978a5a72683b059360a",
+        "path": "scripts/lib/project-constants.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/relation/run-buff-canonical-ingestion.mjs",
+      "--operation-id=canonical-buff-full-chain",
+      "--result-label=task20-zero-baseline-v11",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_buff_canonical_full_chain",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-buff-full-chain.task20-zero-baseline-v11.envelope.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-buff-full-chain",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-buff-full-chain.task20-zero-baseline-v11.result.json",
+      "reports/authorization/canonical/canonical-buff-full-chain.task20-zero-baseline-v11.journal.json"
+    ],
+    "ownershipKeys": [
+      "local.source_dataset_landings.buffs_raw",
+      "maint.maint_buffs",
+      "relation.relation_buffs",
+      "relation.item_buff_relations",
+      "relation.npc_buff_relations",
+      "relation.relation_buff_images",
+      "relation.projection_buffs"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "requiredOperationIds": [],
+    "resultLabel": "task20-zero-baseline-v11",
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity"
+  ],
+  "requestHash": "sha256:f0d5807cac2b120fef42a825c02058f937b94a48607dc5c92fe722cd9183343b"
+}

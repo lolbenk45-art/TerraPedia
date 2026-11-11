@@ -113,6 +113,22 @@ test('Buff landing apply inserts only after locking the exact namespace and retu
   assert.equal(db.statements.some(({ kind }) => ['ddl', 'update', 'delete'].includes(kind)), false);
 });
 
+test('Buff landing apply normalizes ISO revision timestamps for MySQL DATETIME', async () => {
+  const db = fakeDb();
+  const plan = buildBuffLandingInsertPlan({
+    landingRow: landing(),
+    sourceEvidenceHash: `sha256:${'a'.repeat(64)}`,
+    runId: 'b1-a63-20260929-07',
+  });
+  await applyBuffLandingMutation({
+    connection: db,
+    plan,
+    transactionContext: { transactionActive: true, fenceHeld: true },
+  });
+  const insert = db.statements.find(({ kind }) => kind === 'insert');
+  assert.equal(insert.values[6], '2026-08-22 05:46:54');
+});
+
 test('Buff landing apply rejects an existing namespace before INSERT', async () => {
   const db = fakeDb({ existing: [{ id: 12435, source_key: 'canonical.buff-page-immunity.b1-a63-20260929-07' }] });
   const plan = buildBuffLandingInsertPlan({
@@ -134,7 +150,7 @@ function fakeDb({ existing = [] } = {}) {
     async execute(sql, values) {
       if (/^SELECT .*WHERE id = \?\s+FOR UPDATE/s.test(sql)) {
         statements.push({ kind: 'readback', sql, values });
-        return [[{ id: 13001, source_key: 'canonical.buff-page-immunity.b1-a63-20260929-07', content_hash: landing().content_hash, source_revision_timestamp: MODULE_REVISION, dataset_type: 'buffs_raw', provider: 'terraria.wiki.gg', source_page: 'Template:GetBuffInfo', is_current: 1 }], []];
+        return [[{ id: 13001, source_key: 'canonical.buff-page-immunity.b1-a63-20260929-07', content_hash: landing().content_hash, source_revision_timestamp: '2026-08-22 05:46:54', dataset_type: 'buffs_raw', provider: 'terraria.wiki.gg', source_page: 'Template:GetBuffInfo', is_current: 1 }], []];
       }
       if (/^SELECT .*FOR UPDATE/s.test(sql)) {
         statements.push({ kind: 'lock', sql, values });

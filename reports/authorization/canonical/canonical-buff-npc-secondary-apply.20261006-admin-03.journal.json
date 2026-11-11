@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-npc-secondary-apply",
+  "phase": "committed",
+  "state": "COMMITTED",
+  "runId": "buff-npc-secondary-20261006-admin-03",
+  "fenceToken": "fence:46de9573ff21b0ec8ea10ada147b64d4a4a4935432c814a09e895293a3253830",
+  "packetHash": "sha256:88db4061d7fac48d68d0e8f27339503ef7f8208f87054f75bae964f73b845bd1",
+  "envelopeSha256": "sha256:df4105412e20e875ad1378439bcf1ecb53d0552adef15b7d51c47d8989389df7",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "committed",
+      "toState": "COMMITTED",
+      "occurredAt": "2026-10-06T08:58:09.438Z",
+      "evidence": {},
+      "previousRecordSha256": "sha256:5d592557d6775c9d7b804689aff115cb040e0324503b33190181a58980c570cb"
+    }
+  ],
+  "recordSha256": "sha256:dc1da3be8c755f197061d0472e4a65120e5a6402ad1c8442d67435c8ec3cf3e6"
+}

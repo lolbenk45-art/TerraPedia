@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_buff_npc_infliction_dedup_result",
+  "operationId": "canonical-buff-npc-infliction-dedup",
+  "status": "completed",
+  "scopeSha256": "sha256:5aa42ce41393d63de4ddb5f8f33bd367da3cd277fbc84eb34bae88e37a13398b",
+  "retirementCount": 5,
+  "beforeRowsSha256": "sha256:f0b7a7721639b64f71a3ff5a7d096f174d52142ce4ed40dcd017477e04f9172f",
+  "afterRowsSha256": "sha256:750a5bc878f128f0d342a448002572d5dc38986c8dcaf644ea8bc876c8f5abf9",
+  "authorization": {
+    "decisionIdentity": "canonical-buff-npc-infliction-dedup-20261007-admin-03",
+    "packetHash": "sha256:ab756641db304f2cc4354acc8f9a5310f8f3cacae888ac6847f1cff1fbb5747f"
+  },
+  "readbackPath": "reports/authorization/canonical/canonical-buff-npc-infliction-dedup.task19-v2-retry-03.readback.json",
+  "readbackSha256": "sha256:56d3161d0674d7e5b48e44d37b280d6159a0644fb0711c0f699433c5e8155b7e",
+  "completedAt": "2026-10-07T07:07:53.340Z"
+}

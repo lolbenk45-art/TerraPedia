@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-projectiles-l2-reauthorization",
+  "domainId": "projectiles",
+  "policyVersion": 2,
+  "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-projectiles-l2-reauthorization-20261005-auth04-retry-45-ebcd298e-5160-4b9f-a382-e2338938b13c",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired Projectiles L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/projectiles/20261005-retry-45",
+  "packetHash": "sha256:95bc3217ee83335feb8836ac634569575a1e2b6f0f1da5570bac3f8dfc00cff3",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-10-05T11:36:09.446Z"
+}

@@ -27,7 +27,16 @@ function fixture(t) {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'buff-authorization-'));
   t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
   const manifest = buildCanonicalOperationExecutionManifest({
-    repoRoot: sourceRoot, operationId, resultLabel: 'test-01',
+    repoRoot: sourceRoot,
+    operationId,
+    resultLabel: 'test-01',
+    buffFullChainBinding: {
+      schemaVersion: 'buff-full-chain-operation-binding/v1',
+      operationId,
+      resultLabel: 'test-01',
+      runId: 'buff-full-chain-test-01',
+      fenceToken: 'fence:test-full-chain-01',
+    },
   });
   for (const entry of manifest.codeBundleEntries) {
     const target = path.join(repoRoot, entry.path);
@@ -67,6 +76,41 @@ test('Buff authorization binds private envelope bytes through request and packet
 test('Buff authorization requires a manifest', (t) => {
   const f = fixture(t);
   assert.throws(() => resolveCanonicalOperationTechnicalInput({ repoRoot: f.repoRoot, operationId }), /manifest is required/);
+});
+
+test('Buff additive authorization binds its private proposal as the data bundle', (t) => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'buff-additive-authorization-'));
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const additiveOperationId = 'canonical-buff-additive-relation-apply';
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot: sourceRoot,
+    operationId: additiveOperationId,
+    resultLabel: 'test-01',
+    buffAdditiveRelationBinding: {
+      schemaVersion: 'buff-additive-relation-operation-binding/v1',
+      operationId: additiveOperationId,
+      resultLabel: 'test-01',
+      runId: 'buff-additive-relation-test-01',
+      fenceToken: 'fence:test-01',
+    },
+  });
+  for (const entry of manifest.codeBundleEntries) {
+    const target = path.join(repoRoot, entry.path);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(path.join(sourceRoot, entry.path), target);
+  }
+  const proposalPath = manifest.buffAdditiveRelation.proposalPath;
+  const proposalTarget = path.join(repoRoot, proposalPath);
+  fs.mkdirSync(path.dirname(proposalTarget), { recursive: true });
+  fs.writeFileSync(proposalTarget, '{"operationId":"canonical-buff-additive-relation-apply"}\n', { mode: 0o600 });
+
+  const resolved = resolveCanonicalOperationTechnicalInput({
+    repoRoot,
+    operationId: additiveOperationId,
+    executionManifest: manifest,
+  });
+
+  assert.deepEqual(resolved.dataEntries.map((entry) => entry.path), [proposalPath]);
 });
 
 for (const invalid of ['public', 'missing', 'symlink']) {

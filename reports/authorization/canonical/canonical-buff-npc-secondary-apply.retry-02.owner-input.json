@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "写入 revision-bound Npcinfo 解析得到的 65 条稳定 NPC 身份 immune 关系，0 条 deferred；retry-02 仅修复首次执行的 fence admission 失败，首次未产生业务写入。",
+  "authorizationReference": "buff-npc-secondary-variant-scope-65-20261006-admin-01",
+  "decisionIdentity": "canonical-buff-npc-secondary-apply-20261007-variant-scope-65-retry-02-admin-01",
+  "authorizedAt": "2026-10-06T21:01:23.000Z"
+}

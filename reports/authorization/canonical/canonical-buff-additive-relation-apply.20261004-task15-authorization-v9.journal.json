@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-additive-relation-apply",
+  "phase": "rolled-back",
+  "state": "ROLLED_BACK",
+  "runId": "buff_additive_relation_20261004_task15_v9",
+  "fenceToken": "fence:9f0285acc431f0230ee00d5ad4c72049173ffdbc3f3113a5c2a9d0774147d510",
+  "packetHash": "sha256:335a3ec9108e67a1271dfcf41eb162d329e094eabc8d13df5bb8898048bf011c",
+  "envelopeSha256": "sha256:b60da8b5a3a61f9854a0f31f56c0e79beba3c503eed707842a1e956178289b9f",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "rolled-back",
+      "toState": "ROLLED_BACK",
+      "occurredAt": "2026-10-04T01:41:39.806Z",
+      "evidence": {
+        "error": "Incorrect datetime value: '2026-08-23T20:19:32Z' for column 'source_revision_timestamp' at row 1"
+      },
+      "previousRecordSha256": "sha256:f59358f7500bba6d9448091e0f95bdab30b7c754bfb28a2d30cf9d442bfaaaa5"
+    }
+  ],
+  "recordSha256": "sha256:0eea6d0e0e6d693ce47005382274f78b0ccab13742bd591008c5e4556fbb75ad"
+}

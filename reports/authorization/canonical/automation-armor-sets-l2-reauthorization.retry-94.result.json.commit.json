@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-armor-sets-l2-reauthorization",
+  "domainId": "armor_sets",
+  "policyVersion": 2,
+  "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-armor-sets-l2-reauthorization-20261008-auth04-retry94-da084e8f-4ffc-472f-bc98-96cc01c20f04",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew armor_sets L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-08/automation-scheduler-standing-01/AUTH-04/armor-sets/20261008-retry-94",
+  "packetHash": "sha256:cf936b2109ac3713ad51f9b1ae04d2ebc322badcf66ca6e240a7e8187c833341",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-10-08T00:49:57.192Z"
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-crawler-v2-scheduler-activation",
+  "databaseName": "terria_v1_local",
+  "domainId": "crawler_v2_scheduler",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "policyVersion": 1,
+  "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+  "minimumSuccessfulL1Runs": 2,
+  "canary": {
+    "actionId": "wiki-projectiles-refresh",
+    "domainId": "projectiles"
+  },
+  "authorizedActionId": "wiki-projectiles-refresh",
+  "authorizationRequest": {
+    "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-49.request.json",
+    "fileSha256": "sha256:9f7dd947624c5b2c2da8d86ebc87b4905706734068ec51bd66605fd2f73ba90c",
+    "requestHash": "sha256:e3f4cd8305a686aab750be684a565a3a16c15e198d2ccf2cd552af1939a18d3d"
+  }
+}

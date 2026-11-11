@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "buff_item_source_disposition",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-10-06T10:58:25.049Z",
+  "operationId": "canonical-buff-item-1340-source-disposition",
+  "targetDatabases": [
+    "terria_v1_relation"
+  ],
+  "databaseWrites": false,
+  "proposalPath": "reports/authorization/canonical/canonical-buff-item-1340-source-disposition.20261006-v1.proposal.json",
+  "proposalHash": "sha256:24ab8cbb38b5aab98b47eccf412f92f2e87bc2928a6d878dad78be3d216c67ab",
+  "artifactSha256": "sha256:eda24b9da1d83f78a63c9dd185f3f0b68d5fe073a7bc05d6369c6a70eba1294f",
+  "request": {
+    "scope": {
+      "buffId": 395,
+      "buffInternalName": "PotentAcid",
+      "itemSourceId": 1340,
+      "relationType": "buff_source_item"
+    },
+    "recommendedDisposition": "defer-semantic-conflict",
+    "deferredRows": [
+      "item_buff_relations (item_source_id=1340, buff_source_id=395)"
+    ],
+    "sharedNameVariantsDeferred": 20
+  },
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity",
+    "disposition"
+  ],
+  "requestHash": "sha256:e05ace819b1fd0ca565df5f9d326def0a108e111798b7d0c744aac151c923995"
+}

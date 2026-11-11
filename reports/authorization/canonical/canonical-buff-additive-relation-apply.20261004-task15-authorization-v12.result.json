@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_buff_additive_relation_apply_result",
+  "operationId": "canonical-buff-additive-relation-apply",
+  "status": "COMPLETED",
+  "scopeSha256": "sha256:8823480a6946676c5a9302dba97ed43cbe8308c657294d0c0128462bdef9ccea",
+  "beforeSha256": "sha256:ea31dda91e1dd8a5268f224f987db8f36b7b9d53fd19df1b3c2045a06575e9b5",
+  "afterSha256": "sha256:a66ed5b13b33bf242d73d2058471a85e6970b16351d522225592dd1f88b291c2",
+  "transactionCommitted": true,
+  "authorization": {
+    "decisionIdentity": "buff-additive-relation-20261004-admin-08",
+    "packetHash": "sha256:9e00238a2c6868baa6684e6a9371841c01b4d90aa926b3ae713ee1b81dbfe15c"
+  },
+  "recovery": {
+    "postCommitJournalRepair": true,
+    "journalPath": "reports/authorization/canonical/canonical-buff-additive-relation-apply.20261004-task15-authorization-v12.journal.json",
+    "observedAfterSha256": "sha256:a66ed5b13b33bf242d73d2058471a85e6970b16351d522225592dd1f88b291c2"
+  },
+  "completedAt": "2026-10-04T02:02:17.767Z"
+}

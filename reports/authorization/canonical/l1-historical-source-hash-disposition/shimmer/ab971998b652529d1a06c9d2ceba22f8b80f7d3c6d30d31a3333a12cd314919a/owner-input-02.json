@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew shimmer historical source-hash disposition for fresh L2 evidence; no policy scope expansion or business write",
+  "authorizationReference": "user://conversation/2026-10-10/automation-scheduler-standing-01/AUTH-04/shimmer/historical-disposition/ab971998b652529d1a06c9d2ceba22f8b80f7d3c6d30d31a3333a12cd314919a/retry",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-shimmer-20261010-84ba07ed-1449-46ee-b455-fcfe0805a55c",
+  "authorizedAt": "2026-10-10T12:25:06.271Z"
+}

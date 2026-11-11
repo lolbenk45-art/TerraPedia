@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired npcs L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-08/automation-scheduler-standing-01/AUTH-04/npcs/20261008-retry-52",
+  "decisionIdentity": "automation-npcs-l2-reauthorization-20261008-auth04-retry52-2bc680a6-400c-4288-b39e-a271e66a2391",
+  "authorizedAt": "2026-10-08T00:37:00.000Z"
+}

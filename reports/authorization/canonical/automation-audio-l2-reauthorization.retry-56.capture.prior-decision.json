@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-audio-l2-reauthorization-20261005-auth04-retry48-c558dfb1-b3bf-49ab-b0c3-fc5cc51f24ce",
+  "packetHash": "sha256:de192c4210475b2ab23ea5c62f40913ed51a599794ef0a1ae4662456f2a22eb0",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "expiresAt": "2026-10-05T14:04:48.000Z",
+  "domainId": "audio"
+}

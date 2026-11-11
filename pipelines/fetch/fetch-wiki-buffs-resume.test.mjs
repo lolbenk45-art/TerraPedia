@@ -323,7 +323,7 @@ function buildParsedPayload(pageTitle) {
       { line: 'From enemy', anchor: 'From_enemy' },
       { line: 'Immune NPCs', anchor: 'Immune_NPCs' }
     ],
-    wikitext: '',
+    wikitext: `== Immune NPCs ==\n{{immunities|${pageTitle}}}`,
     html: `
       <h2><span class="mw-headline" id="From_player">From player</span></h2>
       <ul><li><a href="/wiki/${pageTitle}_Potion" title="${pageTitle} Potion">${pageTitle} Potion</a></li></ul>

@@ -1,0 +1,12 @@
+{
+  "operationId": "canonical-buff-full-chain",
+  "status": "completed",
+  "packet": {
+    "runId": "buff-source-correction-20261007-item-1340-v1",
+    "fenceToken": "fence:aec2e5c382d4da506a672a5a9d1cf07b234c7181ac4da2b8b7d6534f597f14a3",
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "actor": "admin",
+    "packetHash": "sha256:5876a2e7162a04bfc53c1aa12d1bdde9570e384e8bff6377f7e1dcfb45efa392",
+    "executionManifestHash": "sha256:6e6e4c089e7942a2ed27a9418a087e3e8dbf272eaaaceffc96700ff642a05c79"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew shimmer L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-08/automation-scheduler-standing-01/AUTH-04/shimmer/20261008-retry-98",
+  "decisionIdentity": "automation-shimmer-l2-reauthorization-20261008-auth04-retry98-da15f474-dfe2-436d-82fb-7ef289ac7b79",
+  "authorizedAt": "2026-10-08T00:48:48.874Z"
+}

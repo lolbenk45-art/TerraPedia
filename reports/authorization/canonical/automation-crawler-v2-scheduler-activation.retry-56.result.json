@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-crawler-v2-scheduler-activation",
+  "domainId": "crawler_v2_scheduler",
+  "status": "completed",
+  "authoritative": true,
+  "policyVersion": 1,
+  "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L1",
+  "operationalState": "ACTIVE",
+  "decisionKind": "SCHEDULER_ACTIVATION",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261005-standing-npcs-56-ddf76e82-7b99-4e75-b63a-8e62d84a5cf1",
+  "actor": "admin",
+  "reason": "Standing AUTH-05/AUTH-06: one bounded natural V2 scheduler canary for wiki-npcs-refresh/npcs using fresh retry-56 source readiness and H8 preflight; observe one natural tick, preserve canary scope, and restore scheduler disabled after the window.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05-06/npcs/retry-56",
+  "packetHash": "sha256:5380ea90426af07cb77c9d3276dc3db1aa9f8635d74b937e0562c6d791e3a278",
+  "successfulL1Runs": null,
+  "completedAt": "2026-10-05T08:59:13.215Z"
+}

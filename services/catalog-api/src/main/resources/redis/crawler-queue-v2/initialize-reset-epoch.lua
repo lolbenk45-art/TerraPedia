@@ -83,11 +83,11 @@ if currentCutover and currentCutover ~= ARGV[1] then
 end
 
 local currentFirstLiveMutationAt = redis.call('GET', KEYS[4])
-if currentFirstLiveMutationAt and (ARGV[5] == '' or currentFirstLiveMutationAt ~= ARGV[5]) then
+if currentFirstLiveMutationAt and ARGV[5] ~= '' and currentFirstLiveMutationAt ~= ARGV[5] then
   return cjson.encode({code = 'FIRST_MUTATION_MISMATCH'})
 end
 
-redis.call('DEL', KEYS[6], KEYS[7], KEYS[8], KEYS[9], KEYS[10])
+redis.call('DEL', KEYS[4], KEYS[6], KEYS[7], KEYS[8], KEYS[9], KEYS[10])
 redis.call('SET', KEYS[1], 'v2')
 redis.call('SET', KEYS[2], ARGV[4])
 redis.call('SET', KEYS[3], ARGV[1])
@@ -95,6 +95,10 @@ redis.call('SETNX', KEYS[5], '0')
 if not currentFirstLiveMutationAt and ARGV[5] ~= '' then
   redis.call('SET', KEYS[4], ARGV[5])
   currentFirstLiveMutationAt = ARGV[5]
+elseif currentFirstLiveMutationAt and ARGV[5] ~= '' then
+  redis.call('SET', KEYS[4], ARGV[5])
+else
+  currentFirstLiveMutationAt = nil
 end
 
 local streamCursor = redis.call('XADD', KEYS[11], '*', 'payload', ARGV[8])

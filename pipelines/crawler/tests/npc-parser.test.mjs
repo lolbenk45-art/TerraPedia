@@ -237,6 +237,28 @@ test('extractNpcSourceInfoboxes captures inline hidden infobox auto ids', () => 
   ]);
 });
 
+test('extractNpcSourceInfoboxes preserves auto IDs from an inline first line followed by fields', () => {
+  const sample = `{{npc infobox|template=/row1|auto=302|sortkey=r|nolink=y
+| image = Bunny Slime.png
+| type = Slime
+}}`;
+  assert.deepEqual(extractNpcSourceInfoboxes(sample), [
+    { autoId: '302', image: 'Bunny Slime.png', name: '' }
+  ]);
+});
+
+test('extractNpcSourceInfoboxes splits multiple fields on one infobox line', () => {
+  const sample = `{{npc infobox
+| imagealt = [[File:Hellbat.gif|link=]]
+| auto = 60 |boxwidth=18em
+| type = Flying Enemy
+}}`;
+
+  assert.deepEqual(extractNpcSourceInfoboxes(sample), [
+    { autoId: '60', image: '[[File:Hellbat.gif|link=]]', name: 'Hellbat' }
+  ]);
+});
+
 test('extractNpcSourceInfoboxes normalizes auto ids with inline comments', () => {
   const sample = [
     'Cargo storage of the Bone Throwing Skeleton:',
@@ -249,6 +271,19 @@ test('extractNpcSourceInfoboxes normalizes auto ids with inline comments', () =>
       image: 'Skeleton.gif',
       name: ''
     }
+  ]);
+});
+
+test('extractNpcSourceInfoboxes ignores commented pipes and assignments', () => {
+  const sample = `{{npc infobox
+| auto = 113
+| namesub = <!-- hide namesub caused by "|auto=113" -->
+| image = Wall of Flesh.gif
+| debuff = Horrified
+}}`;
+
+  assert.deepEqual(extractNpcSourceInfoboxes(sample), [
+    { autoId: '113', image: 'Wall of Flesh.gif', name: '' }
   ]);
 });
 
@@ -321,6 +356,19 @@ test('extractNpcInfobox ignores inline debuff metadata when naming the debuff', 
 }}`;
 
   assert.equal(extractNpcInfobox(sample).buffInflictions[0].buffName, 'Bleeding');
+});
+
+test('extractNpcInfobox removes probability suffixes from debuff names while preserving raw text', () => {
+  const sample = `{{npc infobox
+| type = Enemy
+| debuff = Darkness / 25%
+| debuff2 = Electrified / 5
+}}`;
+
+  assert.deepEqual(extractNpcInfobox(sample).buffInflictions.map(({ buffName, rawBuffText }) => ({ buffName, rawBuffText })), [
+    { buffName: 'Darkness', rawBuffText: 'Darkness / 25%' },
+    { buffName: 'Electrified', rawBuffText: 'Electrified / 5' },
+  ]);
 });
 
 test('extractNpcInfobox captures debuffs from secondary NPC infoboxes on group pages', () => {

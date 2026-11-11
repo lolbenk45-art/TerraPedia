@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Goal
 
@@ -356,3 +356,10 @@
 - Verified immediately before staging, all fresh: Article unit tests `6/6`; `check:public-pages`, `check:user-module`, `check:front-layout-layering`, `check:preview-images`, `check:breakpoints`, `check:visual-blocked-source`, and full `pnpm run check` (which includes Nuxt typecheck, so no orphaned prop or import survives) all exit `0`; `check:loading-skeleton` remains exactly the eight recorded `pages/armor-sets/[id].vue` findings; `git diff --check` exits `0`. Runtime: `/articles` and `/articles/archive` return `200` and `/articles?page=2` still returns a real SSR `302` to the archive.
 - The three rounds are committed together because they interleave in the same files; splitting them would require hunk-level staging and would produce intermediate commits that do not build. The excluded paths remain unstaged exactly as inherited: the two design HTML files, `entries/2026-07-27-detail-pages-redesign-hifi.md`, both `docs/superpowers/plans/**` files, the untracked `entries/2026-07-29-articles-hifi.md`, and every `reports/**` artefact.
 - Open follow-up, analysed but not implemented: the fold's vertical rhythm. `.article-approved-stage` is pinned to `calc(100svh - 203px)`, `.article-approved-lead` gives the whole surplus to its middle row, and `.article-lead-body` uses `align-content: center` with a fixed `18px` gap, so all spare height becomes two outer voids while the copy stays packed. Measured at `1440` width: the flow content is a constant `315px` at every viewport, while the surrounding void grows `166px → 748px` between `800` and `1440` viewport heights, i.e. from `35%` to `70%` of the middle row. The proposed fix caps the stage height, makes the body gap fluid, and gives the below-fold section a real inter-block gap; `grid-template-rows: 46px minmax(0, 1fr) auto` and the lead padding are contract-frozen and stay untouched. Awaiting the user's choice between that and simply dropping the viewport lock.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.

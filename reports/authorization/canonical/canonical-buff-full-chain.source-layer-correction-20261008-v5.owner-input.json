@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Approve the exact source-layer correction: publish bounded Buff 71/395 landing evidence, update maint_buffs source IDs 71/395, retain Items 1341/1342 on PotentAcid, retain Item 1340 on WeaponImbueVenom, and synchronize only the bounded Buff relation/projection provenance with no NPC, image, scheduler, Redis, delete, or destructive write.",
+  "authorizationReference": "user://conversation/01a10936-edff-70c0-b375-7cfcacc3d19a/buff-source-layer-correction-20261007",
+  "decisionIdentity": "canonical-buff-full-chain-source-layer-correction-20261008-v5-admin-01",
+  "authorizedAt": "2026-10-07T23:17:08.067Z"
+}

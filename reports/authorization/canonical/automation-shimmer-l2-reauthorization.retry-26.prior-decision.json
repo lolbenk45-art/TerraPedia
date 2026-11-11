@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "shimmer-six-scope-transition-e69aa629-3902-47fe-8e7f-8aaee1235672",
+  "packetHash": "sha256:b11b00d750100b60f412c3f7979201f48def0e09202bd12c18faea7f9ec971fb",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "expiresAt": "2026-09-29T19:07:33.000Z",
+  "domainId": "shimmer"
+}

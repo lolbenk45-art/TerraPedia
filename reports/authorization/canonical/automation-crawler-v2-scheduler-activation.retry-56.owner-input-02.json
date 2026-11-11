@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-05/AUTH-06: one bounded natural V2 scheduler canary for wiki-npcs-refresh/npcs using fresh retry-56 source readiness and H8 preflight; observe one natural tick, preserve canary scope, and restore scheduler disabled after the window.",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-05-06/npcs/retry-56",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261005-standing-npcs-56-ddf76e82-7b99-4e75-b63a-8e62d84a5cf1",
+  "authorizedAt": "2026-10-05T08:57:42.026Z"
+}

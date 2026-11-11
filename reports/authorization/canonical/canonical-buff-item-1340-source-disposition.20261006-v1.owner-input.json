@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "buff-item-1340-source-disposition-owner-input/v1",
+  "operationId": "canonical-buff-item-1340-source-disposition",
+  "proposalPath": "reports/authorization/canonical/canonical-buff-item-1340-source-disposition.20261006-v1.proposal.json",
+  "proposalHash": "sha256:24ab8cbb38b5aab98b47eccf412f92f2e87bc2928a6d878dad78be3d216c67ab",
+  "requestPath": "reports/authorization/canonical/canonical-buff-item-1340-source-disposition.20261006-v1.request.json",
+  "requestHash": "sha256:e05ace819b1fd0ca565df5f9d326def0a108e111798b7d0c744aac151c923995",
+  "requestStatusAtApproval": "AWAITING_OWNER",
+  "actor": "admin",
+  "reason": "Iteminfo buffType=71 与 Buff 395 页面来源冲突，保留现状等待源修正",
+  "authorizationReference": "buff-item-1340-review-20261006",
+  "decisionIdentity": "canonical-buff-item-1340-source-disposition-20261006-admin-01",
+  "disposition": "defer-semantic-conflict",
+  "scope": {
+    "buffId": 395,
+    "buffInternalName": "PotentAcid",
+    "itemSourceId": 1340,
+    "relationType": "buff_source_item"
+  },
+  "databaseWrites": false,
+  "runtimeExecution": false,
+  "preserve": [
+    "item_buff_relations absence for (item_source_id=1340,buff_source_id=395)",
+    "Buff page source spelling FlaskOfVenom",
+    "Iteminfo and maint_items source identity FlaskofVenom",
+    "Iteminfo buffType=71 evidence"
+  ],
+  "deferredSharedNameVariantCount": 20,
+  "writePolicy": "create-only-no-overwrite"
+}

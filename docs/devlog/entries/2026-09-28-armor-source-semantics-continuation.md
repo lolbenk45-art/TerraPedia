@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Scope and handoff
 
@@ -100,3 +100,10 @@
 
 - Fresh read-only runtime checkpoint `2026-09-29` confirms scheduler disabled, attempts/claims `0/0`, healthy reconciler, active fences `0`, unchanged server UUID/H8/epoch. Buff baseline: landing `2` rows (`12435` current generated/unrevisioned), maint/relation/projection `388` active rows each. No new source namespace is in the database.
 - Because the governed landing importer performs schema preparation and historical retirement, it remains out of scope. The current full-chain envelope can execute maint/relation only against an already persisted new landing identity; it cannot safely invent a landing ID or overwrite `12435`. New landing insertion needs a separate bounded landing mutation contract before any packet is generated.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.

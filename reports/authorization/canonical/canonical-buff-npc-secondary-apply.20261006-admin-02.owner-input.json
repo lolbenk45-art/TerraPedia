@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Approved 259 stable NPC identity immune relations for Buffs 389-400; retain 114 display-only facts as deferred evidence.",
+  "authorizationReference": "user://conversation/01a10936-edff-70c0-b375-7cfcacc3d19a/buff-npc-secondary-apply-20261006-admin-02",
+  "decisionIdentity": "canonical-buff-npc-secondary-apply-20261006-admin-02"
+}

@@ -12,6 +12,7 @@ const INSERT_COLUMNS = Object.freeze([
   'parse_status', 'artifact_role', 'producer_id', 'producer_version', 'producer_run_key',
   'bootstrap_manifest_hash', 'full_file_content_hash', 'full_file_byte_size', 'is_current', 'notes',
 ]);
+const DATETIME_COLUMNS = new Set(['source_revision_timestamp', 'fetched_at', 'parsed_at']);
 
 export function buildBuffLandingInsertPlan({ landingRow, sourceEvidenceHash, runId } = {}) {
   const row = validateLandingRow(landingRow, { runId });
@@ -54,7 +55,9 @@ export async function applyBuffLandingMutation({ connection, plan, transactionCo
   const [insertResult] = await connection.execute(
     `INSERT INTO ${DATABASE}.${TABLE} (${INSERT_COLUMNS.map(quote).join(', ')})
      VALUES (${INSERT_COLUMNS.map(() => '?').join(', ')})`,
-    INSERT_COLUMNS.map(column => row[column] ?? null),
+    INSERT_COLUMNS.map(column => DATETIME_COLUMNS.has(column)
+      ? toMysqlDateTime(row[column])
+      : row[column] ?? null),
   );
   if (Number(insertResult?.affectedRows) !== 1 || !positiveId(insertResult?.insertId)) {
     throw new Error('Buff landing insert did not return exactly one real landing id');
@@ -136,12 +139,30 @@ function validateLandingRow(row, { runId } = {}) {
 }
 
 function assertLandingReadback(actual, expected, landingId) {
-  if (Number(actual.id) !== landingId || actual.dataset_type !== expected.dataset_type
-      || actual.provider !== expected.provider || actual.source_key !== expected.source_key
-      || actual.source_page !== expected.source_page || actual.content_hash !== expected.content_hash
-      || Number(actual.is_current) !== 1 || actual.source_revision_timestamp !== expected.source_revision_timestamp) {
-    throw new Error('Buff landing insert readback drifted');
+  const checks = [
+    ['id', Number(actual.id), landingId],
+    ['dataset_type', actual.dataset_type, expected.dataset_type],
+    ['provider', actual.provider, expected.provider],
+    ['source_key', actual.source_key, expected.source_key],
+    ['source_page', actual.source_page, expected.source_page],
+    ['content_hash', String(actual.content_hash ?? ''), String(expected.content_hash ?? '')],
+    ['is_current', Number(actual.is_current), 1],
+    ['source_revision_timestamp', toMysqlDateTime(actual.source_revision_timestamp), toMysqlDateTime(expected.source_revision_timestamp)],
+  ];
+  const mismatch = checks.find(([, received, wanted]) => received !== wanted);
+  if (mismatch) {
+    throw new Error(`Buff landing insert readback drifted: ${mismatch[0]} received=${JSON.stringify(mismatch[1])} expected=${JSON.stringify(mismatch[2])}`);
   }
+}
+
+function toMysqlDateTime(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)) {
+    return value.slice(0, 19);
+  }
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (!Number.isFinite(date.getTime())) throw new Error('Buff landing timestamp is invalid');
+  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 function parsePayload(value) {

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-buffs-l2-reauthorization",
+  "domainId": "buffs",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 2,
+  "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-buffs-l2-reauthorization-20261010-auth04-retry-120-c548e6b9-4812-4e51-af56-a56fa434df01",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew buffs L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-10/automation-scheduler-standing-01/AUTH-04/buffs/20261010-retry-120",
+  "packetHash": "sha256:039914645c2993009a15c80a99a363243d989cad1d0737da78b1e5fe6cf3ffbf",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "completedAt": "2026-10-10T12:40:56.838Z"
+}

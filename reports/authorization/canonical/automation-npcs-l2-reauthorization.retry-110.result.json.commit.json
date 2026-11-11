@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-npcs-l2-reauthorization",
+  "domainId": "npcs",
+  "policyVersion": 2,
+  "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-npcs-l2-reauthorization-20261010-auth04-retry-110-8e31b7c4-2d95-4fa6-a018-6c72d4b9f503",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew npcs L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/npcs/20261010-retry-110",
+  "packetHash": "sha256:38f463bcb5fd68b270b3b68c7e205425e43c42dd2ab203b48b23bd627ad30790",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-10-10T11:41:05.240Z"
+}

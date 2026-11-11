@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-shimmer-l2-reauthorization",
+  "domainId": "shimmer",
+  "status": "pending",
+  "authoritative": false,
+  "policyVersion": 3,
+  "policyHash": "sha256:c3f05e6343a50901a9672a9fd6cb23e660c1e043641e3baf442456970f11f821",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-shimmer-l2-reauthorization-20261005-auth04-retry50-43a2a217-f03f-4151-833b-a60ad0c85d25",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired Shimmer L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/shimmer/20261005-retry-50",
+  "packetHash": "sha256:f18c219951adbb89a6248f90b84bcf59d6db37e194bdf17ce121bd4601e7dca8",
+  "successfulL1Runs": 3,
+  "l1EvidencePolicySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "promotionCurrentPolicySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "completedAt": "2026-10-05T12:23:23.760Z"
+}

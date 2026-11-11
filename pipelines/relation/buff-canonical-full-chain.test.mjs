@@ -86,6 +86,25 @@ test('Buff full-chain envelope rejects managed image policy drift', () => {
   }), /managed image policy/i);
 });
 
+test('Buff full-chain envelope rejects a partial-fact candidate before it becomes executable', () => {
+  const partial = candidate();
+  partial.expectedRows.relation_buffs[0].source_evidence_json = JSON.stringify({
+    partialFactDisposition: {
+      schemaVersion: 'buff-partial-fact-disposition/v1',
+      executionBlocker: 'partial-fact-contract-review-required',
+    },
+  });
+  assert.throws(() => buildBuffFullChainExecutionEnvelope({
+    candidate: partial,
+    executionManifestHash: HASH,
+    landingRows: [{ id: 31, dataset_type: 'buffs_raw', content_hash: 'a'.repeat(64) }],
+    maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }],
+    pageEvidenceByInternalName: new Map([['OnFire', { revisionId: 12345, revisionTimestamp: '2026-09-23T01:02:03Z' }]]),
+    runtimeManagedImagePolicySha256: HASH,
+    maintMutation: maintMutation(),
+  }), /partial.*candidate|partial.*contract|executable/i);
+});
+
 test('Buff full-chain envelope carries a deferred landing insert plan without inventing an ID', () => {
   const body = {
     sourcePageTitle: 'Template:GetBuffInfo', sourceRevisionTimestamp: '2026-08-22T05:46:54Z',
@@ -120,6 +139,32 @@ test('Buff full-chain envelope carries a deferred landing insert plan without in
   assert.equal(result.upstream.landing.landing.id, undefined);
   assert.equal(result.executable, false);
   assert.equal(result.executionBlocker, 'deferred-lineage-integration-required');
+});
+
+test('Buff full-chain envelope can explicitly enable deferred landing execution', () => {
+  const body = {
+    sourcePageTitle: 'Template:GetBuffInfo', sourceRevisionTimestamp: '2026-08-22T05:46:54Z',
+    totalBuffs: 1, buffs: [{ id: 24, internalName: 'OnFire', sourceEvidence: {
+      canonicalPageTitle: 'On Fire!', revisionId: 954224, revisionTimestamp: '2026-01-03T06:22:18Z', parseStatus: 'parsed',
+    }}],
+  };
+  const landingMutation = buildBuffLandingInsertPlan({
+    landingRow: {
+      id: null, dataset_type: 'buffs_raw', provider: 'terraria.wiki.gg', source_kind: 'buff-page-immunity-evidence',
+      source_key: 'canonical.buff-page-immunity.b1-a63-20260929-07', source_locator: 'source.json', source_page: 'Template:GetBuffInfo',
+      source_revision_timestamp: body.sourceRevisionTimestamp, content_hash: createHash('sha256').update(JSON.stringify(body)).digest('hex'),
+      payload_json: JSON.stringify(body), fetched_at: '2026-09-29 01:00:00', parsed_at: '2026-09-29 01:00:00', parse_status: 'ok',
+      artifact_role: 'source_evidence', producer_id: 'canonical-buff-page-immunity-refresh', producer_version: '1',
+      producer_run_key: 'b1-a63-20260929-07', is_current: 1,
+    }, sourceEvidenceHash: HASH, runId: 'b1-a63-20260929-07',
+  });
+  const result = buildBuffFullChainExecutionEnvelope({
+    candidate: candidate(), executionManifestHash: HASH, landingRows: [], landingMutation,
+    maintRows: [{ id: 11, source_id: 24, internal_name: 'OnFire' }], pageEvidenceByInternalName: new Map([['OnFire', { revisionId: 12345, revisionTimestamp: '2026-09-23T01:02:03Z' }]]),
+    runtimeManagedImagePolicySha256: HASH, maintMutation: maintMutation(), allowDeferredLandingExecution: true,
+  });
+  assert.equal(result.executable, true);
+  assert.equal(result.executionBlocker, null);
 });
 
 for (const duplicate of [

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  assertAutomationRedisLogicalDb,
   buildAutomationDatabaseNames,
   openDurableRunKeyRegistry
 } from './automation-database-contract.mjs';
@@ -174,6 +175,7 @@ export async function runLiveAutomationAcceptance({
 } = {}) {
   if (!['t0', 't1'].includes(profile)) throw new Error('live acceptance profile must be t0 or t1');
   if (!runId || !privateDirectory) throw new Error('runId and privateDirectory are required');
+  const logicalDb = assertAutomationRedisLogicalDb(redis?.logicalDb, 'Redis logical DB');
   const scopedExecutor = resolveAcceptanceScope(scope, acceptanceExecutor);
   const npcT1Completion = profile === 't1' && scope === 'npc-canonical'
     ? requireNpcT1Completion(completion)
@@ -186,10 +188,7 @@ export async function runLiveAutomationAcceptance({
   if (JSON.stringify(resources.databases) !== JSON.stringify({ local: names.local, maint: names.maint, relation: names.relation })) {
     throw new Error('derived live resource names disagree with the durable runKey contract');
   }
-  if (!Number.isInteger(redis.logicalDb) || redis.logicalDb < 1 || redis.logicalDb > 14) {
-    throw new Error('an explicit empty Redis logical DB from 1..14 is required');
-  }
-  await onResources({ ...resources, redis: { host: redis.host, port: redis.port, logicalDb: redis.logicalDb } });
+  await onResources({ ...resources, redis: { host: redis.host, port: redis.port, logicalDb } });
 
   const accountPasswords = {
     provisioner: randomBytes(32).toString('hex'),
@@ -252,7 +251,7 @@ export async function runLiveAutomationAcceptance({
       runId,
       runKey: manifest.runKey,
       databases: resources.databases,
-      redis: { host: redis.host, port: redis.port, logicalDb: redis.logicalDb },
+      redis: { host: redis.host, port: redis.port, logicalDb },
       serverIdentity: manifest.serverIdentity,
       snapshot: manifest.sourceSnapshot ? {
         snapshotId: manifest.sourceSnapshot.snapshotId,
@@ -284,7 +283,7 @@ export async function runLiveAutomationAcceptance({
       }
     }
     try {
-      await adapter.verifyCleanup({ databases: resources.databases, logicalDb: redis.logicalDb });
+      await adapter.verifyCleanup({ databases: resources.databases, logicalDb });
     } catch (error) {
       cleanupErrors.push(error);
     }

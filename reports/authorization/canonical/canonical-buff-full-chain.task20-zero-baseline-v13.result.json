@@ -1,0 +1,12 @@
+{
+  "operationId": "canonical-buff-full-chain",
+  "status": "completed",
+  "packet": {
+    "runId": "buff-full-chain-20261006-task20-v13",
+    "fenceToken": "fence:9ee76aa2c98babc5651fe40d88301287896a22740ec6bf4ce4e126f9ea28a694",
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "actor": "admin",
+    "packetHash": "sha256:d32d489bce2d3dc1eec947b947a08115adbb29bb25d72472ade92835188b0473",
+    "executionManifestHash": "sha256:291e3affc6657ca46d580eab9a1bdef9357fe97a7cf036931196eefe72b8e3a4"
+  }
+}

@@ -478,7 +478,11 @@ export function buildBaseDomainSourceCommand(domain, progressPath) {
     ];
   }
   if (domain === 'buffs') {
-    return ['pipelines/fetch/fetch-wiki-buffs.mjs', `--progress-path=${progressPath}`];
+    return [
+      'pipelines/fetch/fetch-wiki-buffs.mjs',
+      `--progress-path=${progressPath}`,
+      '--resume-mode=auto',
+    ];
   }
   if (domain === 'armor_sets') {
     return ['pipelines/fetch/fetch-wiki-armorsetbonuses.mjs', `--progress-path=${progressPath}`];

@@ -9,7 +9,7 @@ export const AUTO_DOMAIN_OPERATION_CONFIG = Object.freeze({
   npcs: apply('automation-npcs-l1', ['npcs']),
   projectiles: apply('automation-projectiles-l1', ['projectiles']),
   armor_sets: apply('automation-armor-sets-l1', ['armor_sets', 'armor_set_items']),
-  buffs: apply('automation-buffs-l1', ['buffs', 'buff_source_items']),
+  buffs: apply('automation-buffs-l1', ['buff_source_items', 'buffs']),
   audio: apply('automation-audio-first-l1', ['audio_assets', 'audio_asset_links']),
   bosses: apply('automation-bosses-first-l1', ['boss_groups', 'npcs']),
   shimmer: apply('automation-shimmer-first-l1', [

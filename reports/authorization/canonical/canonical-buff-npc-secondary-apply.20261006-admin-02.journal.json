@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-npc-secondary-apply",
+  "phase": "rolled-back",
+  "state": "ROLLED_BACK",
+  "runId": "buff-npc-secondary-20261006-admin-02",
+  "fenceToken": "fence:47dd814fcca1778952977501c778ec8d3b0b7c07a511e5902aaf53cede93ba32",
+  "packetHash": "sha256:b2c3cc6e588d12e7b1c4b0cc9e7c21c4ee21703811dccca5b0463af85138b94a",
+  "envelopeSha256": "sha256:ef84df707283ef803964955ec5524b045540d7b94144823f3eb8e9b6a4d4f238",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "rolled-back",
+      "toState": "ROLLED_BACK",
+      "occurredAt": "2026-10-06T08:54:35.369Z",
+      "evidence": {
+        "error": "NPC secondary after-set drifted"
+      },
+      "previousRecordSha256": "sha256:d4521547a42e54829db68fc42f90efcb3de584cb94083529a1415c5ba51c4dee"
+    }
+  ],
+  "recordSha256": "sha256:38d0f64c628eee4a8b7e10324a337da16d878615385413f3411e05fbbd2d54a2"
+}

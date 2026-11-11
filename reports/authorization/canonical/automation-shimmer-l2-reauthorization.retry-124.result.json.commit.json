@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "markerKind": "automation_policy_decision_commit",
+  "status": "committed",
+  "authoritative": true,
+  "decisionStatus": "completed",
+  "operationId": "automation-shimmer-l2-reauthorization",
+  "domainId": "shimmer",
+  "policyVersion": 3,
+  "policyHash": "sha256:c3f05e6343a50901a9672a9fd6cb23e660c1e043641e3baf442456970f11f821",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "level": "L2",
+  "operationalState": "ACTIVE",
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-shimmer-l2-reauthorization-20261010-auth04-retry-124-71ff970d-f99d-483a-9ae0-f03444b6ac42",
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew shimmer L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-10/automation-scheduler-standing-01/AUTH-04/shimmer/20261010-retry-124",
+  "packetHash": "sha256:5408007dadf56410b40ad3023b133db9526875ef05f1014e92cb503e52f5273b",
+  "successfulL1Runs": 3,
+  "completedAt": "2026-10-10T12:44:21.823Z"
+}

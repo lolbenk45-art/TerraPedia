@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-armor-sets-l2-reauthorization-20261005-auth04-retry46-7c643afa-b311-4133-ae55-9ff47e6f77b1",
+  "packetHash": "sha256:a58c9ef1380a300a6ab8f1144893866e74e55e318a985daaf863e96efe89666f",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "expiresAt": "2026-10-05T14:04:04.000Z",
+  "domainId": "armor_sets"
+}

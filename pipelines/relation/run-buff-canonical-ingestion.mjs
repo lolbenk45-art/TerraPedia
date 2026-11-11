@@ -35,7 +35,7 @@ const repoRoot = getProjectRoot();
 const DATABASE = 'terria_v1_relation';
 const TABLES = [...BUFF_CANONICAL_TRANSACTION_TABLES];
 const LANDING_TRACE_COLUMNS = Object.freeze([
-  'landing_source_id', 'landing_source_key', 'landing_source_page',
+  'landing_source_id', 'landing_source_key',
   'landing_content_hash', 'source_provider', 'source_page', 'source_revision_timestamp',
 ]);
 
@@ -108,15 +108,7 @@ export async function applyBuffCanonicalIngestion({
     database: 'terria_v1_local',
     dateStrings: true,
   });
-  const bindingPacket = binding.packet ?? {};
-  const packet = {
-    runId: bindingPacket.runId ?? context.runId,
-    fenceToken: bindingPacket.fenceToken ?? context.fenceToken,
-    serverUuid: fingerprint.serverUuid,
-    actor: bindingPacket.actor ?? context.actor ?? 'canonical-buff-full-chain',
-    packetHash: context.packetHash,
-    executionManifestHash: context.executionManifestHash,
-  };
+  const packet = buildBuffCanonicalPacket({ context, fingerprint });
   const journalStore = createBuffRecoveryJournalStore({ repoRoot: root, relativePath: paths.journalPath });
   const journal = createBuffRecoveryJournalAdapter({
     store: journalStore,
@@ -174,6 +166,27 @@ export async function applyBuffCanonicalIngestion({
   }
 }
 
+export function buildBuffCanonicalPacket({ context, fingerprint } = {}) {
+  const binding = context?.executionManifest?.buffFullChain;
+  if (!binding || binding.schemaVersion !== 'buff-full-chain-operation-binding/v1'
+      || binding.operationId !== BUFF_CANONICAL_OPERATION_ID
+      || typeof binding.runId !== 'string' || !binding.runId.trim()
+      || typeof binding.fenceToken !== 'string' || !binding.fenceToken.trim()) {
+    throw new Error('Buff canonical manifest runId/fenceToken binding is required');
+  }
+  if (typeof fingerprint?.serverUuid !== 'string' || !fingerprint.serverUuid.trim()) {
+    throw new Error('Buff canonical server fingerprint is required');
+  }
+  return {
+    runId: binding.runId,
+    fenceToken: binding.fenceToken,
+    serverUuid: fingerprint.serverUuid,
+    actor: binding.actor ?? context?.actor ?? 'canonical-buff-full-chain',
+    packetHash: context?.packetHash,
+    executionManifestHash: context?.executionManifestHash,
+  };
+}
+
 export async function applyBuffUpstreamMutations({
   envelope,
   connection,
@@ -225,7 +238,6 @@ export function bindBuffCandidateToLanding({ envelope, landingRow } = {}) {
   const trace = {
     landing_source_id: landingId,
     landing_source_key: landingRow.source_key,
-    landing_source_page: landingRow.source_page,
     landing_content_hash: landingRow.content_hash,
     source_provider: landingRow.provider,
     source_page: landingRow.source_page,
@@ -463,7 +475,10 @@ export function assertBuffLandingAfterSet({ envelope, rows } = {}) {
     const actual = rows[0];
     for (const [column, value] of Object.entries(deferred)) {
       if (column === 'id') continue;
-      if (!equalBuffValue(actual?.[column], value, column)) throw new Error(`Buff landing after-set drifted: ${column}`);
+      const equal = isMysqlDateTimeColumn(column)
+        ? toMysqlDateTimeComparable(actual?.[column]) === toMysqlDateTimeComparable(value)
+        : equalBuffValue(actual?.[column], value, column);
+      if (!equal) throw new Error(`Buff landing after-set drifted: ${column}`);
     }
     return true;
   }
@@ -527,10 +542,35 @@ function rowIdentity(table, row) {
 function assertComparableRow(expected, actual, table, key, { ignoreTimestamps = false } = {}) {
   for (const [column, value] of Object.entries(expected ?? {})) {
     if (ignoreTimestamps && (column === 'created_at' || column === 'updated_at')) continue;
+    if (isMysqlDateTimeColumn(column)) {
+      if (toMysqlDateTimeComparable(actual?.[column]) !== toMysqlDateTimeComparable(value)) {
+        throw new Error(`Buff locked rederivation drifted: ${table}.${column}/${key}`);
+      }
+      continue;
+    }
     if (!equalBuffValue(actual?.[column], value, column)) {
       throw new Error(`Buff locked rederivation drifted: ${table}.${column}/${key}`);
     }
   }
+}
+
+function isMysqlDateTimeColumn(column) {
+  return column === 'source_revision_timestamp'
+    || column === 'fetched_at'
+    || column === 'parsed_at'
+    || column === 'landing_fetched_at'
+    || column === 'landing_parsed_at'
+    || column === 'module_generated_at';
+}
+
+function toMysqlDateTimeComparable(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)) {
+    return value.slice(0, 19);
+  }
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (!Number.isFinite(date.getTime())) return value;
+  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 function equalBuffValue(left, right, column) {

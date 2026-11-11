@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized bounded natural V2 scheduler activation for retry-74 with Buff canary buff-page-immunity-refresh/buffs on Redis DB16; observe one natural changed-only sweep, permit only the registered canary path, record probe-only when Buff is unchanged, restore scheduler disabled after the window, and require full Buff landing/maint/relation/projection/API/SQL readback plus expiry and restart soak for any real change.",
+  "authorizationReference": "user://conversation/2026-10-10/automation-scheduler-retry-74-authorized",
+  "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261010-retry-74-admin-6ff0fdc3-39e7-4637-8455-d08a5dd49665",
+  "authorizedAt": "2026-10-10T05:24:31Z"
+}

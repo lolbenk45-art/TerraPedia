@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-npc-infliction-dedup",
+  "phase": "rolled-back",
+  "state": "ROLLED_BACK",
+  "runId": "buff-infliction-dedup-20261007-task19-v2",
+  "fenceToken": "fence:buff-infliction-dedup-20261007-task19-v2",
+  "packetHash": "sha256:fd31008f51aff46663ac24d54ee4d5cd83ea01972b60c0bb8dee4954b33c7ed7",
+  "envelopeSha256": "sha256:28fb8fb48e643169e71747f8287c6ad81b7c4e96ff97db11936acddf0ffbe15e",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "rolled-back",
+      "toState": "ROLLED_BACK",
+      "occurredAt": "2026-10-07T06:44:07.130Z",
+      "evidence": {
+        "error": "NPC infliction dedup locked after-set drifted"
+      },
+      "previousRecordSha256": "sha256:f9e155a3333cd858f0997e7e83dc812c26e3d00b5466ac8a959da7626ea4046a"
+    }
+  ],
+  "recordSha256": "sha256:0c8ed8d30dfff6c09d0a13bc2d713b54892d430f3be6f2205fb5227a29737164"
+}

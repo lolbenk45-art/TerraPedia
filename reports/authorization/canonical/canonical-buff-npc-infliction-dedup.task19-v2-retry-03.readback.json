@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_buff_npc_infliction_dedup_readback",
+  "operationId": "canonical-buff-npc-infliction-dedup",
+  "proposalSha256": "sha256:28fb8fb48e643169e71747f8287c6ad81b7c4e96ff97db11936acddf0ffbe15e",
+  "beforeRowsSha256": "sha256:f0b7a7721639b64f71a3ff5a7d096f174d52142ce4ed40dcd017477e04f9172f",
+  "expectedAfterRowsSha256": "sha256:750a5bc878f128f0d342a448002572d5dc38986c8dcaf644ea8bc876c8f5abf9",
+  "actualAfterRowsSha256": "sha256:750a5bc878f128f0d342a448002572d5dc38986c8dcaf644ea8bc876c8f5abf9",
+  "activeRowCount": 1703,
+  "retiredIds": [
+    232,
+    393,
+    457,
+    627,
+    1219
+  ],
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "verifiedAt": "2026-10-07T07:07:53.340Z"
+}

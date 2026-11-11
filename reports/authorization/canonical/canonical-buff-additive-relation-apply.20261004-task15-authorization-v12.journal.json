@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-additive-relation-apply",
+  "phase": "committed",
+  "state": "COMMITTED",
+  "runId": "buff_additive_relation_20261004_task15_v12",
+  "fenceToken": "fence:6cce4c531a4e91dfe229409d1553acdae3de334718b5ec3b67c9d86a7ce1bda7",
+  "packetHash": "sha256:9e00238a2c6868baa6684e6a9371841c01b4d90aa926b3ae713ee1b81dbfe15c",
+  "envelopeSha256": "sha256:176daee5bdc873dd1765916a1607974e46361542ab61d8bfcd02a26b096351cc",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "committed",
+      "toState": "COMMITTED",
+      "occurredAt": "2026-10-04T02:02:17.759Z",
+      "evidence": {
+        "postCommitRecovery": true,
+        "observedAfterSha256": "sha256:a66ed5b13b33bf242d73d2058471a85e6970b16351d522225592dd1f88b291c2",
+        "originalError": "journal transition prepared -> committed was rejected after SQL COMMIT"
+      },
+      "previousRecordSha256": "sha256:bbe3e73c4e73daf20518f91e6e754430964dc97984514aa5e465eb8f6479b730"
+    }
+  ],
+  "recordSha256": "sha256:bda9d5e2fc12314eaf03e1b9bdd22023451a670c7aae029aa6d2c52ae5fafa74"
+}

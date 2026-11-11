@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew items L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/items/20261010-retry-109",
+  "decisionIdentity": "automation-items-l2-reauthorization-20261010-auth04-retry-109-7c2e91b4-5d86-4fa0-b3d7-82e4c1a09653",
+  "authorizedAt": "2026-10-10T11:30:35.851Z"
+}

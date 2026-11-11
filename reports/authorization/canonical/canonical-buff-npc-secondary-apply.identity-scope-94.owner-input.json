@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Approved identity-scope-94: insert 94 stable NPC identity immune relations for Buffs 389-400; retain 20 shared-name variant facts as deferred evidence.",
+  "authorizationReference": "user://conversation/01a10936-edff-70c0-b375-7cfcacc3d19a/buff-npc-secondary-identity-scope-94-approved-01",
+  "decisionIdentity": "canonical-buff-npc-secondary-apply-20261006-identity-scope-94-admin-01",
+  "authorizedAt": "2026-10-06T10:09:00.331Z"
+}

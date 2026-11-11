@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Approve the repaired exact Buff full-chain request: publish zero-baseline Buff IDs 389-400; accept Item 1340 source spelling drift by omitting that Item-Buff relation while preserving raw source evidence; keep NPC-Buff secondary relations deferred because stable NPC source IDs are unavailable.",
+  "authorizationReference": "user://conversation/01a10936-edff-70c0-b375-7cfcacc3d19a/canonical-buff-full-chain/task20-zero-baseline-v4",
+  "decisionIdentity": "canonical-buff-full-chain-task20-zero-baseline-v8-admin-20261006-01",
+  "authorizedAt": "2026-10-06T02:26:24.223Z"
+}

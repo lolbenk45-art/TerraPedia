@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired buffs L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-10-08/automation-scheduler-standing-01/AUTH-04/buffs/20261008-retry-63",
+  "decisionIdentity": "automation-buffs-l2-reauthorization-20261008-auth04-retry63-34f8f08d-558d-4346-9761-b96dd387b9bd",
+  "authorizedAt": "2026-10-08T00:40:00.000Z"
+}

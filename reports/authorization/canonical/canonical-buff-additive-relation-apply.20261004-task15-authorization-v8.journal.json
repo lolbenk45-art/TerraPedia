@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-additive-relation-apply",
+  "phase": "prepared",
+  "state": "PREPARED",
+  "runId": "buff_additive_relation_20261004_task15_v8",
+  "fenceToken": "fence:45c563f4592b03e3205395088428daa0d8128081b8d8d73bc0e5b59201ab45e9",
+  "packetHash": "sha256:b8fc05372e5a6227cdfa07895511a6f2e902f939e0fac6d40447142034b5fb40",
+  "envelopeSha256": "sha256:b60da8b5a3a61f9854a0f31f56c0e79beba3c503eed707842a1e956178289b9f",
+  "history": [],
+  "recordSha256": "sha256:0aaed9165cc607fbd85457bdc8870c2ea64eff0a92e96a2b29b33676c33a8b16"
+}

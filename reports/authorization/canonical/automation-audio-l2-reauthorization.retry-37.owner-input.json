@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew expired Audio L2 evidence at current H8; no policy scope expansion",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/audio/20261005-retry-37",
+  "decisionIdentity": "automation-audio-l2-reauthorization-20261005-auth04-retry37-c6dbfe3e-87e0-4da1-b530-fbd9f4b765b2",
+  "authorizedAt": "2026-10-05T08:09:59.470Z"
+}

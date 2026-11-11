@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-10-05T08:38:20.589Z",
+  "domainId": "support.item_group",
+  "panelId": "b1ExemptionCompliance",
+  "status": "blocked",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedContractCount": 3,
+    "passedCount": 0,
+    "warningCount": 0,
+    "blockedCount": 3,
+    "modes": {
+      "canonical": 3
+    }
+  },
+  "blockingReasons": [
+    "Source contract data/generated/item-group-overrides.json readiness report is 874h old, older than the 24h limit.",
+    "Source contract data/generated/recipe-group-overrides.json readiness report is 874h old, older than the 24h limit.",
+    "Source contract data/generated/recipe-material-reference.json readiness report is 874h old, older than the 24h limit."
+  ],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/item-group-overrides.json",
+      "mode": "canonical",
+      "status": "blocked",
+      "reportPath": "reports/canonical-migration/canonical-item-group-readiness.json",
+      "reason": "Source contract data/generated/item-group-overrides.json readiness report is 874h old, older than the 24h limit."
+    },
+    {
+      "input": "data/generated/recipe-group-overrides.json",
+      "mode": "canonical",
+      "status": "blocked",
+      "reportPath": "reports/canonical-migration/canonical-item-group-readiness.json",
+      "reason": "Source contract data/generated/recipe-group-overrides.json readiness report is 874h old, older than the 24h limit."
+    },
+    {
+      "input": "data/generated/recipe-material-reference.json",
+      "mode": "canonical",
+      "status": "blocked",
+      "reportPath": "reports/canonical-migration/canonical-item-group-readiness.json",
+      "reason": "Source contract data/generated/recipe-material-reference.json readiness report is 874h old, older than the 24h limit."
+    }
+  ],
+  "reportPath": "reports/domain/support.item_group/b1-exemption-compliance-2026-10-05.json"
+}

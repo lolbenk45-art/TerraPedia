@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-10-10T12:05:29.693Z",
+  "domainId": "support.shimmer",
+  "panelId": "b1ExemptionCompliance",
+  "status": "blocked",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedContractCount": 1,
+    "passedCount": 0,
+    "warningCount": 0,
+    "blockedCount": 1,
+    "modes": {
+      "canonical": 1
+    }
+  },
+  "blockingReasons": [
+    "Source contract data/generated/item-group-overrides.json readiness report is 997h old, older than the 24h limit."
+  ],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/item-group-overrides.json",
+      "mode": "canonical",
+      "status": "blocked",
+      "reportPath": "reports/canonical-migration/canonical-item-group-readiness.json",
+      "reason": "Source contract data/generated/item-group-overrides.json readiness report is 997h old, older than the 24h limit."
+    }
+  ],
+  "reportPath": "reports/domain/support.shimmer/b1-exemption-compliance-2026-10-10.json"
+}

@@ -1141,6 +1141,22 @@ Run an independent readback after the final choice:
 
 **Failure stop:** any final readback mismatch, lingering lease/fence, expired decision while enabled, missing latency timestamps, or unrecorded failure path. Keep the entry `active` or `blocked` and do not claim closure.
 
+### Redis logical database reservation update (2026-10-10)
+
+The current local ownership split supersedes older DB14-era Buff run notes:
+Armor owns Redis `6380/DB14`, Buff owns `6380/DB16`, and user-auth E2E owns
+DB15. Buff runtime, Buff T1 acceptance, and any Buff capture helper must never
+select DB14. Generic T0/T1 acceptance may allocate only DB1 through DB13; it
+must reject an explicit DB14 and must not probe DB14 as an allocation candidate.
+DB16 is reserved for the Buff V2 runtime and is not part of the disposable
+acceptance pool. These are separate pools: T1 fixtures continue using their
+explicit isolated test DB, while the Buff scheduler runtime uses DB16.
+
+The implementation gate requires regression tests for shared contract
+validation, explicit acceptance invocation, the default allocator, and Buff
+T1 manifest generation. No historical packet, scheduler decision, or Redis
+state is reused to establish this reservation.
+
 ## 5. Execution Continuity And Repair Rules
 
 If any phase discovers a contract or runtime gap:

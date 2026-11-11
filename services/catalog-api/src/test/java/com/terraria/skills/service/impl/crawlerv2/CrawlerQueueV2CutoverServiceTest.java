@@ -148,6 +148,91 @@ class CrawlerQueueV2CutoverServiceTest {
     }
 
     @Test
+    void shouldUseCompletedCutoverEpochWhenTheDurableMarkerIsMissing() {
+        when(properties.isCutoverAllowed()).thenReturn(true);
+        when(repository.beginCutover(any())).thenReturn(CrawlerQueueV2Repository.BeginCutoverResult.alreadyCompleted("cutover-1"));
+        when(repository.readCutover("cutover-1")).thenReturn(Optional.of(completedRecordWithEpoch("epoch-record")));
+
+        CrawlerQueueV2CutoverResultDTO result = service.cutover(request("cutover-1"), "admin");
+
+        assertEquals("epoch-record", result.getStateStoreEpoch());
+        assertEquals("epoch-record", router.readDurableState().stateStoreEpoch());
+    }
+
+    @Test
+    void shouldRepairAStaleMaintenanceMarkerFromTheCompletedCutoverEpoch() {
+        when(properties.isCutoverAllowed()).thenReturn(true);
+        router.writeState(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.MAINTENANCE,
+            "cutover-1",
+            "epoch-stale",
+            NOW,
+            null,
+            null
+        ));
+        when(repository.beginCutover(any())).thenReturn(CrawlerQueueV2Repository.BeginCutoverResult.alreadyCompleted("cutover-1"));
+        when(repository.readCutover("cutover-1")).thenReturn(Optional.of(completedRecordWithEpoch("epoch-record")));
+
+        CrawlerQueueV2CutoverResultDTO result = service.cutover(request("cutover-1"), "admin");
+
+        assertEquals("epoch-record", result.getStateStoreEpoch());
+        assertEquals(CrawlerQueueEngineMode.V2, router.readDurableState().mode());
+        assertEquals("epoch-record", router.readDurableState().stateStoreEpoch());
+    }
+
+    @Test
+    void shouldRepairAStaleV2MarkerEpochWithoutInventingMutationEvidence() {
+        when(properties.isCutoverAllowed()).thenReturn(true);
+        router.writeState(new CrawlerQueueEngineRouter.CutoverState(
+            2, CrawlerQueueEngineMode.V2, "cutover-1", "epoch-stale", NOW, null, null
+        ));
+        when(repository.readCutover("cutover-1")).thenReturn(Optional.of(completedRecordWithEpoch("epoch-record")));
+        when(repository.beginCutover(any())).thenReturn(CrawlerQueueV2Repository.BeginCutoverResult.alreadyCompleted("cutover-1"));
+
+        CrawlerQueueV2CutoverResultDTO result = service.cutover(request("cutover-1"), "admin");
+
+        assertEquals("epoch-record", result.getStateStoreEpoch());
+        assertEquals(CrawlerQueueEngineMode.V2, router.readDurableState().mode());
+        assertEquals(null, router.readDurableState().firstLiveMutationAt());
+    }
+
+    @Test
+    void shouldRecoverAConfirmedFirstMutationPairWithoutResettingAHealthyRedisStore() {
+        when(properties.isCutoverAllowed()).thenReturn(true);
+        router.writeState(new CrawlerQueueEngineRouter.CutoverState(
+            2, CrawlerQueueEngineMode.V2, "cutover-1", "epoch-record", NOW, null, null
+        ));
+        when(repository.readEngineState()).thenReturn(
+            new CrawlerQueueV2Repository.EngineState(
+                CrawlerQueueEngineMode.V2,
+                "epoch-record",
+                "cutover-1",
+                NOW.plusSeconds(2).toString()
+            ),
+            new CrawlerQueueV2Repository.EngineState(
+                CrawlerQueueEngineMode.V2,
+                "epoch-record",
+                "cutover-1",
+                NOW.plusSeconds(2).toString()
+            )
+        );
+
+        CrawlerQueueV2CutoverRequestDTO request = request("cutover-1");
+        request.setResetId("recover-first-1");
+        request.setConfirmation(CrawlerQueueV2CutoverService.FIRST_MUTATION_RECOVERY_CONFIRMATION);
+        request.setMutationReservationAt(NOW.plusSeconds(1).toString());
+        request.setFirstLiveMutationAt(NOW.plusSeconds(2).toString());
+
+        CrawlerQueueV2CutoverResultDTO result = service.recoverFirstLiveMutation(request, "admin");
+
+        assertEquals("v2", result.getEngineMode());
+        assertEquals("epoch-record", result.getStateStoreEpoch());
+        assertEquals(NOW.plusSeconds(2).toString(), result.getFirstLiveMutationAt());
+        verify(repository, never()).initializeResetEpoch(any());
+    }
+
+    @Test
     void shouldAllowRollbackOnlyBeforeAllMutationTimestampsRemainAbsent() {
         when(properties.isCutoverAllowed()).thenReturn(true);
         when(repository.readEngineState())
@@ -315,8 +400,12 @@ class CrawlerQueueV2CutoverServiceTest {
     }
 
     private static CrawlerQueueV2Repository.CutoverRecord completedRecord() {
+        return completedRecordWithEpoch("epoch-new");
+    }
+
+    private static CrawlerQueueV2Repository.CutoverRecord completedRecordWithEpoch(String epoch) {
         return new CrawlerQueueV2Repository.CutoverRecord(
-            "cutover-1", "completed", "epoch-new",
+            "cutover-1", "completed", epoch,
             "reports/crawler-monitor/v2/cutovers/cutover-1/cutover-manifest.json", "manifest-sha256", NOW, "admin"
         );
     }

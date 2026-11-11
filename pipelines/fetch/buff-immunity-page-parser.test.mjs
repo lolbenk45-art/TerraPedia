@@ -27,6 +27,107 @@ const cursedInfernoFixtureHtml = `
   <h2><span class="mw-headline" id="Notes">Notes</span></h2>
 `;
 
+test('identified Buff cannot accept a list with no target proof', () => {
+  const evidence = parseBuffPageEvidence({ buffId: 165, buffName: "Dryad's Blessing",
+    html: cursedInfernoFixtureHtml.replace('<div class="heading">Enemies immune to Cursed Inferno</div>', ''),
+    wikitext: '== Immune NPCs ==\n{{immunities}}' });
+  assert.deepEqual(evidence.immuneNpcs, []);
+  assert.equal(evidence.sourceEvidence.factGroups.immuneNpcs.status, 'target_unverified');
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parse_incomplete');
+});
+
+test('absence of an immunity section retains the missing-section diagnosis', () => {
+  const evidence = parseBuffPageEvidence({ buffId: 72, buffName: 'Midas', html: '<p>Effect on enemies.</p>' });
+  assert.equal(evidence.sourceEvidence.immunityTargetBinding.status, 'unverified');
+  assert.equal(evidence.sourceEvidence.factGroups.immuneNpcs.status, 'section_missing');
+});
+
+test('rendered duplicate version entries collapse to one stable NPC identity', () => {
+  const evidence = parseBuffPageEvidence({ buffId: 20, buffName: 'Poisoned',
+    wikitext: '== Immune NPCs ==\n{{immunities|Poisoned}}',
+    html: `<h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
+      <div class="heading">Enemies immune to Poisoned</div>
+      <ul><li><a href="/wiki/Golem" title="Golem">Golem</a></li>
+      <li><a href="/wiki/Golem" title="Golem">Golem</a></li>
+      <li><a href="/wiki/Blue_Slime" title="Blue Slime">Blue Slime</a></li></ul>` });
+  assert.equal(evidence.immuneNpcCount, 2);
+  assert.deepEqual(evidence.immuneNpcs.map(entry => entry.pageTitle), ['Golem', 'Blue Slime']);
+  assert.equal(evidence.sourceEvidence.factGroups.immuneNpcs.status, 'parsed');
+});
+
+test('shared page immunity template belongs to Dryad Bane, not the Blessing buff', () => {
+  const input = {
+    pageTitle: "Dryad's Blessing", revisionId: 1029403,
+    html: cursedInfernoFixtureHtml.replaceAll('Cursed Inferno', "Dryad's Bane"),
+    wikitext: "== Immune NPCs ==\n{{immunities|Dryad's Bane}}\n== Notes ==\n",
+  };
+  const blessing = parseBuffPageEvidence({ ...input, buffId: 165, buffName: "Dryad's Blessing" });
+  assert.deepEqual(blessing.immuneNpcs, []);
+  assert.equal(blessing.sourceEvidence.parseStatus, 'parse_incomplete');
+  assert.equal(blessing.sourceEvidence.factGroups.immuneNpcs.status, 'target_mismatch');
+  assert.deepEqual(blessing.sourceEvidence.immunityTargetBinding.targets, ["Dryad's Bane"]);
+  const bane = parseBuffPageEvidence({ ...input, buffId: 186, buffName: "Dryad's Bane" });
+  assert.equal(bane.immuneNpcCount, 5);
+  assert.equal(bane.sourceEvidence.immunityTargetBinding.status, 'matched');
+});
+
+test('Celled immunity rows are not assigned to the Stardust Cell minion buff', () => {
+  const input = { pageTitle: 'Stardust Cell Staff', html: cursedInfernoFixtureHtml.replaceAll('Cursed Inferno', 'Celled'),
+    wikitext: '== Immune NPCs ==\n{{immunities|Celled}}\n== History ==\n' };
+  assert.equal(parseBuffPageEvidence({ ...input, buffId: 182, buffName: 'Stardust Cell' }).immuneNpcCount, 0);
+  assert.equal(parseBuffPageEvidence({ ...input, buffId: 183, buffName: 'Celled' }).immuneNpcCount, 5);
+});
+
+test('commented or out-of-section templates cannot override immunity target binding', () => {
+  const evidence = parseBuffPageEvidence({ buffId: 186, buffName: "Dryad's Bane", html: cursedInfernoFixtureHtml.replaceAll('Cursed Inferno', "Dryad's Bane"),
+    wikitext: "<!-- {{immunities|Dryad's Blessing}} -->\n== Immune NPCs ==\n{{immunities|1=Dryad's Bane}}\n== History ==\n{{immunities|Other}}" });
+  assert.equal(evidence.immuneNpcCount, 5);
+  assert.deepEqual(evidence.sourceEvidence.immunityTargetBinding.targets, ["Dryad's Bane"]);
+});
+
+test('multiple immunity targets are ambiguous rather than one merged NPC list', () => {
+  const evidence = parseBuffPageEvidence({ buffId: 20, buffName: 'Poisoned', html: cursedInfernoFixtureHtml,
+    wikitext: '== Immune NPCs ==\n{{immunities|Poisoned}}\n{{immunities|Cursed Inferno}}' });
+  assert.deepEqual(evidence.immuneNpcs, []);
+  assert.equal(evidence.sourceEvidence.factGroups.immuneNpcs.status, 'target_ambiguous');
+});
+
+test('literal PAGENAME target binds to the captured canonical main-namespace page', () => {
+  const input = { buffId: 44, buffName: 'Frostburn', pageTitle: 'Frostburn redirect', canonicalPageTitle: 'Frostburn', html: cursedInfernoFixtureHtml.replaceAll('Cursed Inferno', 'Frostburn'),
+    wikitext: '== Immune NPCs ==\n{{immunities|{{PAGENAME}}}}' };
+  const evidence = parseBuffPageEvidence(input);
+  assert.equal(evidence.immuneNpcCount, 5);
+  assert.deepEqual(evidence.sourceEvidence.immunityTargetBinding, { status: 'matched', targets: ['Frostburn'] });
+  const unresolved = parseBuffPageEvidence({ ...input, wikitext: '== Immune NPCs ==\n{{immunities|{{unknown template}}}}' });
+  assert.equal(unresolved.sourceEvidence.factGroups.immuneNpcs.status, 'target_ambiguous');
+});
+
+test('default immunity template binds through its explicit rendered target label', () => {
+  const evidence = parseBuffPageEvidence({ buffId: 30, buffName: 'Bleeding',
+    html: cursedInfernoFixtureHtml.replaceAll('Cursed Inferno', 'Bleeding'),
+    wikitext: '== Immune NPCs ==\n{{immunities}}' });
+  assert.deepEqual(evidence.sourceEvidence.immunityTargetBinding, { status: 'matched', targets: ['Bleeding'] });
+  assert.equal(evidence.immuneNpcCount, 5);
+});
+
+test('a conflicting rendered label cannot be assigned to the template target', () => {
+  const evidence = parseBuffPageEvidence({ buffId: 30, buffName: 'Bleeding', html: cursedInfernoFixtureHtml,
+    wikitext: '== Immune NPCs ==\n{{immunities|Bleeding}}' });
+  assert.equal(evidence.immuneNpcCount, 0);
+  assert.equal(evidence.sourceEvidence.factGroups.immuneNpcs.status, 'target_mismatch');
+});
+
+test('an explicit template display name does not change its Life Drain target', () => {
+  const input = { buffId: 151, buffName: 'Life Drain',
+    html: cursedInfernoFixtureHtml.replaceAll('Cursed Inferno', 'the Life Drain buff'),
+    wikitext: '== Immune NPCs ==\n{{immunities|Life Drain|name=the Life Drain buff}}' };
+  const result = parseBuffPageEvidence(input);
+  assert.equal(result.immuneNpcCount, 5);
+  assert.equal(result.sourceEvidence.immunityTargetBinding.status, 'matched');
+  assert.deepEqual(result.sourceEvidence.immunityTargetBinding.targets, ['Life Drain']);
+  assert.equal(parseBuffPageEvidence({ ...input, buffName: 'Other Buff' }).immuneNpcCount, 0);
+});
+
 test('parseBuffPageImmunityFacts extracts ordered immune NPC entries from the rendered immunities section', () => {
   const facts = parseBuffPageImmunityFacts({
     buffId: 39,

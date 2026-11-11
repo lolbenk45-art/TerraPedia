@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "buff-recovery-journal/v1",
+  "operationId": "canonical-buff-npc-secondary-apply",
+  "phase": "rolled-back",
+  "state": "ROLLED_BACK",
+  "runId": "buff-npc-secondary-20261006-admin-01",
+  "fenceToken": "fence:15dd937296ff3f07798d1b411e09c3fd8696cc7ed9c3335e989d40c81d11594a",
+  "packetHash": "sha256:09408700b1ffffe6ab0ca77ee28a36bd63873ed85249055c29b6e0cf4169d9c3",
+  "envelopeSha256": "sha256:8b4bd9b74e953a3358c07ed16560f2d22ece6bbb173371e8fe511cb6f14aae7a",
+  "history": [
+    {
+      "fromPhase": "prepared",
+      "fromState": "PREPARED",
+      "toPhase": "rolled-back",
+      "toState": "ROLLED_BACK",
+      "occurredAt": "2026-10-06T08:51:14.156Z",
+      "evidence": {
+        "error": "Incorrect datetime value: '2026-08-21T21:46:54.000Z' for column 'source_revision_timestamp' at row 1"
+      },
+      "previousRecordSha256": "sha256:82385154302f5ef57444aafd0b923e2606191855f51ea3ab5ac1f99014cbf5fe"
+    }
+  ],
+  "recordSha256": "sha256:6bc987edafc43b4a48716a44dd585513971a382311bd09ad43bae8127f9ab3ab"
+}

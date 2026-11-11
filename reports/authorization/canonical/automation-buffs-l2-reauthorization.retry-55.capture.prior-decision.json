@@ -1,0 +1,8 @@
+{
+  "decisionKind": "L2_PROMOTION",
+  "decisionIdentity": "automation-buffs-l2-reauthorization-20261005-auth04-retry47-e5678ebe-a02f-4305-8f81-b0e18744f1f6",
+  "packetHash": "sha256:a5998814f06755d83f74383e8e86f981ea1121670f1e4ebce40567e612cbbb2d",
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "expiresAt": "2026-10-05T14:04:32.000Z",
+  "domainId": "buffs"
+}

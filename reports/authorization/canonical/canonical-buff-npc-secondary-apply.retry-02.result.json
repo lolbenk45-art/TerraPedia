@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_buff_npc_secondary_apply_result",
+  "operationId": "canonical-buff-npc-secondary-apply",
+  "status": "completed",
+  "scopeSha256": "sha256:7029c22d1778c4058f3ba6a55793c805b5d1aa1a5c2614df85961d6f49ec8d04",
+  "beforeSha256": "sha256:8ed1d4e5999c46c04b8f4819f13d4d1c32d7170b0ae41855d0fb026fe0984614",
+  "afterSha256": "sha256:dbc0834c1df54ac24404fd1a2b57799b07196970f6b0f67cea69f70232e3a1c2",
+  "inserted": 65,
+  "authorization": {
+    "decisionIdentity": "canonical-buff-npc-secondary-apply-20261007-variant-scope-65-retry-02-admin-01",
+    "packetHash": "sha256:ae5a7af6775bb2483fa2ffcc6e9b9bc41e15ab5b66c1b1cd39805dc9192f2393"
+  },
+  "completedAt": "2026-10-06T21:02:40.672Z"
+}

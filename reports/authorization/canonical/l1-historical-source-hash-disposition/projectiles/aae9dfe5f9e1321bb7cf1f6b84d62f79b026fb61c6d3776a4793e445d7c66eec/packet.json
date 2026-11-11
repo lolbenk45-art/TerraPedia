@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-10-05T07:59:23.308Z",
+  "expiresAt": "2026-10-06T07:59:23.308Z",
+  "operationId": "automation-l1-historical-source-hash-disposition",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:619e67b676bd8da4ccb1b0e67f594897a9a4044ca5b5db2b020e2c41df8c4827",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/candidate.json",
+      "sizeBytes": 2478,
+      "contentHash": "sha256:d2d4cda9ca0b335d7fa9d096fb870188f199df8c9abca6a8743ed612c5ef1841"
+    }
+  ],
+  "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+  "executionManifestHash": "sha256:1f6ae5afd648dafac18c03f4aa5910cd0e7abe7e814462d6b5b2da57150f276e",
+  "executionManifest": {
+    "command": [
+      "node",
+      "pipelines/automation/historical-source-hash-disposition.mjs"
+    ],
+    "databaseWrites": false,
+    "executionClass": "historical_source_hash_disposition",
+    "historicalSourceHashDisposition": {
+      "candidateArtifactHash": "sha256:aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec",
+      "candidateFileSha256": "sha256:d2d4cda9ca0b335d7fa9d096fb870188f199df8c9abca6a8743ed612c5ef1841",
+      "candidatePath": "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/candidate.json"
+    },
+    "inputPaths": [
+      "reports/authorization/canonical/l1-historical-source-hash-disposition/projectiles/aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec/candidate.json"
+    ],
+    "networkAccess": false,
+    "operationId": "automation-l1-historical-source-hash-disposition",
+    "outputPaths": [],
+    "progressPaths": [],
+    "reportPaths": [],
+    "schemaVersion": 1,
+    "scope": {
+      "candidateArtifactHash": "sha256:aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec",
+      "domainId": "projectiles",
+      "runId": "projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e"
+    }
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "Standing AUTH-04: renew the Projectiles historical source-hash disposition prerequisite for fresh L2 evidence; no policy scope expansion or business write",
+  "authorizationReference": "user://conversation/2026-09-19/automation-scheduler-standing-01/AUTH-04/projectiles/historical-disposition/20261005",
+  "decisionIdentity": "automation-l1-historical-source-hash-disposition-projectiles-20261005-a7c384c3-620d-4851-b9c2-de2275fe239c",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "scope": {
+    "domainId": "projectiles",
+    "runId": "projectiles_l1_auto_4d46fa934fc03769178dfde4a5b7508e",
+    "candidateArtifactHash": "sha256:aae9dfe5f9e1321bb7cf1f6b84d62f79b026fb61c6d3776a4793e445d7c66eec"
+  },
+  "requestHash": "sha256:d9b7bd81d25a4f58bbff598dc304d18d0dd23bef39895ba7387bb82e9f9cb4b6",
+  "authorizedAt": "2026-10-05T07:59:24.308Z",
+  "packetHash": "sha256:3745a07d10e70b8ecd1e26a2da95606fa0e65bebcca5899446b5f21e4d50a44c"
+}

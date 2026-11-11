@@ -124,7 +124,7 @@ test('runRefreshBuffPageEvidenceBatch supports cache hits, filters, and skipped_
               <h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
               <ul><li><a href="/wiki/Blue_Slime" title="Blue Slime">Blue Slime</a></li></ul>
             `,
-            wikitext: ''
+            wikitext: '== Immune NPCs ==\n{{immunities|Poisoned}}'
           };
         }
         if (filePath.endsWith('items.standardized.json')) {
@@ -322,7 +322,7 @@ test('runRefreshBuffPageEvidenceBatch reports unresolved facts for incomplete pa
           <h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
           <ul><li><a href="/wiki/Blue_Slime" title="Blue Slime">Blue Slime</a></li></ul>
         `,
-        wikitext: ''
+        wikitext: '== Immune NPCs ==\n{{immunities|Poisoned}}'
       }),
       writeJson: (filePath, payload) => writes.set(filePath, payload)
     }

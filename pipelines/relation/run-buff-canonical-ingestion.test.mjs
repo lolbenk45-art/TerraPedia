@@ -16,9 +16,71 @@ import {
   getBuffLandingLockIds,
   assertBuffMaintAfterSet,
   assertBuffLandingAfterSet,
+  buildBuffCanonicalPacket,
 } from './run-buff-canonical-ingestion.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
+
+test('Buff canonical packet is derived from the manifest-bound run and fence identity', () => {
+  const packet = buildBuffCanonicalPacket({
+    context: {
+      actor: 'admin',
+      packetHash: HASH,
+      executionManifestHash: HASH,
+      executionManifest: {
+        buffFullChain: {
+          schemaVersion: 'buff-full-chain-operation-binding/v1',
+          operationId: 'canonical-buff-full-chain',
+          resultLabel: 'retry-01',
+          runId: 'buff-full-chain-retry-01',
+          fenceToken: 'fence:buff-full-chain-retry-01',
+        },
+      },
+    },
+    fingerprint: { serverUuid: 'server-01' },
+  });
+  assert.deepEqual(packet, {
+    runId: 'buff-full-chain-retry-01',
+    fenceToken: 'fence:buff-full-chain-retry-01',
+    serverUuid: 'server-01',
+    actor: 'admin',
+    packetHash: HASH,
+    executionManifestHash: HASH,
+  });
+});
+
+test('Buff canonical packet rejects a missing manifest-bound fence identity', () => {
+  assert.throws(() => buildBuffCanonicalPacket({
+    context: { executionManifest: { buffFullChain: {} } },
+    fingerprint: { serverUuid: 'server-01' },
+  }), /runId|fenceToken|binding/i);
+});
+
+test('Buff maint after-set comparison normalizes source and landing DATETIME values', () => {
+  const base = {
+    id: 389, source_id: 389, internal_name: 'NewBuff',
+    source_revision_timestamp: '2026-08-22T05:46:54Z',
+    landing_fetched_at: '2026-10-06T01:06:30.619Z',
+    landing_parsed_at: '2026-10-06T01:06:30.619Z',
+  };
+  assert.doesNotThrow(() => assertBuffMaintAfterSet({
+    envelope: { upstream: { maint: { inserts: [base], updates: [], unchanged: [], preserved: [] } } },
+    rows: [{ ...base, source_revision_timestamp: '2026-08-22 05:46:54', landing_fetched_at: '2026-10-06 01:06:30', landing_parsed_at: '2026-10-06 01:06:30' }],
+  }));
+});
+
+test('Buff landing after-set comparison normalizes DATETIME values', () => {
+  const deferred = {
+    source_key: 'canonical.buff-page-immunity.test',
+    source_revision_timestamp: '2026-08-22T05:46:54Z',
+    fetched_at: '2026-10-06 01:06:30.619',
+    parsed_at: '2026-10-06 01:06:30.619',
+  };
+  assert.doesNotThrow(() => assertBuffLandingAfterSet({
+    envelope: { upstream: { landing: { landing: deferred } } },
+    rows: [{ ...deferred, source_revision_timestamp: '2026-08-22 05:46:54', fetched_at: '2026-10-06 01:06:30', parsed_at: '2026-10-06 01:06:30' }],
+  }));
+});
 
 function envelopeForLockChecks() {
   const before = { record_key: 'r1', source_id: 24, internal_name: 'OnFire', status: 1, deleted: 0, updated_at: 'old' };
