@@ -1,5 +1,11 @@
 # TerraPedia Current Status
 
+## User stop decision — 2026-11-11
+
+用户已停止全部现有任务。现存成果以分支快照和对应交接文档保存；下文是历史状态，不构成继续执行、正式发布或数据库写入授权。
+
+分支复工入口：`docs/handoffs/2026-11-11-workspace-stop.md`。所有历史未解决问题需在新任务中重新评估；本次不宣称业务完成。
+
 ## Date
 
 2026-08-10

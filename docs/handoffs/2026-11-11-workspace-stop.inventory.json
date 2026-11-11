@@ -1,0 +1,28 @@
+{
+  "branch": "refactor/close-structure-compat-window",
+  "previousHead": "0358360077a24afe769bdaff165282118fa3e324",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.local/tmp/workspace-closeout-20261111/temporary-worktrees/refactor--close-structure-compat-window",
+  "originalChanges": [],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [],
+    "json": [],
+    "failures": []
+  }
+}
