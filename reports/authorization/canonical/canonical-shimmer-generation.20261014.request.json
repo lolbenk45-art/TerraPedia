@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AWAITING_OWNER",
+  "generatedAt": "2026-10-14T05:40:00.000Z",
+  "expiresAt": "2026-10-15T05:40:00.000Z",
+  "operationId": "canonical-shimmer-generation",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:6c2aa7bdfb56aa8aa351884de974067a2733c896954303e7d9a7779709f4b569",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:ab321c7d0b0e0ee24605422a3593c3122453353a5433f356a9160bbe437034ab",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-shimmer-generation.input.json",
+      "sizeBytes": 787,
+      "contentHash": "sha256:ce5d7fd9ce7ca2c109bcd8b65507f26e8a83a3be44d77bf4edf97651bfb70917"
+    },
+    {
+      "path": "data/standardized/items.standardized.json",
+      "sizeBytes": 4960713,
+      "contentHash": "sha256:fdb1d2a73c9816dc7ac705e736a4525333f7805253d758fa76eb103643f4756c"
+    },
+    {
+      "path": "data/standardized/npcs.standardized.json",
+      "sizeBytes": 1302205,
+      "contentHash": "sha256:b6cb15d97193a21817ba39de9b37405279307435d93cb9e2471ad414e65fe44f"
+    }
+  ],
+  "policySetHash": null,
+  "executionManifestHash": "sha256:b602f2df8926bd1538f0acce1a16d2c9529981ac35f37690407363580ebae900",
+  "executionManifest": {
+    "actionId": "domain-source-shimmer",
+    "artifactDate": "2026-10-14",
+    "bounds": {
+      "langlinkBatchSize": 8,
+      "maxLanglinkRequests": 128,
+      "maxRequests": 131,
+      "pageTitle": "Shimmer",
+      "rawRequests": 3,
+      "serial": true
+    },
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:6810c7e85e722656f511f3c644da59a93c3c9a791e79d1e2df22bf0988bc4aa7",
+        "path": "pipelines/pipeline/run-wiki-shimmer-extraction-pipeline.mjs"
+      },
+      {
+        "contentHash": "sha256:7255ec9cfd93763ec35da9e59d9e8bf3821ee51aeccbc436ff8c44fa2e4ff0b7",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:eacc9a56bec4153496d36dc3e8b47e77b4ab4039fa0afc176fe51d3d2304bdc1",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:de133e1a27e814367cd9161215ab81d05666aa2e3c25686ed78e940ed3649af3",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:1446dd43cae20f4c2210131d0274c5c3362e8c737801194a9438c76304a23b94",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:c3a75df1a24154ae6e1a48e3b78375ce49365211d25456d737da7b4281fad693",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:a9e4044ea896b1e0a75daed7bf7f1291db1d90410dea9ba2b4d05fcf5f93e4e1",
+        "path": "pipelines/lib/wiki-item-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:c1d8515227289ddb4a162c7d661b28d6423086b43eada58917f9f4d26cc4995d",
+        "path": "pipelines/fetch/fetch-wiki-shimmer-langlinks.mjs"
+      },
+      {
+        "contentHash": "sha256:183942df81a3429cd57b86e5555f222fbf9ec9bea20d9d5cf22158cb64dfbcde",
+        "path": "pipelines/fetch/fetch-wiki-shimmer-page.mjs"
+      },
+      {
+        "contentHash": "sha256:3e8a5593d5e1c7831e0c14f170e7b359af89810975692b5319db385724315ba2",
+        "path": "pipelines/maint/shimmer-structured-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:c806d4b91012123c980e80c3f76140e40b6773a53ba500e3b9e82a445cb3e7b6",
+        "path": "pipelines/transform/shimmer-generation-builder.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:2ee2102f5feba92acfaaca41945f6c0952b2f5d72f04e3af144e1fb907883801",
+        "path": "pipelines/workflow/backend-refresh-runtime-state.mjs"
+      },
+      {
+        "contentHash": "sha256:5b09c183133c194fe2f9597433c25a2a2f0961a9e5cfeddf1eb0d8006d321f71",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:fd760bd9ea92d2a3c894bc2fc4d1a874aa82153a35c7b22cc63edc8138d3a0d0",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:736ae0c6f8f4759049af0443ab197e120c3818235aa7dd4be4753b9be6d76ce0",
+        "path": "pipelines/relation/armor-source-effect-owner-decision.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:2f5dff30fe752140884ac9fa1594e08b478d7b7d9397bccff469c21e2229cb31",
+        "path": "pipelines/workflow/armor-image-cache.mjs"
+      },
+      {
+        "contentHash": "sha256:b19bcd0b9eb2f23b730e753e96eae9e4ce455b51a9b5ec0b480b7257e755a91d",
+        "path": "pipelines/lib/wiki-request-gate.mjs"
+      },
+      {
+        "contentHash": "sha256:cc5ec3ea555bf6404a650c314a4407c686e9fd088c3c8d2373a73bcc8cd8bba3",
+        "path": "pipelines/lib/wiki-user-agent.mjs"
+      },
+      {
+        "contentHash": "sha256:57de54a75212d1657321e418a232194d51f80bbbb59a5287bdd03314760df42d",
+        "path": "pipelines/lib/crawler-heartbeat.mjs"
+      },
+      {
+        "contentHash": "sha256:2d5b9621d356c8f65d3862c8590dc793a0ae2841b672e71e383f63e89873bd57",
+        "path": "pipelines/lib/wiki-page-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:2b70b9a5b5639ab8adb11cf1db7089d563d5d78c2dbcc978a5a72683b059360a",
+        "path": "scripts/lib/project-constants.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:19dada99f8bc8a5e31af064f92073c07c037368b41129c67f28c54ab2375f3af",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:f3c420eae97379c43554e875e31ab2c6d3f827131bcf5970265d1408c6d22fdc",
+        "path": "pipelines/lib/crawler-alerts.mjs"
+      },
+      {
+        "contentHash": "sha256:4e820dc1cc5cfc52d3490e46f375e36b352dc77478257338722aa33d6109e395",
+        "path": "pipelines/lib/flaresolverr-bridge.mjs"
+      },
+      {
+        "contentHash": "sha256:190b7cede93202f233e8f7db2e8c9c85b4e0f80da77543c37ceb5776f2a61650",
+        "path": "pipelines/lib/recipe-material-reference.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/pipeline/run-wiki-shimmer-extraction-pipeline.mjs",
+      "--input-contract=reports/authorization/canonical/canonical-shimmer-generation.input.json",
+      "--page=Shimmer",
+      "--api=https://terraria.wiki.gg/zh/api.php",
+      "--progress-path=data/generated/domain-source-shimmer-progress.latest.json",
+      "--report-output=reports/wiki-shimmer-generation-2026-10-14.md"
+    ],
+    "databaseWrites": false,
+    "executionClass": "bounded_network_crawler",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-shimmer-generation.input.json",
+      "data/standardized/items.standardized.json",
+      "data/standardized/npcs.standardized.json"
+    ],
+    "networkAccess": true,
+    "operationId": "canonical-shimmer-generation",
+    "outputPaths": [
+      "data/generated/shimmer/wiki-shimmer-current-generation.json"
+    ],
+    "progressPaths": [
+      "data/generated/domain-source-shimmer-progress.latest.json"
+    ],
+    "reportPaths": [
+      "reports/wiki-shimmer-generation-2026-10-14.md"
+    ],
+    "schemaVersion": 1,
+    "sources": [
+      "https://terraria.wiki.gg/zh/api.php"
+    ]
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": null,
+  "reason": null,
+  "authorizationReference": null,
+  "decisionIdentity": null,
+  "missingTechnicalFields": [
+    "policySetHash"
+  ],
+  "missingOwnerFields": [
+    "actor",
+    "reason",
+    "authorizationReference",
+    "decisionIdentity"
+  ],
+  "requestHash": "sha256:023da5edeca81f3eeee8b5750621049f0e71252445c236460f11cd61386d5d0f"
+}

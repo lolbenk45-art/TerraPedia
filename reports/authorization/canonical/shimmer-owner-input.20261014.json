@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized Shimmer fresh source generation and isolated pseudo-ingestion for the 2026-10-14 run; no formal database write",
+  "authorizationReference": "user:2026-10-14-shimmer-pseudo-ingestion",
+  "decisionIdentity": "canonical-shimmer-generation-20261014-admin-01"
+}

@@ -1,0 +1,186 @@
+{
+  "branch": "ops/recrawl-shimmer-20261013",
+  "previousHead": "a4beb6eda50c37f0af9e0845e98910e68ad44936",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.worktrees/recrawl-shimmer-20261013",
+  "originalChanges": [
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-context.importable.json",
+      "oldPath": null,
+      "size": 2383
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-decraft-rules.importable.json",
+      "oldPath": null,
+      "size": 148193
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-entity-transforms.importable.json",
+      "oldPath": null,
+      "size": 60829
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-item-transforms.importable.json",
+      "oldPath": null,
+      "size": 129117
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-manifest.json",
+      "oldPath": null,
+      "size": 3335
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-npc-transforms.importable.json",
+      "oldPath": null,
+      "size": 15609
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-title-resolution.evidence.json",
+      "oldPath": null,
+      "size": 82487
+    },
+    {
+      "status": "??",
+      "path": "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer.raw.json",
+      "oldPath": null,
+      "size": 777525
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-shimmer-generation.20261014.execution-manifest.json",
+      "oldPath": null,
+      "size": 7378
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-shimmer-generation.20261014.request.json",
+      "oldPath": null,
+      "size": 9730
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-owner-input.20261014.json",
+      "oldPath": null,
+      "size": 309
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-temp-server-fingerprint.20261014.json",
+      "oldPath": null,
+      "size": 192
+    }
+  ],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-17-local-eight-domain-complete-chain.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-closure-remediation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-data-chain-closure-plan.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-23-remaining-closure-item-decision-checklist.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-31-automation-scheduler-activation-handoff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-19-automation-scheduler-authorization-list.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-22-automation-ingestion-plan-repair.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-armor-frozen-candidate-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-canonical-ownership-execution.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-26-armor-secondary-projection-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-27-armor-image-cache-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-28-armor-source-semantics-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-qualified-cell-diagnostics.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-set-source-evidence-contract.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-automation-domain-buff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-automation-domain-shimmer-runtime-preflight.md",
+      "previousStatus": "blocked"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-buff-bounded-landing-contract.md",
+      "previousStatus": "blocked"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-30-armor-closure-gap-audit.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [],
+    "json": [
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-context.importable.json",
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-decraft-rules.importable.json",
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-entity-transforms.importable.json",
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-item-transforms.importable.json",
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-manifest.json",
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-npc-transforms.importable.json",
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer-title-resolution.evidence.json",
+      "data/generated/shimmer/generations/51608db4260fbd3949f188e7bd06e9f68ca20d545eb3aa64b3413b4dd7f9affd/wiki-shimmer.raw.json",
+      "reports/authorization/canonical/canonical-shimmer-generation.20261014.execution-manifest.json",
+      "reports/authorization/canonical/canonical-shimmer-generation.20261014.request.json",
+      "reports/authorization/canonical/shimmer-owner-input.20261014.json",
+      "reports/authorization/canonical/shimmer-temp-server-fingerprint.20261014.json"
+    ],
+    "failures": []
+  }
+}
