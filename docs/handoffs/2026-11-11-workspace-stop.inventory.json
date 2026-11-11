@@ -1,0 +1,145 @@
+{
+  "branch": "ops/recrawl-armor-20261013",
+  "previousHead": "7fd4e8f90c4c65fc15cfafc15a7e5e5abfc9358d",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.worktrees/recrawl-armor-20261013",
+  "originalChanges": [
+    {
+      "status": " M",
+      "path": "data/generated/wiki-armor-sets.latest.json",
+      "oldPath": null,
+      "size": 103762
+    },
+    {
+      "status": " M",
+      "path": "data/standardized/armor_sets.standardized.json",
+      "oldPath": null,
+      "size": 30151
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/automation-database-contract.mjs",
+      "oldPath": null,
+      "size": 13669
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/automation-database-contract.test.mjs",
+      "oldPath": null,
+      "size": 9448
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/mysql-automation-acceptance-adapter.mjs",
+      "oldPath": null,
+      "size": 36155
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/run-live-automation-acceptance.mjs",
+      "oldPath": null,
+      "size": 32199
+    }
+  ],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-17-local-eight-domain-complete-chain.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-closure-remediation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-data-chain-closure-plan.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-23-remaining-closure-item-decision-checklist.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-31-automation-scheduler-activation-handoff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-19-automation-scheduler-authorization-list.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-22-automation-ingestion-plan-repair.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-armor-frozen-candidate-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-canonical-ownership-execution.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-26-armor-secondary-projection-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-27-armor-image-cache-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-28-armor-source-semantics-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-qualified-cell-diagnostics.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-set-source-evidence-contract.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-automation-domain-buff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-automation-domain-shimmer-runtime-preflight.md",
+      "previousStatus": "blocked"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-buff-bounded-landing-contract.md",
+      "previousStatus": "blocked"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-30-armor-closure-gap-audit.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [
+      "pipelines/automation/automation-database-contract.mjs",
+      "pipelines/automation/automation-database-contract.test.mjs",
+      "pipelines/automation/mysql-automation-acceptance-adapter.mjs",
+      "pipelines/automation/run-live-automation-acceptance.mjs"
+    ],
+    "json": [
+      "data/generated/wiki-armor-sets.latest.json",
+      "data/standardized/armor_sets.standardized.json"
+    ],
+    "failures": []
+  }
+}

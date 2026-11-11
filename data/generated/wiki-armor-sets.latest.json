@@ -3,8 +3,8 @@
   "sourceApi": "https://terraria.wiki.gg/zh/api.php",
   "sourcePageTitle": "盔甲",
   "sourceRevisionTimestamp": "2026-04-04T07:46:03Z",
-  "fetchedAt": "2026-06-18T14:11:08.680Z",
-  "generatedAt": "2026-06-18T14:11:06.699Z",
+  "fetchedAt": "2026-10-13T11:26:50.744Z",
+  "generatedAt": "2026-10-13T11:26:37.438Z",
   "total": 88,
   "records": [
     {
@@ -49,7 +49,7 @@
         }
       ],
       "effectText": "+20% 挖矿速度\n挖矿头盔和超亮头盔可以互换\n套装奖励：+10% 挖矿速度（总共 +30%）\n效果：头盔部件会发光\n超亮头盔额外提供类似夜猫子药水的效果",
-      "sourceText": "挖矿头盔：由商人以 4 GC 的价格出售\n挖矿头盔罕见掉落自不死矿工\n超亮头盔：用挖矿头盔和 夜视头盔(电脑版、主机版、和移动版)在工匠作坊制作\n裤装和上衣：罕见掉落自不死矿工",
+      "sourceText": "挖矿头盔：由商人以 4 金 的价格出售\n挖矿头盔罕见掉落自不死矿工\n超亮头盔：用挖矿头盔和 夜视头盔(电脑版、主机版、和移动版)在工匠作坊制作\n裤装和上衣：罕见掉落自不死矿工",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1485,7 +1485,7 @@
         }
       ],
       "effectText": "+15% 近战伤害\n+30% 召唤伤害\n+15% 近战暴击率\n+1 哨兵容量\n+15% 移动速度\n生命再生速度提高\n套装奖励：\n+1 哨兵容量（总计 +2）\n弩车的射弹速度和穿透提升\n受到伤害时提供弩车恐慌！增益，提高弩车的攻击速度",
-      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 45 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1515,7 +1515,7 @@
         }
       ],
       "effectText": "+20% 近战伤害\n+30% 召唤伤害\n+15% 近战暴击率\n+20% 近战速度\n+1 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +2）\n闪电光环的攻击速度提高，且具有 1/6 (16.67%) 的固定暴击率",
-      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 45 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1545,7 +1545,7 @@
         }
       ],
       "effectText": "+20% 远程伤害\n+30% 召唤伤害\n+10% 远程暴击率\n10% 的几率不消耗弹药\n+1 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +2）\n爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害",
-      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 45 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1575,7 +1575,7 @@
         }
       ],
       "effectText": "+20% 魔法伤害\n+30% 召唤伤害\n+20% 魔法暴击率\n−10% 魔力消耗\n+1 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +2）\n爆炸烈焰的攻击范围提高 50%、射弹速度提高 40%、增加视野",
-      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 45 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1729,7 +1729,7 @@
         }
       ],
       "effectText": "+30% 召唤伤害\n+3 仆从容量\n+10% 鞭范围\n套装奖励：+1 仆从容量（总计 +4）、+20% 鞭范围（总计 +30%）",
-      "sourceText": "击败世纪之花后由巫医出售，价格为 1 PC50 GC（全套）",
+      "sourceText": "击败世纪之花后由巫医出售，价格为 1 铂金 50 金（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1879,7 +1879,7 @@
         }
       ],
       "effectText": "+10% 近战伤害\n+60% 召唤伤害\n+20% 近战暴击率\n+2 哨兵容量\n+20% 移动速度\n生命再生速度提高\n套装奖励：\n+1 哨兵容量（总计 +3）\n弩车的射弹速度提升、攻击速度大幅提升、穿透提升\n受到伤害时提供弩车恐慌！增益，进一步提高弩车的攻击速度",
-      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 150 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1909,7 +1909,7 @@
         }
       ],
       "effectText": "+20% 近战伤害\n+60% 召唤伤害\n+25% 近战暴击率\n+20% 近战速度\n+2 哨兵容量\n+30% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +3）\n闪电光环的攻击速度和范围提高，且具有 25% 的固定暴击率",
-      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 150 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1939,7 +1939,7 @@
         }
       ],
       "effectText": "+25% 远程伤害\n+60% 召唤伤害\n+20% 远程暴击率\n+20% 减少弹药消耗\n+2 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +3）\n爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害",
-      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 150 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -1969,7 +1969,7 @@
         }
       ],
       "effectText": "+25% 魔法伤害\n+60% 召唤伤害\n+25% 魔法暴击率\n−15% 魔力消耗\n+2 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +3）\n爆炸烈焰的攻击范围提高 50%、射弹速度提高 40%、视野增加、以及更大的射弹爆炸半径\n幽灵凤凰的Phoenix projectile有更大的爆炸半径",
-      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "sourceText": "由酒馆老板出售，价格为 150 护卫奖章（全套）",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -2119,7 +2119,7 @@
         }
       ],
       "effectText": "+6% 魔法伤害\n+6% 魔法暴击率\n套装奖励：+60 最大魔力",
-      "sourceText": "由旅商以 3 GC 的价格出售",
+      "sourceText": "由旅商以 3 金 的价格出售",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -2389,7 +2389,7 @@
         }
       ],
       "effectText": "+6% 魔法伤害\n+6% 魔法暴击率\n-10% 魔力消耗\n套装奖励\n魔法帽：+60 最大魔力\n巫师帽：+10% 魔法暴击率（总计+16%）",
-      "sourceText": "由旅商以 3 GC50 SC 的价格出售",
+      "sourceText": "由旅商以 3 金 50 银 的价格出售",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -2539,7 +2539,7 @@
         }
       ],
       "effectText": "提供了类似于夜猫子药水的效果",
-      "sourceText": "掉落自花岗精，或者在打败火星暴乱事件后由机器侠以 5 GC 的价格出售",
+      "sourceText": "掉落自花岗精，或者在打败火星暴乱事件后由机器侠以 5 金 的价格出售",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },
@@ -2629,7 +2629,7 @@
         }
       ],
       "effectText": "+5% 伤害、+5% 暴击率、\n+10% 近战速度、+10% 移动速度",
-      "sourceText": "由旅商以 2 GC 的价格出售",
+      "sourceText": "由旅商以 2 金 的价格出售",
       "interchangeableSetTitles": [],
       "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
     },

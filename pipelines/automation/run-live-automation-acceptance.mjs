@@ -165,6 +165,7 @@ export async function runLiveAutomationAcceptance({
   runId,
   mysql,
   redis,
+  domain,
   environmentId = 'local-automation-acceptance',
   privateDirectory,
   maxRowsPerTable = 2,
@@ -195,7 +196,7 @@ export async function runLiveAutomationAcceptance({
     readonly: randomBytes(32).toString('hex')
   };
   const adapter = await createLiveAutomationAdapter({
-    repoRoot: ROOT, mysql, redis, environmentId,
+    repoRoot: ROOT, mysql, redis, domain, environmentId,
     accountNames: resources.accounts, accountPasswords, maxRowsPerTable
   });
   let manifest;
@@ -550,6 +551,8 @@ async function main() {
   const args = parseArgs(process.argv);
   const profile = args.profile;
   const scope = args.scope;
+  const domain = args.domain ?? null;
+  if (domain !== null && domain !== 'armor') throw new Error('--domain currently supports only armor for isolated recrawl');
   const npcT1Invocation = profile === 't1' && scope === 'npc-canonical';
   const recipeT1Invocation = profile === 't1' && scope === 'recipe-canonical';
   const bossT1Invocation = profile === 't1' && scope === 'boss-canonical';
@@ -605,6 +608,7 @@ async function main() {
       profile,
       runId,
       privateDirectory,
+      domain,
       mysql: {
         host: config.database.host,
         port: config.database.port,

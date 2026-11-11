@@ -171,7 +171,7 @@ authorized by this review.
 
 ## Status
 
-`active`
+`closed`
 
 ## Scope
 
@@ -4196,3 +4196,10 @@ Validation:
 - Parsed source facts: ShadowFlame `5/1/30`, Venom `8/3/26` for source items / inflicting NPCs / immune NPCs. T1 chain: Buff import `2/2`, maint inserted `2`, relation/projection `2/2`, source-item relations `13`, inflicting-NPC relations `4`, unresolved `0`, consumer readback Venom `8/26` and ShadowFlame `5/30`.
 - Redis DB18 preflight/postflight were both `0`; run-derived schemas were `terria_v1_automation_acceptance_buf_d029209e7dba685c_{local,maint,relation}`; cleanup passed. No formal database, DB15, DB14, DB16, scheduler, authorization, permit/decision, marker, or `/v2/automation/sweep` write occurred.
 - Focused validation is `34/34`; syntax, shell, and diff checks pass. Production Buff remains disabled on `18105/DB15`. Historical DB13 replay evidence remains unchanged and is retained only as historical evidence.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.

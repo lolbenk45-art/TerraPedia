@@ -1,6 +1,6 @@
 {
   "entity": "armor_sets",
-  "generatedAt": "2026-10-09T05:35:33.394Z",
+  "generatedAt": "2026-10-13T12:44:49.311Z",
   "records": [
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.Shroomite",
@@ -1774,7 +1774,7 @@
   "sourceFile": "terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content|timestamp|ids",
   "totalRecords": 64,
   "upstreamMeta": {
-    "fetchedAt": "2026-10-09T05:35:33.394Z",
+    "fetchedAt": "2026-10-13T12:44:49.311Z",
     "source": "terraria.wiki.gg:Module:ArmorSetBonuses",
     "sourceApi": "https://terraria.wiki.gg/api.php",
     "sourcePageTitle": "Module:ArmorSetBonuses",
