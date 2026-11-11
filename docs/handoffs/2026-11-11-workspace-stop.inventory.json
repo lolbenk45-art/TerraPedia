@@ -1,0 +1,20 @@
+{
+  "branch": "design/crawler-auto-ingestion-readiness",
+  "previousHead": "e6236c070675ab0b2413ede4a4803750edcff01e",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.local/tmp/workspace-closeout-20261111/temporary-worktrees/design--crawler-auto-ingestion-readiness",
+  "originalChanges": [],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [],
+    "json": [],
+    "failures": []
+  }
+}
