@@ -1,0 +1,24 @@
+{
+  "branch": "feat/scheduler-permanent-enablement",
+  "previousHead": "340d196ccfc8100fe2f8da9dfbc4c28918182848",
+  "previousUpstream": "origin/feat/scheduler-permanent-enablement",
+  "originalWorktree": "/home/lolben/TerraPedia/.local/tmp/workspace-closeout-20261111/temporary-worktrees/feat--scheduler-permanent-enablement",
+  "originalChanges": [],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [],
+    "json": [],
+    "failures": []
+  }
+}
