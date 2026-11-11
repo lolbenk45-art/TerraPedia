@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Purpose
 
@@ -389,3 +389,10 @@ Do not call `/sweep`, reset Redis, edit queue JSON, or reuse Retry-33b.
 - Runtime reachability is unknown in this turn. The operator reports MySQL was started, but this session did not independently probe MySQL `127.0.0.1:13306`, Redis `6380`, backend `18102`, MinIO `19000`, public `5188`, or admin `3015`. On resume, probe first; if required, run the canonical local-stack start with `SPRING_TASK_SCHEDULING_ENABLED=false`, then perform fresh Phase 0 readback.
 - Retry-39 projectiles remains consumed after failing before import on the obsolete `items.source_id` select. The repair is present in the dirty worktree and the recorded focused importer validation is `9/9`; do not reuse Retry-39 or decision `id=65`. The next legal runtime chain is fresh Retry-40-or-later L2 captures/packets/decisions, serialized with MySQL readback, followed by a fresh projectiles natural-tick canary.
 - This handoff reconciliation performed no scheduler control write, source probe, crawler/import, Redis write, epoch reset, or business-table DML.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.
