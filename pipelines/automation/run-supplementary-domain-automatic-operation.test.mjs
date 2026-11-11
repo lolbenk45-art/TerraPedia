@@ -547,7 +547,10 @@ test('supplementary automatic runner rejects acknowledgement when activation cha
           runIdentity: fixture.now,
           contentIdentity: fixture.sourceContentIdentity,
           sourceKey: 'wiki.bosses.catalog',
-          source: { currentValue: HASH('f') },
+          source: {
+            ...JSON.parse(fs.readFileSync(fixture.sourceStatePath, 'utf8')).sources[0],
+            currentValue: HASH('f'),
+          },
         };
       },
       executeOperationImpl: async () => ({ status: 'completed' }),
@@ -1618,6 +1621,22 @@ function createRunnerFixture(domain) {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-automatic-fixture-'));
   const now = '2026-08-15T02:00:00.000Z';
   const sourceStatePath = path.join(repoRoot, 'data', 'generated', 'source-update-monitor.latest.json');
+  const sourceSnapshotPath = path.join(repoRoot, 'reports', 'runtime', 'source-probe-snapshots', 'bosses.json');
+  const sourceSnapshotPayload = {
+    schemaVersion: 1,
+    sourceKey: 'wiki.bosses.catalog',
+    sourceFingerprint: HASH('f'),
+    checkedAt: now,
+    revisionId: 101,
+    revisionTimestamp: now,
+    metadataOnly: true,
+    probeStateHash: HASH('probe-state'),
+    payload: { overview: {}, bosses: [] },
+  };
+  const sourceSnapshotBytes = `${JSON.stringify(sourceSnapshotPayload, null, 2)}\n`;
+  fs.mkdirSync(path.dirname(sourceSnapshotPath), { recursive: true });
+  fs.writeFileSync(sourceSnapshotPath, sourceSnapshotBytes, { mode: 0o600 });
+  const sourceSnapshotHash = `sha256:${createHash('sha256').update(sourceSnapshotBytes).digest('hex')}`;
   const sourceState = {
     checkedAt: now,
     summary: { probeHealthy: true, errorSources: 0 },
@@ -1627,6 +1646,17 @@ function createRunnerFixture(domain) {
       checkedAt: now,
       currentValue: HASH('f'),
       changed: true,
+      snapshot: {
+        path: path.relative(repoRoot, sourceSnapshotPath).replaceAll('\\', '/'),
+        snapshotHash: sourceSnapshotHash,
+        probeStateHash: HASH('probe-state'),
+        contentHash: HASH('f'),
+        sourceFingerprint: HASH('f'),
+        checkedAt: now,
+        revisionId: 101,
+        revisionTimestamp: now,
+        metadataOnly: true,
+      },
     }],
   };
   fs.mkdirSync(path.dirname(sourceStatePath), { recursive: true });

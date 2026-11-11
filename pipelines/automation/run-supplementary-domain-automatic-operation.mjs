@@ -33,6 +33,7 @@ import {
 } from './automatic-execution-artifacts.mjs';
 import {
   assertCurrentSourceMonitorStateMatchesDispatchIdentity,
+  readFrozenSourceSnapshot,
   assertFrozenSourceMonitorStateMatches,
   assertFrozenSourceMatchesDispatchIdentity,
   readFrozenSourceMonitorState,
@@ -73,6 +74,8 @@ export async function runSupplementaryDomainAutomaticOperation({
   const repoRoot = path.resolve(env.WORKTREE_ROOT ?? process.cwd());
   const isolatedMode = String(env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE ?? '').trim() === 'true';
   const isolatedManifestPath = env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH;
+  const sourceManifestPath = args['source-manifest-path']
+    ?? (isolatedMode ? env.TERRAPEDIA_EIGHT_DOMAIN_SOURCE_MANIFEST_PATH : args['manifest-path']);
   const isolatedManifest = isolatedMode
     ? loadIsolatedAcceptanceManifest({ repoRoot, manifestPath: isolatedManifestPath, domain, env })
     : null;
@@ -90,6 +93,7 @@ export async function runSupplementaryDomainAutomaticOperation({
     throw error;
   }
   let frozenProbeState;
+  let frozenSourceSnapshot;
   try {
     frozenProbeState = sourceDispatchIdentity == null
       ? null
@@ -98,6 +102,14 @@ export async function runSupplementaryDomainAutomaticOperation({
           domain,
           repoRoot,
           sourceStatePath: env.TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH,
+        });
+    frozenSourceSnapshot = sourceDispatchIdentity == null
+      ? null
+      : readFrozenSourceSnapshot({
+          repoRoot,
+          source: frozenProbeState.source,
+          domain,
+          expectedFingerprint: sourceDispatchIdentity.sourceFingerprint,
         });
   } catch (error) {
     runnerProgress.publish({ status: 'failed', phase: 'source-identity', message: error?.message ?? String(error) });
@@ -118,12 +130,15 @@ export async function runSupplementaryDomainAutomaticOperation({
     `--run-id=${previewRunId}`,
     `--artifact-root=${previewArtifactRoot}`,
     `--progress-path=${previewProgressPath}`,
-    ...(args['manifest-path'] ? [`--manifest-path=${args['manifest-path']}`] : []),
+    ...(sourceManifestPath ? [`--manifest-path=${sourceManifestPath}`] : []),
     '--defer-source-acknowledgement=true',
     ...(domain === 'shimmer' ? ['--persist-canonical-shimmer-proposal=false'] : []),
     ...(effectiveSourceMode === 'local' ? ['--reuse-current-source=true'] : []),
     ...(effectiveSourceMode === 'local' && domain === 'shimmer' ? ['--reuse-current-generation=true'] : []),
   ];
+  if (frozenSourceSnapshot != null) {
+    previewArgs.push(`--source-snapshot-path=${frozenSourceSnapshot.path}`);
+  }
   let activation;
   let activationConnection;
   try {
@@ -172,6 +187,7 @@ export async function runSupplementaryDomainAutomaticOperation({
       repoRoot,
       sourceDispatchIdentity,
       sourceStatePath: env.TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH,
+      sourceSnapshotReference: frozenProbeState?.source?.snapshot ?? null,
     });
   } catch (error) {
     runnerProgress.publish({ status: 'failed', phase: 'failed', message: error?.message ?? String(error) });
@@ -386,7 +402,7 @@ export async function runSupplementaryDomainAutomaticOperation({
             }
           }
           return acknowledgeSourceImpl({
-            manifestPath: args['manifest-path'] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+            manifestPath: sourceManifestPath ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
             snapshot: preview.stableSourceSnapshot,
             outputPath: operationBundlePath,
           });

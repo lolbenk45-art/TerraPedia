@@ -37,6 +37,10 @@ import {
   buildItemSourceLocalNpcAdmissionInputContract,
 } from '../relation/item-source-local-npc-admission-contract.mjs';
 import { buildArmorCanonicalIntentArtifactBinding } from '../relation/armor-canonical-operation-binding.mjs';
+import {
+  ARMOR_CANONICAL_EXECUTION_OWNERSHIP_KEYS,
+  assertArmorCanonicalExecutionOwnershipCoverage,
+} from '../relation/armor-canonical-write-fence.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 const npcT1ConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-npc-t1-config-'));
@@ -141,7 +145,7 @@ function manifestOptions(operationId) {
     armorCanonicalIntentBinding: buildArmorCanonicalIntentArtifactBinding({
       resultLabel: 'test-01',
       intent: {
-        schemaVersion: 'armor-canonical-full-chain-intent/v1',
+        schemaVersion: 'armor-canonical-full-chain-intent/v2',
         operationId: 'canonical-armor-ingestion',
         executable: false,
         executionBlocker: 'registered-full-chain-executor-required',
@@ -227,6 +231,34 @@ test('base-domain policy bootstrap and promotion operations are governed entrypo
       `reports/authorization/canonical/${promotion}.input.json`,
     ]);
   }
+});
+
+test('Items and Armor scope-amendment operations bind immutable policy registration outputs', () => {
+  for (const domain of ['items', 'armor-sets']) {
+    const operationId = `automation-${domain}-l2-scope-amendment`;
+    assert.ok(CANONICAL_CUTOVER_OPERATION_IDS.includes(operationId));
+    assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[operationId], 'pipelines/automation/register-l2-policy-scope-amendment.mjs');
+    const manifest = buildCanonicalOperationExecutionManifest({ repoRoot, operationId, resultLabel: 'retry-02' });
+    assert.deepEqual(manifest.command, [
+      'node', 'pipelines/automation/register-l2-policy-scope-amendment.mjs',
+      `--operation-id=${operationId}`,
+      `--input=reports/authorization/canonical/${operationId}.input.json`,
+      `--output=reports/authorization/canonical/${operationId}.retry-02.result.json`,
+      '--result-label=retry-02',
+      '--apply=true',
+    ]);
+    assert.deepEqual(manifest.outputPaths, [
+      `reports/authorization/canonical/${operationId}.retry-02.result.json`,
+      `reports/authorization/canonical/${operationId}.retry-02.result.json.commit.json`,
+    ]);
+    assert.equal(manifest.policyScopeAmendmentPublication.pendingResultPath,
+      `reports/authorization/canonical/${operationId}.retry-02.result.json`);
+  }
+  const serialOperationId = 'automation-armor-sets-l2-scope-amendment-after-items';
+  assert.equal(CANONICAL_OPERATION_ENTRYPOINTS[serialOperationId], 'pipelines/automation/register-l2-policy-scope-amendment.mjs');
+  assert.deepEqual(CANONICAL_OPERATION_DATA_PATHS[serialOperationId], [
+    `reports/authorization/canonical/${serialOperationId}.input.json`,
+  ]);
 });
 
 test('governed exact manual L1 operations bind a dynamic run root', () => {
@@ -495,8 +527,8 @@ test('image-origin and Armor restoration lanes are separate governed operations'
 
 test('manifest builder covers governed operations and keeps NPC apply explicitly fail closed', () => {
   const shimmerFixture = createShimmerManifestFixture();
-  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 138);
-  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 136);
+  assert.equal(CANONICAL_CUTOVER_OPERATION_IDS.length, 141);
+  assert.equal(CANONICAL_EXECUTABLE_OPERATION_IDS.length, 139);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['canonical-npc-apply'], null);
   assert.equal(CANONICAL_OPERATION_ENTRYPOINTS['automation-l1-historical-source-hash-disposition'], null);
   assert.deepEqual(
@@ -547,6 +579,21 @@ test('manifest builder covers governed operations and keeps NPC apply explicitly
   } finally {
     shimmerFixture.cleanup();
   }
+});
+
+test('Armor canonical manifest freezes the complete owner table set and operation-specific fence helper', () => {
+  const manifest = buildCanonicalOperationExecutionManifest({
+    repoRoot,
+    operationId: 'canonical-armor-ingestion',
+    artifactDate: '2026-10-27',
+    ...manifestOptions('canonical-armor-ingestion'),
+  });
+  assert.deepEqual(manifest.ownershipKeys, ARMOR_CANONICAL_EXECUTION_OWNERSHIP_KEYS);
+  assert.doesNotThrow(() => assertArmorCanonicalExecutionOwnershipCoverage({
+    executionOwnershipKeys: manifest.ownershipKeys,
+  }));
+  const codePaths = new Set(manifest.codeBundleEntries.map(({ path: filePath }) => filePath));
+  assert.ok(codePaths.has('pipelines/relation/armor-canonical-write-fence.mjs'));
 });
 
 test('NPC T2 manifest binds one no-write attempt and the exact formal evidence', () => {
@@ -1768,6 +1815,9 @@ const SCHEDULER_RUNTIME_REQUIRED_PATHS = [
   'pipelines/automation/run-base-domain-automatic-operation.mjs',
   'pipelines/automation/run-armor-automatic-operation.mjs',
   'pipelines/automation/armor-automatic-dispatch-binding.mjs',
+  'pipelines/relation/run-armor-canonical-ingestion.mjs',
+  'pipelines/relation/armor-canonical-transaction-executor.mjs',
+  'pipelines/relation/armor-canonical-local-projection.mjs',
   'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
   'pipelines/automation/automatic-execution-artifacts.mjs',
   'pipelines/automation/run-supplementary-domain-l1-operation.mjs',

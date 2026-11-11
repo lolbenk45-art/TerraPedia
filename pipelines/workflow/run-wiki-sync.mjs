@@ -71,7 +71,7 @@ const ENTITY_CONFIG = {
     sourceKeys: ['wiki.module.iteminfo'],
     titles: ['Module:Iteminfo/data'],
     scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-iteminfo.mjs'),
-    scriptArgs: () => [],
+    scriptArgs: (options) => sourceSnapshotArgs(options),
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__iteminfo__data.latest.json'),
     estimatedRequests: 1
   },
@@ -81,7 +81,7 @@ const ENTITY_CONFIG = {
     sourceKeys: ['wiki.module.npcinfo'],
     titles: ['Module:Npcinfo/data'],
     scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-npcinfo.mjs'),
-    scriptArgs: () => [],
+    scriptArgs: (options) => sourceSnapshotArgs(options),
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__npcinfo__data.latest.json'),
     estimatedRequests: 1
   },
@@ -91,7 +91,7 @@ const ENTITY_CONFIG = {
     sourceKeys: ['wiki.module.projectileinfo'],
     titles: ['Module:Projectileinfo/data'],
     scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-projectileinfo.mjs'),
-    scriptArgs: () => [],
+    scriptArgs: (options) => sourceSnapshotArgs(options),
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__projectileinfo__data.latest.json'),
     estimatedRequests: 1
   },
@@ -101,7 +101,7 @@ const ENTITY_CONFIG = {
     sourceKeys: ['wiki.module.armorsetbonuses'],
     titles: ['Module:ArmorSetBonuses'],
     scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-armorsetbonuses.mjs'),
-    scriptArgs: () => [],
+    scriptArgs: (options) => sourceSnapshotArgs(options),
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__armorsetbonuses.latest.json'),
     estimatedRequests: 1
   },
@@ -121,7 +121,10 @@ const ENTITY_CONFIG = {
     sourceKeys: ['wiki.page.template_getbuffinfo'],
     titles: ['Template:GetBuffInfo'],
     scriptPath: path.join(sourceRoot, 'pipelines', 'fetch', 'fetch-wiki-buffs.mjs'),
-    scriptArgs: (options) => [`--langs=${String(options.langs ?? 'en').trim() || 'en'}`],
+    scriptArgs: (options) => [
+      `--langs=${String(options.langs ?? 'en').trim() || 'en'}`,
+      ...sourceSnapshotArgs(options),
+    ],
     latestJsonPath: path.join(sharedRawWikiRoot, 'template__getbuffinfo.latest.json'),
     estimatedRequests: 18
   },
@@ -633,6 +636,13 @@ function resolveRequestedEntities(rawOptions) {
     .map((entry) => entry.trim())
     .filter(Boolean);
   return [...new Set(requested)].filter((entry) => ENTITY_CONFIG[entry]);
+}
+
+function sourceSnapshotArgs(rawOptions = {}) {
+  const value = rawOptions['source-snapshot-path'] ?? rawOptions.sourceSnapshotPath;
+  return value == null || String(value).trim() === ''
+    ? []
+    : [`--source-snapshot-path=${String(value).trim()}`];
 }
 
 function buildItemPageAction(config, rawOptions) {

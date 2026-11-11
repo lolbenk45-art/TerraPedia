@@ -282,6 +282,9 @@ const VERIFIED_STRUCTURED_SCOPE_DEFINITIONS = new Map([
       'unique_item_count',
       'sets_json',
       'unique_item_ids_json',
+      'male_images',
+      'female_images',
+      'special_images',
       'status',
       'deleted',
     ]),
@@ -604,6 +607,11 @@ const VERIFIED_ROW_COUNT_PRODUCER_DEFINITIONS = new Map([
   })],
   ['structured_source_rows_v1', Object.freeze({
     rowCountEvidence: 'verified_structured_row_diff',
+    allowsNonZero: true,
+    requiresRowLevelEvidence: true,
+  })],
+  ['items_canonical_v2_db_executor', Object.freeze({
+    rowCountEvidence: 'items_canonical_v2_locked_candidate',
     allowsNonZero: true,
     requiresRowLevelEvidence: true,
   })],
@@ -1118,6 +1126,20 @@ function assertSharedNpcsScopesAreVerifiable(scopes) {
 }
 
 function assertStructuredDiffScopeContracts(domainId, diff) {
+  if (diff.producer === 'items_canonical_v2_db_executor') {
+    if (domainId !== 'items' || !diff.rowLevelEvidence?.completeSnapshot) {
+      throw new Error('Items canonical V2 diff requires the complete executor-owned row evidence');
+    }
+    for (const scope of diff.scopes) {
+      if (!['canonical_owned_rows', 'all_columns'].includes(scope.fieldGroup)
+          || !Array.isArray(scope.keyColumns) || scope.keyColumns.length === 0
+          || !Array.isArray(scope.compareColumns) || scope.compareColumns.length === 0
+          || scope.mutationKind !== 'entity') {
+        throw new Error(`Items canonical V2 diff scope is incomplete: ${scope.table}`);
+      }
+    }
+    return;
+  }
   if (diff.producer !== 'structured_source_rows_v1') return;
   if (typeof domainId !== 'string' || !domainId.trim()) {
     throw new Error('automatic structured L2 diff requires a policy domainId for schema contract binding');

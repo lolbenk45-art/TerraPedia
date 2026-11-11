@@ -8,11 +8,56 @@ import { fileURLToPath } from 'node:url';
 
 import { summarizeImageScopes } from './run-wiki-sync.mjs';
 import { buildCanonicalOperationExecutionManifest } from '../automation/canonical-operation-execution-manifest.mjs';
+import { fetchWikiModuleContent } from '../lib/wiki-item-utils.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const scriptPath = path.join(__dirname, 'run-wiki-sync.mjs');
+
+test('module fetch consumes an immutable source snapshot without a Wiki request', async (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wiki-module-source-snapshot-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const snapshotPath = path.join(tempDir, 'source.json');
+  fs.writeFileSync(snapshotPath, `${JSON.stringify({
+    payload: {
+      moduleTitle: 'Module:Iteminfo/data',
+      moduleContent: 'return { ["data"] = [] }',
+      revisionTimestamp: '2026-10-24T00:00:00Z',
+    },
+  }, null, 2)}\n`);
+  const result = await fetchWikiModuleContent({
+    moduleTitle: 'Module:Iteminfo/data',
+    sourceSnapshotPath: snapshotPath,
+  });
+  assert.equal(result.moduleContent, 'return { ["data"] = [] }');
+  await assert.rejects(
+    fetchWikiModuleContent({ moduleTitle: 'Module:Npcinfo/data', sourceSnapshotPath: snapshotPath }),
+    /title mismatch/i,
+  );
+});
+
+test('module probe requests the immutable revision ID used by canonical source evidence', async () => {
+  let requestedUrl;
+  const result = await fetchWikiModuleContent({
+    moduleTitle: 'Module:ArmorSetBonuses',
+    fetchWikiApiJsonImpl: async ({ url }) => {
+      requestedUrl = new URL(url);
+      return { query: { pages: [{
+        pageid: 72704,
+        title: 'Module:ArmorSetBonuses',
+        revisions: [{
+          revid: 964993,
+          timestamp: '2026-01-31T20:21:00Z',
+          slots: { main: { content: 'ArmorSetBonuses.Initialize = function() end' } },
+        }],
+      }] } };
+    },
+  });
+
+  assert.equal(requestedUrl.searchParams.get('rvprop'), 'content|timestamp|ids');
+  assert.equal(result.revisionId, 964993);
+});
 
 test('importing wiki sync does not dispatch CLI modes or write runtime state', (t) => {
   const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wiki-sync-import-'));

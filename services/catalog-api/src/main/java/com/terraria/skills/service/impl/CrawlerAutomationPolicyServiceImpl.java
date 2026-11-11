@@ -268,18 +268,27 @@ public class CrawlerAutomationPolicyServiceImpl implements CrawlerAutomationPoli
         }
         boolean hasGlobalSchedulerPolicy = policyRows.stream()
             .anyMatch(row -> Objects.equals(SCHEDULER_ACTIVATION_DOMAIN, row.domainId()));
-        List<PolicyRow> promotionRows = hasGlobalSchedulerPolicy
+        // A canary is action-bound to one domain. Its eligibility must not be
+        // vetoed by an unrelated domain's stale promotion history; the global
+        // scheduler activation decision is checked separately below.
+        List<PolicyRow> promotionRows = actionId != null && !actionId.isBlank()
             ? policyRows.stream()
-                .filter(row -> CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains(row.domainId()))
-                .toList()
-            : policyRows.stream()
                 .filter(row -> Objects.equals(domainId, row.domainId()))
-                .toList();
+                .toList()
+            : hasGlobalSchedulerPolicy
+                ? policyRows.stream()
+                    .filter(row -> CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.contains(row.domainId()))
+                    .toList()
+                : policyRows.stream()
+                    .filter(row -> Objects.equals(domainId, row.domainId()))
+                    .toList();
         if (promotionRows.isEmpty()) {
             return new AutomationEligibility(false, List.of("SCHEDULER_POLICY_UNAVAILABLE"));
         }
-        List<String> reasons = new ArrayList<>(l2PromotionReasons(
-            promotionRows, policySetHash, false, false));
+        List<String> reasons = new ArrayList<>();
+        if (!(actionId != null && !actionId.isBlank() && state.scopeAmended())) {
+            reasons.addAll(l2PromotionReasons(promotionRows, policySetHash, false, false));
+        }
         if (reasons.isEmpty()) {
             PolicyRow schedulerPolicy = hasGlobalSchedulerPolicy
                 ? policyRows.stream()

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "armor-canonical-recovery-journal/v1",
+  "operationId": "canonical-armor-ingestion",
+  "state": "COMMITTED",
+  "materializationStatus": "VERIFIED",
+  "runId": "lfc-20261027T1453Z-armor-r5",
+  "decisionIdentity": "local-formal-catch-up-armor-r5-canonical-admin-01",
+  "packetHash": "sha256:ed2f29999ef92ea2d046dc374d4a87cc4549de916e265afdcc188b31447a3949",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "intentSha256": "sha256:ad69d09d5dc775ae95b752b19fdc27ff5acd344d8e0a25663cb194cff35a7123",
+  "writeTimestamp": "2026-10-27T12:43:50Z",
+  "concreteAfterSha256": "sha256:577c77942ecbd89b137171887226e52377022414e4189cbd8abbeb4a94c677da",
+  "verifiedIdMap": {
+    "local.armor_set_items|ArmorSetBonus.Shroomite|0|0": 1003,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|0|1": 1004,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|0|2": 1005,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|1|0": 1006,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|1|1": 1007,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|1|2": 1008,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|2|0": 1009,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|2|1": 1010,
+    "local.armor_set_items|ArmorSetBonus.Shroomite|2|2": 1011,
+    "local.armor_sets|ArmorSetBonus.Shroomite": 278,
+    "local.source_dataset_landings|armor_sets_raw|terraria.wiki.gg|wiki.module.armorsetbonuses.canonical.lfc-20261026-v5|Module:ArmorSetBonuses": 12581
+  },
+  "evidence": {
+    "preparedAt": "2026-10-27T15:37:48Z",
+    "observedState": "COMMITTED",
+    "observedAfterSha256": "sha256:577c77942ecbd89b137171887226e52377022414e4189cbd8abbeb4a94c677da"
+  },
+  "history": [
+    {
+      "state": "PREPARED",
+      "occurredAt": "2026-10-27T15:37:48Z"
+    },
+    {
+      "state": "COMMITTED",
+      "occurredAt": "2026-10-27T15:37:49Z"
+    }
+  ],
+  "journalSha256": "sha256:896a4083210e185337189ee192ba83be4113fb47d1c27026b5684d0348cd9e0b"
+}

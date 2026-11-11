@@ -2063,7 +2063,7 @@ export function toMysqlTimestamp(value) {
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
-function mysqlDateTimeToUtcIso(value) {
+export function mysqlDateTimeToUtcIso(value) {
   const text = requireText(value, 'MySQL DATETIME');
   if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) return new Date(text).toISOString();
   const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/.exec(text);

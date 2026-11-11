@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Enable the already authorized local PC 1.4.5.8 catch-up for the single Armor Sets source window; keep Items excluded and return scheduler control to disabled after the terminal result.",
+  "authorizationReference": "user://conversation/2026-10-27/local-formal-catch-up-armor-single-domain",
+  "decisionIdentity": "local-formal-catch-up-armor-r4-scheduler-admin-01",
+  "authorizedAt": "2026-10-27T14:23:30.000Z"
+}

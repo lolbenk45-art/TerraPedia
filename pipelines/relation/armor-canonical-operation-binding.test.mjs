@@ -6,12 +6,13 @@ import {
   buildArmorCanonicalIntentArtifactBinding,
   assertArmorCanonicalPacketBinding,
 } from './armor-canonical-operation-binding.mjs';
+import { ARMOR_CANONICAL_POLICY_OWNER_SCOPES, buildArmorCanonicalFenceCommit } from './armor-canonical-write-fence.mjs';
 
 const HASH = (char) => `sha256:${char.repeat(64)}`;
 
 function intent() {
   return {
-    schemaVersion: 'armor-canonical-full-chain-intent/v1',
+    schemaVersion: 'armor-canonical-full-chain-intent/v2',
     operationId: ARMOR_CANONICAL_OPERATION_ID,
     executable: false,
     executionBlocker: 'registered-full-chain-executor-required',
@@ -28,6 +29,7 @@ function context(binding) {
     runId: binding.runId,
     fenceToken: binding.fenceToken,
     fenceCommit: binding.fenceCommit,
+    expiresAt: binding.fenceCommit.expiresAt ?? null,
     actor: 'admin',
     serverFingerprint: binding.serverFingerprint,
     policySetHash: binding.policySetHash,
@@ -75,4 +77,25 @@ test('Armor operation binding rejects packet drift before a connection can be op
     mutate(drifted);
     assert.throws(() => assertArmorCanonicalPacketBinding({ authorizedContext: drifted, binding, intent: intent() }), /Armor operation packet binding/);
   }
+});
+
+test('Armor local canonical binding requires the exact nine owner-scope fence commit', () => {
+  const fullIntent = { ...intent(), localProjection: { candidateSha256: HASH('9') } };
+  const fenceCommit = buildArmorCanonicalFenceCommit({
+    runId: 'armor-run-09',
+    expiresAt: '2030-10-27T10:00:00Z',
+    generations: ARMOR_CANONICAL_POLICY_OWNER_SCOPES.map(scope => ({ ...scope, generation: 4 })),
+    tokenFactory: (() => { let index = 0; return () => `fence:${String(++index).padStart(64, '0')}`; })(),
+    markerFactory: (() => { let index = 0; return () => String(++index).padStart(64, '0'); })(),
+  });
+  const binding = buildArmorCanonicalIntentArtifactBinding({
+    resultLabel: 'retry-09', intent: fullIntent, intentFileSha256: HASH('e'), serverFingerprint: HASH('c'),
+    policySetHash: HASH('d'), runId: 'armor-run-09', fenceToken: fenceCommit.bindings[0].fenceToken, fenceCommit,
+  });
+  assert.doesNotThrow(() => assertArmorCanonicalPacketBinding({ authorizedContext: context(binding), binding, intent: fullIntent }));
+  assert.throws(() => buildArmorCanonicalIntentArtifactBinding({
+    resultLabel: 'retry-09', intent: fullIntent, intentFileSha256: HASH('e'), serverFingerprint: HASH('c'),
+    policySetHash: HASH('d'), runId: 'armor-run-09', fenceToken: 'fence:legacy',
+    fenceCommit: { generation: 1, marker: 'legacy-marker' },
+  }), /all-scope fence bindings/i);
 });

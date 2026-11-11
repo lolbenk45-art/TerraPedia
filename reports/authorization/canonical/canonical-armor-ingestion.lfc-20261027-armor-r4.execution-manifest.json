@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 1,
+  "operationId": "canonical-armor-ingestion",
+  "artifactDate": "2026-10-27",
+  "resultLabel": "lfc-20261027-armor-r4",
+  "executionClass": "formal_armor_canonical_full_chain",
+  "command": [
+    "node",
+    "pipelines/relation/run-armor-canonical-ingestion.mjs",
+    "--operation-id=canonical-armor-ingestion",
+    "--result-label=lfc-20261027-armor-r4",
+    "--intent=reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r4.intent.json",
+    "--apply=true"
+  ],
+  "inputPaths": [
+    "reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r4.intent.json"
+  ],
+  "outputPaths": [
+    "reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r4.result.json",
+    "reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r4.journal.json"
+  ],
+  "reportPaths": [],
+  "progressPaths": [],
+  "ownershipKeys": [
+    "local.armor_sets",
+    "local.armor_set_items",
+    "local.source_dataset_landings.armor_sets_raw",
+    "local.source_dataset_landings.armor_set_images_raw",
+    "maint.maint_armor_sets",
+    "maint.maint_armor_set_images",
+    "relation.relation_armor_sets",
+    "relation.relation_armor_set_items",
+    "relation.relation_armor_set_images",
+    "relation.projection_armor_sets"
+  ],
+  "requiredOperationIds": [],
+  "databaseWrites": true,
+  "networkAccess": false,
+  "armorCanonicalIntent": {
+    "schemaVersion": "armor-canonical-operation-binding/v1",
+    "operationId": "canonical-armor-ingestion",
+    "resultLabel": "lfc-20261027-armor-r4",
+    "intentPath": "reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r4.intent.json",
+    "intentFileSha256": "sha256:4e38408fca62d307d06db9e21f150129878d3d79b986099fcb6385fcddbcce52",
+    "fullChainSha256": "sha256:99147c9d818b2313ba0ad5af63097773462dd2bf38a0af22d5cda96512b8c1b3",
+    "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+    "policySetHash": "sha256:10cee3eb6062090dbbe7bdacb715c264286d8512e1a0c360f24c96f358ecfde3",
+    "runId": "lfc-20261027T135925Z-armor-r4",
+    "fenceToken": "fence:cecb75fd4d88a6966a4eea73f59221d4bbf0a9135aca6f35e2546b2394894d95",
+    "fenceCommit": {
+      "generation": 1,
+      "marker": "5e2cd46da139796eef302f452a0dee65d4bc0f9d7f26bea874c5c148b251cfd3",
+      "schemaVersion": "armor-canonical-write-fence-commit/v1",
+      "environmentId": "local",
+      "runId": "lfc-20261027T135925Z-armor-r4",
+      "expiresAt": "2026-10-27T14:45:00.000Z",
+      "bindings": [
+        {
+          "databaseRole": "local",
+          "table": "armor_set_items",
+          "fieldGroup": "all_columns",
+          "logicalPredicateHash": "sha256:01d1d67c18498c24b952f18bede005859e426058eccd3e441bcac4b025fde289",
+          "generationScopeHash": "sha256:7d0594e05008e613df61bc4b19262f856bd6a08e1b4af88dcf32d6e4194b0d2f",
+          "generationSchemaHash": "sha256:00d65e350aceb7494663830937d2b515d8d79a4af907b77022ee141a002d7ca0",
+          "mutationGenerationScopeHash": "sha256:04d66aac27e26e35a947a3edb9ff22117444ab25ef025888356f8c2afb448bb5",
+          "fenceToken": "fence:cecb75fd4d88a6966a4eea73f59221d4bbf0a9135aca6f35e2546b2394894d95",
+          "beforeGeneration": 5,
+          "committedGeneration": 6,
+          "commitMarker": "99d6be4ce7b152d76b4f548e25ed8559efe41026fb429bb494fdfc3e2c402941",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "local",
+          "table": "armor_sets",
+          "fieldGroup": "all_columns",
+          "logicalPredicateHash": "sha256:01d1d67c18498c24b952f18bede005859e426058eccd3e441bcac4b025fde289",
+          "generationScopeHash": "sha256:a32f90e5fc9adf05dadad5c3ba44956222a87478487c7554f4ff3e18b07fa02e",
+          "generationSchemaHash": "sha256:ac282e46ac5d022d5f44cf3fdcad29a6b7074c271676c1fbb45e27057f329ba1",
+          "mutationGenerationScopeHash": "sha256:1d4ed7b805ef03fcb91fa4e33195be8cfebafb2cc67c92170d79ea79f201b387",
+          "fenceToken": "fence:64639d1575ed1d3643b3d34381bf956cf6f4913420be1ca46c4660353cb2f70e",
+          "beforeGeneration": 5,
+          "committedGeneration": 6,
+          "commitMarker": "0e215cdea815beabe6c11115041e0a760f5baac534f65712498e04cf42869ff9",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "local",
+          "table": "source_dataset_landings",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:999a98a657ffb93635aba470b4eeaf475b72c9dbcb37f1e8621e92ea246c5042",
+          "generationScopeHash": "sha256:b2bec095090cd14d436e74a7b3c1ac085a1f2bd009627ca543b87681bb78449d",
+          "generationSchemaHash": "sha256:355efdd36e24caa15d13afdd4c3204446ccdb4eb792f8949df462e8634939a96",
+          "mutationGenerationScopeHash": "sha256:b2bec095090cd14d436e74a7b3c1ac085a1f2bd009627ca543b87681bb78449d",
+          "fenceToken": "fence:2c4b32eb06c6cdcd96292fcc67e9ae359cfb5724cff7217eb6829effd80fe774",
+          "beforeGeneration": 0,
+          "committedGeneration": 1,
+          "commitMarker": "46b01271adce3b49ce590b437402811cace817c8ef501bd1427718ccd2fd1b52",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_armor_set_images",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:9d34bade9b33f6a0c099601fad4efcb1ed3a92a3214e9adbc0350cb762e6aebf",
+          "generationScopeHash": "sha256:e70c4ef430b5cdf71d4341fbccb1ab727401b70b964d80d092fcc069fe92cdc2",
+          "generationSchemaHash": "sha256:c02fdff36d519776d85bd60af4cfde3295f5b69c7b8fb092d0f904fa4d6cca4a",
+          "mutationGenerationScopeHash": "sha256:e70c4ef430b5cdf71d4341fbccb1ab727401b70b964d80d092fcc069fe92cdc2",
+          "fenceToken": "fence:8e2acdfac6291545aacd7a27a920ff587b84b5eb2d4b6e31370feaabd285ee66",
+          "beforeGeneration": 0,
+          "committedGeneration": 1,
+          "commitMarker": "4c39bb958bdc635bffb43bb343b9a05594eb2cb06b4123f34ca82778b13b470d",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_armor_sets",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:b3d912b4105553d8bf41a5ec7d3f32a55ba90633c9d1885e3b3a64f92211ed67",
+          "generationScopeHash": "sha256:ec4b8ad360f75d12ba829a4f43d43315a23f2fe07a6c94064b02da7c8dd420a3",
+          "generationSchemaHash": "sha256:f98f456c61f85dd06d3a1be390924e501ae9439947af1046f2f9fb8e11602bd1",
+          "mutationGenerationScopeHash": "sha256:ec4b8ad360f75d12ba829a4f43d43315a23f2fe07a6c94064b02da7c8dd420a3",
+          "fenceToken": "fence:42bb76af9d3588389a7200a7eed522da0998773bb23d182214729a115627efcb",
+          "beforeGeneration": 0,
+          "committedGeneration": 1,
+          "commitMarker": "6075904e75b33aa523fbd7d8f549426affcdace7d0d681eb5b5bf611d3e5f0ea",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "projection_armor_sets",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:699b25cf13beaafbcf9396c60142cb7ba012f92684c2ccb84544a49173ca2032",
+          "generationScopeHash": "sha256:ec1772f0fb4b6a212b7f7955a5ef2744200a4b4b8de99b95a6ec495f5738fdc6",
+          "generationSchemaHash": "sha256:3a31fedefab406e10e8290edb26c014ef6d7ccb63652fca08b4fcd0aa366e989",
+          "mutationGenerationScopeHash": "sha256:ec1772f0fb4b6a212b7f7955a5ef2744200a4b4b8de99b95a6ec495f5738fdc6",
+          "fenceToken": "fence:981236d7d053d216721c54a20ae2e6b0ff1d656d015845328abbd3d43938af5b",
+          "beforeGeneration": 0,
+          "committedGeneration": 1,
+          "commitMarker": "64501b7e4cbd2f75baf6d952e9907833e2d04312a27729f590e637bc399c3ad8",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_armor_set_images",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:8679f0163d99cacbbb191784dd422e1eb109f92c51ce748fc96a28573bf1b8f5",
+          "generationScopeHash": "sha256:3526a6df955820e253fe02e19491259a3858c98b0ec967a2a6e5c9b9a1597b1a",
+          "generationSchemaHash": "sha256:b369e50ca6c102743eb181a8d1856f422953d8f6733ce9c7bca6c2cf5add7a29",
+          "mutationGenerationScopeHash": "sha256:3526a6df955820e253fe02e19491259a3858c98b0ec967a2a6e5c9b9a1597b1a",
+          "fenceToken": "fence:f538a66a36cda975df3680dc5ab28fa80c4a515a0902d6db2d0b347cb3942b44",
+          "beforeGeneration": 0,
+          "committedGeneration": 1,
+          "commitMarker": "f61ef166c488920c1b3986bfaeb947cf2a722f869549d426865b601c0646ad44",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_armor_set_items",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:47e7e0492095b9e78ae08602c850202df7783cdd1ddeb1af5ba1632e39adb3d0",
+          "generationScopeHash": "sha256:b4ab6a5a5a323ebc891b39dd6c83ff751f2cb497df40aa1798f648042bd44ed1",
+          "generationSchemaHash": "sha256:6e58d50ef06e1dbd77b19bcb54d981f0751d8bcf4d3cdb176f2ecfe1836f7b43",
+          "mutationGenerationScopeHash": "sha256:b4ab6a5a5a323ebc891b39dd6c83ff751f2cb497df40aa1798f648042bd44ed1",
+          "fenceToken": "fence:0bf62db506fdff536433f08cca83b7a1d3bdc9c3577efca1c1a27a8fdfb50b82",
+          "beforeGeneration": 0,
+          "committedGeneration": 1,
+          "commitMarker": "4a94ca7e4d9f3ce4fa367b53b09134a73a031d6b0e2cc93a5d24d410fcf892db",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_armor_sets",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:a408f4b8a082f1ccf1d48f68bb2e608cdbd8d2c012216afa08bb7716f307f13b",
+          "generationScopeHash": "sha256:4779398629ab6b96ba6afdbd195e3c65bed95d0fdd0aae1a18c69233e014dc60",
+          "generationSchemaHash": "sha256:0b5dea2327bd8332b5715d2d4601c4e178f087f3401d0e64a2928ca378c78285",
+          "mutationGenerationScopeHash": "sha256:4779398629ab6b96ba6afdbd195e3c65bed95d0fdd0aae1a18c69233e014dc60",
+          "fenceToken": "fence:77f837131a2845758ca14c877ce530b8ddf4009418106419383b90ee2ec61aa9",
+          "beforeGeneration": 0,
+          "committedGeneration": 1,
+          "commitMarker": "085d2e4900dd5239cb7207d20b6093821262d765d309bae7fe406f6cd4fed7fc",
+          "environmentId": "local",
+          "runId": "lfc-20261027T135925Z-armor-r4",
+          "expiresAt": "2026-10-27T14:45:00.000Z"
+        }
+      ]
+    }
+  },
+  "codeBundleEntries": [
+    {
+      "path": "pipelines/relation/run-armor-canonical-ingestion.mjs",
+      "contentHash": "sha256:d5a98c1beccb8d39014c064ac1536c8394d150732d530712695b4f33abc586fe"
+    },
+    {
+      "path": "pipelines/automation/authorized-operation-context.mjs",
+      "contentHash": "sha256:7255ec9cfd93763ec35da9e59d9e8bf3821ee51aeccbc436ff8c44fa2e4ff0b7"
+    },
+    {
+      "path": "pipelines/automation/build-canonical-cutover-authorization.mjs",
+      "contentHash": "sha256:50103bb02c35e9e8804ef0fc79c9fa2fbd89c029e78e30efd6a919b1bac55129"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-catalog.mjs",
+      "contentHash": "sha256:d41654b29f78238ceac8976001ca028c962504ffcf06cd2a6f30599063fe62da"
+    },
+    {
+      "path": "pipelines/automation/canonical-operation-execution-manifest.mjs",
+      "contentHash": "sha256:5e434a6ea67890f3fe9fdefcd1c231b9d24076636c719f113786bb29e29dd726"
+    },
+    {
+      "path": "pipelines/automation/policy-set-hash.mjs",
+      "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681"
+    },
+    {
+      "path": "pipelines/automation/run-authorized-canonical-operation.mjs",
+      "contentHash": "sha256:c3a75df1a24154ae6e1a48e3b78375ce49365211d25456d737da7b4281fad693"
+    },
+    {
+      "path": "scripts/lib/local-runtime-config.mjs",
+      "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6"
+    },
+    {
+      "path": "pipelines/lib/mysql-module.mjs",
+      "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0"
+    },
+    {
+      "path": "pipelines/lib/private-repository-path.mjs",
+      "contentHash": "sha256:fd760bd9ea92d2a3c894bc2fc4d1a874aa82153a35c7b22cc63edc8138d3a0d0"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-operation-binding.mjs",
+      "contentHash": "sha256:c2cff8dc36acaed306fe23c9234464230710a10817285756ed942e19eb83dcc9"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-full-chain-intent.mjs",
+      "contentHash": "sha256:8443936c815c25f4500615690fb66024c61bb83b74d0656a5ebc0d43b635f3d2"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-transaction-executor.mjs",
+      "contentHash": "sha256:506b2b7409e261f33023f47d9ddc83ae87fc5018f2779140815edb4439bc8503"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-recovery-journal-adapter.mjs",
+      "contentHash": "sha256:88f8ea0b34ad30fbd16b3c85379bfb599b65f7aa25d66bb6e9636ab92e69d8ea"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-recovery-journal-store.mjs",
+      "contentHash": "sha256:1877e51269daf72519346d56d4f5314f53e7b91524b5b436e1b901bb824b6e78"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-locked-rederivation.mjs",
+      "contentHash": "sha256:a9c76396055051000adad3546c3b4903d830bfc978f8838450f33dfbf32c656d"
+    },
+    {
+      "path": "pipelines/automation/automation-database-contract.mjs",
+      "contentHash": "sha256:5b09c183133c194fe2f9597433c25a2a2f0961a9e5cfeddf1eb0d8006d321f71"
+    },
+    {
+      "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs",
+      "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d"
+    },
+    {
+      "path": "pipelines/relation/item-image-projection-contract.mjs",
+      "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4"
+    },
+    {
+      "path": "pipelines/relation/armor-source-effect-owner-decision.mjs",
+      "contentHash": "sha256:736ae0c6f8f4759049af0443ab197e120c3818235aa7dd4be4753b9be6d76ce0"
+    },
+    {
+      "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs",
+      "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb"
+    },
+    {
+      "path": "pipelines/workflow/armor-image-cache.mjs",
+      "contentHash": "sha256:2f5dff30fe752140884ac9fa1594e08b478d7b7d9397bccff469c21e2229cb31"
+    },
+    {
+      "path": "pipelines/lib/project-root.mjs",
+      "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-write-fence.mjs",
+      "contentHash": "sha256:3a6a5487002921f042a4df01f100e76be4b3be74ecc2f3ceed40bce07f1e1a2e"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-intent.mjs",
+      "contentHash": "sha256:641f38972a7cee8af503bf40da551bfd44e6ffd3547c1878525ebc2a61951834"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-landing-maint-intent.mjs",
+      "contentHash": "sha256:ff210972f3c6d34ba3a1c62d525d28a14fec40f5a3e38480f78984c5a09a2128"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-landing-lineage.mjs",
+      "contentHash": "sha256:e958e8b2a0b0756cfee15af2a862b27af34f999cac596fd30311981ef00ef465"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-local-projection.mjs",
+      "contentHash": "sha256:85a2ab375433917f8960f8b248d81a7ba31aeb417c89a63d4a8720cca4df6be4"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-recovery-journal.mjs",
+      "contentHash": "sha256:4d27570404b01470cee56f5aa0c372ce65983f856c22b6f34aadc06d54a52d41"
+    },
+    {
+      "path": "pipelines/landing/armor-source-evidence-transition.mjs",
+      "contentHash": "sha256:b02e83ed5a829a57a569943a19c450e04ceef621fd53f08a938837d6ba2c1404"
+    },
+    {
+      "path": "pipelines/maint/armor-canonical-maint-candidate.mjs",
+      "contentHash": "sha256:7380a0fe18db058d3892bf62a9307317f8378c0560777cf28777a0d4ff83b612"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-projection-candidate.mjs",
+      "contentHash": "sha256:eb42a5639ed03f982305470edbdb896c6f11904f64dfb5cd37063c667104dbbc"
+    },
+    {
+      "path": "pipelines/relation/managed-image-url-policy.mjs",
+      "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591"
+    },
+    {
+      "path": "pipelines/maint/armor-item-effect-source-reader.mjs",
+      "contentHash": "sha256:5ab8d278638b73118033fcdd209dd89a4ce2517ac0f56bebb38a028b0e652185"
+    },
+    {
+      "path": "pipelines/transform/shimmer-generation-contract.mjs",
+      "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9"
+    },
+    {
+      "path": "pipelines/automation/table-ownership-matrix.mjs",
+      "contentHash": "sha256:19dada99f8bc8a5e31af064f92073c07c037368b41129c67f28c54ab2375f3af"
+    },
+    {
+      "path": "pipelines/maint/sync-landing-to-maint.mjs",
+      "contentHash": "sha256:48c8aa8224e5d061ab4cb65d9525e78e5c87f23521159e8841c3099c9494b730"
+    },
+    {
+      "path": "pipelines/relation/armor-canonical-relation-candidate.mjs",
+      "contentHash": "sha256:43ce40c7ba9d0ca7cf158b4ddff1186c1265fbe96972185bdf9d19b2c6a05119"
+    },
+    {
+      "path": "pipelines/relation/projection-sync.mjs",
+      "contentHash": "sha256:f14b0545473e0f53e88d8612b512f32b735fb01353898d2fc7e7bf3a295e5dc5"
+    },
+    {
+      "path": "pipelines/relation/equipment-effect-parser.mjs",
+      "contentHash": "sha256:d45ffb977b20ff79db10ec1edc371c993cc19855487361d6a73bb3f834f60eb0"
+    },
+    {
+      "path": "pipelines/relation/armor-set-projection-restoration.mjs",
+      "contentHash": "sha256:dc51cf90c38e93813ecb6a7b83c2f803bc972a591394655c5bd2c9f6fefe6751"
+    },
+    {
+      "path": "pipelines/maint/armor-item-effect-maint-candidate.mjs",
+      "contentHash": "sha256:8e8f126730a810e286c73fa0858014c0b4fb62c03236ad923c82adceaaeb4ca6"
+    },
+    {
+      "path": "pipelines/maint/maint-schema.mjs",
+      "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886"
+    },
+    {
+      "path": "pipelines/relation/relation-schema.mjs",
+      "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719"
+    },
+    {
+      "path": "pipelines/relation/projection-schema.mjs",
+      "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe"
+    },
+    {
+      "path": "pipelines/lib/wiki-item-utils.mjs",
+      "contentHash": "sha256:44bb59b6bc22085e29ddcc12085ba2dec7ef3a71746aa010d9e09c7235570882"
+    },
+    {
+      "path": "pipelines/maint/category-item-structured-parser.mjs",
+      "contentHash": "sha256:703eaa4a0f2a24ea761c4cf23f2b812a866a74164a7fe6629f5f5e49e29460c4"
+    },
+    {
+      "path": "pipelines/maint/page-recipe-structured-parser.mjs",
+      "contentHash": "sha256:11b90ff271b953e05036c1d8cfcab72314e665131ecd6179b42b7f728d53cb29"
+    },
+    {
+      "path": "pipelines/maint/shimmer-structured-parser.mjs",
+      "contentHash": "sha256:3e8a5593d5e1c7831e0c14f170e7b359af89810975692b5319db385724315ba2"
+    },
+    {
+      "path": "pipelines/maint/item-page-statistics-parser.mjs",
+      "contentHash": "sha256:03d1141ce6f72bf6e2af8c0f8fdbfcb00243882be2c436335dd84ec7a0228f13"
+    },
+    {
+      "path": "pipelines/maint/zh-source-index.mjs",
+      "contentHash": "sha256:c77290b1db5e5eca8aec12672b1fefbf552b0ecad5523b9497df5dff2208c75f"
+    },
+    {
+      "path": "pipelines/item-groups/item-group-canonical-sync.mjs",
+      "contentHash": "sha256:b68da11446219dde35275322b8e0e11c4f40f56b899cf989cab4a53eb06b2101"
+    },
+    {
+      "path": "pipelines/npc-canonical/npc-canonical-contract.mjs",
+      "contentHash": "sha256:9a1ac7186763c5e9e773116399ac9f839cf99747bfa5a7ba37c4681b55b21f16"
+    },
+    {
+      "path": "pipelines/relation/armor-set-processor.mjs",
+      "contentHash": "sha256:485141078c2f1587b8d8f3536926136d33e5ba98eb773e73bdcba681e8707da5"
+    },
+    {
+      "path": "pipelines/relation/armor-shroomite-source-candidate.mjs",
+      "contentHash": "sha256:f15afa118e1f1c5fa112b58175bb60ca6f1873ef1509d1f1b084fa61c5cc8493"
+    },
+    {
+      "path": "pipelines/lib/wiki-request-gate.mjs",
+      "contentHash": "sha256:1b3292584154d3ec8a5263df45d5979c9dcf96520d994daf5a564943bf6354ca"
+    },
+    {
+      "path": "pipelines/lib/wiki-user-agent.mjs",
+      "contentHash": "sha256:cc5ec3ea555bf6404a650c314a4407c686e9fd088c3c8d2373a73bcc8cd8bba3"
+    },
+    {
+      "path": "pipelines/lib/crawler-heartbeat.mjs",
+      "contentHash": "sha256:57de54a75212d1657321e418a232194d51f80bbbb59a5287bdd03314760df42d"
+    },
+    {
+      "path": "pipelines/lib/wiki-page-utils.mjs",
+      "contentHash": "sha256:2d5b9621d356c8f65d3862c8590dc793a0ae2841b672e71e383f63e89873bd57"
+    },
+    {
+      "path": "pipelines/lib/recipe-material-reference.mjs",
+      "contentHash": "sha256:190b7cede93202f233e8f7db2e8c9c85b4e0f80da77543c37ceb5776f2a61650"
+    },
+    {
+      "path": "pipelines/audit/build-npc-bridge-retirement-report.mjs",
+      "contentHash": "sha256:ff5b2aea26119759313f78116d4d9830a0688db3ab650a27209c8b14142df87c"
+    },
+    {
+      "path": "pipelines/relation/relation-trace.mjs",
+      "contentHash": "sha256:2e715633d9b4e8553eb09fe9f48c873e597b93bba2a602c7149110af260c2a57"
+    },
+    {
+      "path": "pipelines/lib/crawler-alerts.mjs",
+      "contentHash": "sha256:f3c420eae97379c43554e875e31ab2c6d3f827131bcf5970265d1408c6d22fdc"
+    },
+    {
+      "path": "pipelines/lib/flaresolverr-bridge.mjs",
+      "contentHash": "sha256:4e820dc1cc5cfc52d3490e46f375e36b352dc77478257338722aa33d6109e395"
+    },
+    {
+      "path": "pipelines/workflow/backend-refresh-runtime-state.mjs",
+      "contentHash": "sha256:2ee2102f5feba92acfaaca41945f6c0952b2f5d72f04e3af144e1fb907883801"
+    },
+    {
+      "path": "scripts/lib/project-constants.mjs",
+      "contentHash": "sha256:2b70b9a5b5639ab8adb11cf1db7089d563d5d78c2dbcc978a5a72683b059360a"
+    }
+  ]
+}

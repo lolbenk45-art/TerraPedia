@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import {
+  validateArmorCanonicalFenceCommit,
+} from './armor-canonical-write-fence.mjs';
 
 export const ARMOR_CANONICAL_OPERATION_ID = 'canonical-armor-ingestion';
 export const ARMOR_CANONICAL_OPERATION_BINDING_SCHEMA = 'armor-canonical-operation-binding/v1';
@@ -43,14 +46,23 @@ function requireFenceCommit(value) {
       || typeof value.marker !== 'string' || !value.marker.trim()) {
     throw new Error('Armor operation fence commit binding is invalid');
   }
-  return Object.freeze({ generation: value.generation, marker: value.marker });
+  const result = { generation: value.generation, marker: value.marker };
+  if (value.bindings != null) {
+    validateArmorCanonicalFenceCommit(value, { runId: value.runId, environmentId: 'local' });
+    result.schemaVersion = value.schemaVersion;
+    result.environmentId = value.environmentId;
+    result.runId = value.runId;
+    result.expiresAt = value.expiresAt;
+    result.bindings = Object.freeze(value.bindings.map(binding => Object.freeze({ ...binding })));
+  }
+  return Object.freeze(result);
 }
 
 function requireIntentIdentity(intent) {
   if (!intent || typeof intent !== 'object' || Array.isArray(intent)) {
     throw new Error('Armor operation packet binding intent is required');
   }
-  if (intent.schemaVersion !== 'armor-canonical-full-chain-intent/v1'
+  if (intent.schemaVersion !== 'armor-canonical-full-chain-intent/v2'
       || intent.operationId !== ARMOR_CANONICAL_OPERATION_ID
       || intent.executable !== false
       || intent.executionBlocker !== 'registered-full-chain-executor-required') {
@@ -73,6 +85,12 @@ export function buildArmorCanonicalIntentArtifactBinding({
   const boundRunId = text(runId, 'Armor operation run id');
   const boundFenceToken = text(fenceToken, 'Armor operation fence token');
   const boundFenceCommit = requireFenceCommit(fenceCommit);
+  if (boundFenceCommit.runId != null && boundFenceCommit.runId !== boundRunId) {
+    throw new Error('Armor operation all-scope fence runId drifted');
+  }
+  if (intent.localProjection && !Array.isArray(boundFenceCommit.bindings)) {
+    throw new Error('Armor local canonical intent requires all-scope fence bindings');
+  }
   return Object.freeze({
     schemaVersion: ARMOR_CANONICAL_OPERATION_BINDING_SCHEMA,
     operationId: ARMOR_CANONICAL_OPERATION_ID,
@@ -110,6 +128,12 @@ export function assertArmorCanonicalPacketBinding({ authorizedContext, binding, 
       || authorizedContext.fenceToken !== binding.fenceToken
       || !same(authorizedContext.fenceCommit, binding.fenceCommit)) {
     throw new Error('Armor operation packet binding fence drifted');
+  }
+  if (binding.fenceCommit?.bindings && authorizedContext.expiresAt !== binding.fenceCommit.expiresAt) {
+    throw new Error('Armor operation fence expiry drifted from the authorization packet');
+  }
+  if (intent.localProjection && !Array.isArray(binding.fenceCommit?.bindings)) {
+    throw new Error('Armor local canonical packet binding fence scopes are missing');
   }
   if (authorizedContext.operationId !== ARMOR_CANONICAL_OPERATION_ID) {
     throw new Error('Armor operation packet binding operationId drifted');

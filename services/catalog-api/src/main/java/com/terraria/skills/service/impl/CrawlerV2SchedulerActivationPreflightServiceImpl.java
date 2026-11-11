@@ -1,6 +1,8 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.config.CrawlerQueueV2Properties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.dto.CrawlerV2AutomationDTO;
@@ -19,6 +21,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -38,6 +41,7 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
     private final DomainAcceptanceService domainAcceptanceService;
     private final CrawlerQueueV2Properties queueProperties;
     private final CrawlerAutomationPolicyMapper policyMapper;
+    private final ObjectMapper objectMapper;
 
     public CrawlerV2SchedulerActivationPreflightServiceImpl(
         CrawlerMonitorService monitorService,
@@ -58,6 +62,7 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
         this.domainAcceptanceService = Objects.requireNonNull(domainAcceptanceService, "domainAcceptanceService");
         this.queueProperties = Objects.requireNonNull(queueProperties, "queueProperties");
         this.policyMapper = policyMapper;
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
@@ -187,20 +192,84 @@ public class CrawlerV2SchedulerActivationPreflightServiceImpl
                 DomainAcceptanceOverviewDTO.DomainPanelDTO panel = sourceReadinessPanel(accepted);
                 CrawlerV2SchedulerActivationPreflightDTO.DomainReadinessDTO readiness =
                     new CrawlerV2SchedulerActivationPreflightDTO.DomainReadinessDTO();
+                FormalCatchUpReadiness formal = formalCatchUpReadiness(
+                    state.domain(), operation.actionId(), overview, observedAt
+                );
                 String sourceHash = hashReport(panel, overview.getRepoRoot());
                 readiness.setDomain(state.domain());
                 readiness.setActionId(operation.actionId());
-                readiness.setReadinessStatus(isEligible(accepted, panel, sourceHash) ? "eligible" : "blocked");
-                readiness.setEvidencePath(panel == null ? null : panel.getReportPath());
-                readiness.setSourceHash(sourceHash);
-                readiness.setObservedAt(panel != null && panel.getGeneratedAt() != null
-                    ? panel.getGeneratedAt() : observedAt);
+                if (formal != null) {
+                    readiness.setReadinessStatus("eligible");
+                    readiness.setEvidencePath(formal.evidencePath());
+                    readiness.setSourceHash(formal.sourceHash());
+                    readiness.setObservedAt(formal.observedAt());
+                } else {
+                    readiness.setReadinessStatus(isEligible(accepted, panel, sourceHash) ? "eligible" : "blocked");
+                    readiness.setEvidencePath(panel == null ? null : panel.getReportPath());
+                    readiness.setSourceHash(sourceHash);
+                    readiness.setObservedAt(panel != null && panel.getGeneratedAt() != null
+                        ? panel.getGeneratedAt() : observedAt);
+                }
                 readiness.setStateStoreEpoch(overview.getStateStoreEpoch());
                 result.add(readiness);
             }
         }
         return result;
     }
+
+    private FormalCatchUpReadiness formalCatchUpReadiness(
+        String domain,
+        String actionId,
+        CrawlerMonitorOverviewDTO overview,
+        Instant now
+    ) {
+        if (!List.of("items", "armor_sets").contains(domain)) return null;
+        if (!actionId.equals(actionIdForDomain(domain))) return null;
+        Path root = (overview.getRepoRoot() == null || overview.getRepoRoot().isBlank()
+            ? Path.of(".") : Path.of(overview.getRepoRoot())).toAbsolutePath().normalize();
+        Path report = root.resolve(queueProperties.resolveFormalCatchUpAdmissionPath()).normalize();
+        if (!report.startsWith(root) || Files.isSymbolicLink(report)
+            || !Files.isRegularFile(report, LinkOption.NOFOLLOW_LINKS)) return null;
+        try {
+            JsonNode admission = objectMapper.readTree(Files.readString(report));
+            Instant generatedAt = Instant.parse(admission.path("generatedAt").asText());
+            if (generatedAt.isAfter(now) || Duration.between(generatedAt, now).toMinutes() > 60) return null;
+            if (!"ready".equals(admission.path("status").asText())
+                || !containsText(admission.path("actionScope"), domain)) return null;
+            for (JsonNode candidate : admission.path("domains")) {
+                if (!domain.equals(candidate.path("domain").asText())
+                    || !"ready".equals(candidate.path("classification").asText())
+                    || !candidate.path("writeAllowed").asBoolean(false)
+                    || !candidate.path("canonicalEvidence").path("ready").asBoolean(false)) continue;
+                String sourceHash = candidate.path("sourceIdentity").path("fingerprint").asText(null);
+                if (sourceHash == null || !sourceHash.matches("sha256:[0-9a-f]{64}")) return null;
+                return new FormalCatchUpReadiness(
+                    sourceHash,
+                    root.relativize(report).toString().replace('\\', '/'),
+                    generatedAt
+                );
+            }
+        } catch (Exception ignored) {
+            // A malformed or stale admission remains blocked by the legacy panel.
+        }
+        return null;
+    }
+
+    private boolean containsText(JsonNode values, String expected) {
+        if (values == null || !values.isArray()) return false;
+        for (JsonNode value : values) if (expected.equals(value.asText())) return true;
+        return false;
+    }
+
+    private String actionIdForDomain(String domain) {
+        return switch (domain) {
+            case "items" -> "wiki-items-refresh";
+            case "armor_sets" -> "domain-source-armor-sets";
+            default -> "";
+        };
+    }
+
+    private record FormalCatchUpReadiness(String sourceHash, String evidencePath, Instant observedAt) { }
 
     private boolean isEligible(
         DomainAcceptanceOverviewDTO.DomainDTO domain,

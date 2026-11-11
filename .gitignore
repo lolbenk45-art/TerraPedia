@@ -162,3 +162,12 @@ data/generated/resume/
 # Local UI prototype exports
 apps/public-web/public/home-hifi-options.html
 apps/public-web/public/ui/home-hero-hifi/
+
+# Original large reports are preserved in the verified gzip snapshots.
+/reports/authorization/canonical/canonical-armor-ingestion.lfc-20261025-v4.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.lfc-20261026-v5.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r4.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r5.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-r1.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-r2.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-r3.intent.json

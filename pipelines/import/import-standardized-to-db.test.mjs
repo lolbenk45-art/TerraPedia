@@ -188,6 +188,20 @@ test('base-item import updates only Items and fails closed on a missing category
   assert.equal(missingCategory.executeCalls.some((call) => /\b(INSERT INTO|UPDATE) items\b/i.test(call.sql)), false);
 });
 
+test('base-item import can preserve stable Wiki Item IDs for canonical executor callers', async () => {
+  const conn = createFakeConnection({ categories: [{ id: 7, code: 'MATERIAL' }] });
+  await runBaseItemsImport({
+    connection: conn,
+    records: [{ ...standardizedItemRecord(), id: 2, internalName: 'Item2', name: 'Item 2' }],
+    preserveSourceIds: true,
+  });
+
+  const insert = conn.executeCalls.find(({ sql }) => /^\s*INSERT INTO items/i.test(sql));
+  assert.ok(insert);
+  assert.match(insert.sql, /\(id, name,/);
+  assert.equal(insert.params[0], 2);
+});
+
 function emptyDatasets() {
   return {
     manifest: null,

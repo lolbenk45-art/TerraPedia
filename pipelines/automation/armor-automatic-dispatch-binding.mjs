@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -6,6 +6,7 @@ import {
   assertRepositoryOrdinaryFile,
   assertRepositoryPathConfinement,
 } from '../lib/private-repository-path.mjs';
+import { validateArmorCanonicalFenceCommit } from '../relation/armor-canonical-write-fence.mjs';
 
 export const ARMOR_AUTOMATIC_DISPATCH_BINDING_SCHEMA = 'armor-automatic-dispatch-binding/v1';
 export const ARMOR_AUTOMATIC_ACTION_ID = 'domain-source-armor-sets';
@@ -20,15 +21,114 @@ const PRIVATE_MODE_MASK = 0o077;
 const CANONICAL_ROOT = 'reports/authorization/canonical/';
 
 /**
- * Return the deterministic private binding path for one source fingerprint.
+ * Return the deterministic private binding path for one complete source
+ * dispatch identity. The run/content suffix keeps later probes immutable even
+ * when the upstream fingerprint is unchanged.
  * The overloaded object form keeps callers from having to repeat the field name.
  */
 export function buildArmorAutomaticBindingPath(input) {
-  const sourceFingerprint = typeof input === 'string' ? input : input?.sourceFingerprint;
-  if (!HASH_PATTERN.test(sourceFingerprint ?? '')) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)
+      || !HASH_PATTERN.test(input.sourceFingerprint ?? '')
+      || !SOURCE_RUN_ID_PATTERN.test(input.sourceRunIdentity ?? '')
+      || !HASH_PATTERN.test(input.sourceContentIdentity ?? '')) {
+    throw new Error('Armor automatic source dispatch identity is invalid');
+  }
+  const sourceFingerprint = input.sourceFingerprint;
+  if (!HASH_PATTERN.test(sourceFingerprint)) {
     throw new Error('Armor automatic source fingerprint must be a lowercase sha256 hash');
   }
-  return `${ARMOR_AUTOMATIC_BINDING_ROOT}${sourceFingerprint.slice('sha256:'.length)}.binding.json`;
+  const sourceRunIdentity = requireTimestamp(input.sourceRunIdentity, 'Armor automatic source run identity');
+  if (new Date(sourceRunIdentity).toISOString() !== sourceRunIdentity) {
+    throw new Error('Armor automatic source run identity must be a canonical ISO timestamp');
+  }
+  const dispatchHash = createHash('sha256')
+    .update(`${sourceRunIdentity}\n${input.sourceContentIdentity}`, 'utf8')
+    .digest('hex');
+  return `${ARMOR_AUTOMATIC_BINDING_ROOT}${sourceFingerprint.slice('sha256:'.length)}/${dispatchHash}.binding.json`;
+}
+
+/**
+ * Persist one fully authorized, source-bound Armor dispatch binding. The caller
+ * must supply the exact operation authorization artifacts and scheduler
+ * activation; this helper validates every reference and never replaces a prior
+ * binding.
+ */
+export function writeArmorAutomaticBinding({
+  repoRoot = process.cwd(),
+  binding,
+  now = new Date().toISOString(),
+} = {}) {
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    throw new Error('Armor automatic binding must be an object');
+  }
+  const relativePath = buildArmorAutomaticBindingPath(binding.sourceDispatchIdentity);
+  const root = path.resolve(repoRoot);
+  const target = assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: path.resolve(root, relativePath),
+    label: 'Armor automatic binding',
+    createParent: true,
+  });
+  const directory = path.dirname(target);
+  const directoryMode = fs.statSync(directory).mode & 0o777;
+  if ((directoryMode & PRIVATE_MODE_MASK) !== 0) {
+    throw new Error('Armor automatic binding directory must be private');
+  }
+  assertAbsentArtifact(root, relativePath, 'Armor automatic binding');
+  assertArmorAutomaticBinding({
+    repoRoot: root,
+    binding,
+    bindingPath: relativePath,
+    now,
+    expectedAttemptId: binding.attemptId,
+    expectedSourceDispatchIdentity: binding.sourceDispatchIdentity,
+  });
+
+  const bytes = Buffer.from(`${JSON.stringify(binding, null, 2)}\n`, 'utf8');
+  const temporary = `${target}.tmp-${randomUUID()}`;
+  let temporaryCreated = false;
+  let published = false;
+  try {
+    const fd = fs.openSync(
+      temporary,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW,
+      0o600,
+    );
+    temporaryCreated = true;
+    try {
+      fs.writeFileSync(fd, bytes);
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+    // A same-directory hard link publishes atomically and fails if a binding
+    // for this source fingerprint already exists.
+    fs.linkSync(temporary, target);
+    published = true;
+    fs.unlinkSync(temporary);
+    temporaryCreated = false;
+    const directoryFd = fs.openSync(directory, fs.constants.O_RDONLY);
+    try { fs.fsyncSync(directoryFd); }
+    finally { fs.closeSync(directoryFd); }
+    const readback = readArmorAutomaticBinding({
+      repoRoot: root,
+      relativePath,
+      now,
+      expectedAttemptId: binding.attemptId,
+      expectedSourceDispatchIdentity: binding.sourceDispatchIdentity,
+    });
+    return Object.freeze({ path: relativePath, sha256: hashBytes(fs.readFileSync(target)), binding: readback });
+  } catch (error) {
+    if (temporaryCreated) {
+      try { fs.unlinkSync(temporary); } catch {}
+    }
+    if (published) {
+      try {
+        if (hashBytes(fs.readFileSync(target)) === hashBytes(bytes)) fs.unlinkSync(target);
+      } catch {}
+    }
+    throw error;
+  }
 }
 
 /**
@@ -143,6 +243,45 @@ export function assertArmorAutomaticBinding(options = {}, legacyOptions = {}) {
     value: binding.authorization,
     attemptId: binding.attemptId,
   });
+  const localProjection = intent.parsedIntent?.localProjection;
+  if (!localProjection || typeof localProjection !== 'object' || Array.isArray(localProjection)
+      || localProjection.schemaVersion !== 'armor-canonical-local-projection/v1'
+      || !HASH_PATTERN.test(localProjection.candidateSha256 ?? '')) {
+    throw new Error('Armor automatic full-chain intent requires a valid local projection');
+  }
+  const packet = authorization.packet;
+  if (packet.operationId !== expectedOperationId || packet.decisionIdentity !== binding.authorization.decisionIdentity
+      || packet.policySetHash !== authorization.policySetHash
+      || packet.executionManifest?.resultLabel !== resultLabel) {
+    throw new Error('Armor automatic full-chain packet identity drifted from its binding');
+  }
+  const operationBinding = authorization.packet?.executionManifest?.armorCanonicalIntent;
+  if (!operationBinding || operationBinding.fullChainSha256 !== intent.parsedIntent.fullChainSha256
+      || operationBinding.intentFileSha256 !== binding.intent.sha256
+      || operationBinding.intentPath !== binding.intent.path) {
+    throw new Error('Armor automatic full-chain authorization does not bind the local projection intent');
+  }
+  validateArmorCanonicalFenceCommit(operationBinding.fenceCommit, {
+    runId: operationBinding.runId,
+    environmentId: 'local',
+  });
+  const packetAuthorizedAt = requireTimestamp(authorization.packet.authorizedAt, 'Armor authorization packet authorizedAt');
+  const packetExpiresAt = requireTimestamp(authorization.packet.expiresAt, 'Armor authorization packet expiresAt');
+  if (Date.parse(packetAuthorizedAt) > Date.parse(verificationTime)) {
+    throw new Error('Armor automatic authorization packet is not active yet');
+  }
+  if (Date.parse(verificationTime) >= Date.parse(packetExpiresAt)) {
+    throw new Error('Armor automatic authorization packet is expired');
+  }
+  if (Date.parse(expiresAt) > Date.parse(packetExpiresAt)) {
+    throw new Error('Armor automatic binding outlives the authorization packet');
+  }
+  if (packetExpiresAt !== operationBinding.fenceCommit.expiresAt) {
+    throw new Error('Armor automatic full-chain fence expiry drifted from the authorization packet');
+  }
+  if (operationBinding.fenceCommit.bindings.some(fence => fence.expiresAt !== operationBinding.fenceCommit.expiresAt)) {
+    throw new Error('Armor automatic full-chain fence expiry drifted');
+  }
   const activation = assertActivation(binding.activation, verificationTime, expiresAt);
   if (authorization.policySetHash !== activation.policySetHash) {
     throw new Error('Armor automatic authorization policy set drifted from activation');
@@ -157,7 +296,7 @@ export function assertArmorAutomaticBinding(options = {}, legacyOptions = {}) {
       bindingPath,
       label: 'Armor automatic binding path',
     });
-    const expectedBindingPath = buildArmorAutomaticBindingPath(source.sourceFingerprint);
+    const expectedBindingPath = buildArmorAutomaticBindingPath(source);
     if (normalizedBindingPath !== expectedBindingPath) {
       throw new Error('Armor automatic binding path does not match source fingerprint');
     }
@@ -223,7 +362,7 @@ function assertIntentArtifact({ repoRoot, value, resultLabel, operationId }) {
   } catch (error) {
     throw new Error(`Armor automatic intent must be valid JSON: ${error.message}`);
   }
-  if (intent?.schemaVersion !== 'armor-canonical-full-chain-intent/v1'
+  if (intent?.schemaVersion !== 'armor-canonical-full-chain-intent/v2'
       || intent.operationId !== operationId
       || intent.executable !== false
       || typeof intent.fullChainSha256 !== 'string'
@@ -231,7 +370,12 @@ function assertIntentArtifact({ repoRoot, value, resultLabel, operationId }) {
       || !HASH_PATTERN.test(intent.fullChainSha256)) {
     throw new Error('Armor automatic intent full-chain hash or identity drifted');
   }
-  return value;
+  if (!intent.localProjection || typeof intent.localProjection !== 'object' || Array.isArray(intent.localProjection)
+      || intent.localProjection.schemaVersion !== 'armor-canonical-local-projection/v1'
+      || !HASH_PATTERN.test(intent.localProjection.candidateSha256 ?? '')) {
+    throw new Error('Armor automatic full-chain intent requires a valid local projection');
+  }
+  return Object.freeze({ ...value, parsedIntent: intent });
 }
 
 function assertAuthorizationArtifacts({ repoRoot, value, attemptId }) {
@@ -256,13 +400,16 @@ function assertAuthorizationArtifacts({ repoRoot, value, attemptId }) {
       || fingerprintPath !== `${expectedRoot}server-fingerprint.json`) {
     throw new Error('Armor automatic authorization paths must be bound to the attempt');
   }
-  readHashedPrivateArtifact({ repoRoot, relativePath: packetPath,
+  const packetBytes = readHashedPrivateArtifact({ repoRoot, relativePath: packetPath,
     expectedHash: value.packetSha256, label: 'Armor automatic packet' });
+  let packet;
+  try { packet = JSON.parse(packetBytes.toString('utf8')); }
+  catch { throw new Error('Armor automatic packet must be valid JSON'); }
   readHashedPrivateArtifact({ repoRoot, relativePath: permitPath,
     expectedHash: value.permitHash, label: 'Armor automatic permit' });
   readHashedPrivateArtifact({ repoRoot, relativePath: fingerprintPath,
     expectedHash: value.serverFingerprintSha256, label: 'Armor automatic server fingerprint' });
-  return value;
+  return Object.freeze({ ...value, packet });
 }
 
 function assertActivation(value, now, bindingExpiresAt) {

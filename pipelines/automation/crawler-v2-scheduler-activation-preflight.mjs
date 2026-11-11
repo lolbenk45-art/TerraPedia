@@ -73,7 +73,7 @@ function assertReaderReadOnly(reader) {
   if (forbidden.length > 0) throw new Error(`preflight reader exposes mutation methods: ${forbidden.join(', ')}`);
 }
 
-function assertSnapshot(snapshot, { nowMs, maxAgeMs }) {
+function assertSnapshot(snapshot, { nowMs, maxAgeMs, canaryActionId = null }) {
   if (!snapshot || typeof snapshot !== 'object') throw new Error('preflight snapshot is required');
   if (snapshot.operationId !== OPERATION_ID) throw new Error('preflight operationId is invalid');
   assertFresh(snapshot.observedAt, 'preflight', nowMs, maxAgeMs);
@@ -120,13 +120,27 @@ function assertSnapshot(snapshot, { nowMs, maxAgeMs }) {
     }
     if (actionIds.has(actionId)) throw new Error(`preflight duplicate actionId: ${actionId}`);
     actionIds.add(actionId);
-    if (domain.readinessStatus !== 'eligible') throw new Error(`preflight domain is not ready: ${actionId}`);
-    requireHash(domain.sourceHash, `${actionId} sourceHash`);
-    requireText(domain.evidencePath, `${actionId} evidencePath`);
-    assertFresh(domain.observedAt, `${actionId} readiness`, nowMs, maxAgeMs);
-    if (domain.stateStoreEpoch != null && domain.stateStoreEpoch !== epoch) {
-      throw new Error(`preflight domain epoch drifted: ${actionId}`);
+    if (!['eligible', 'blocked'].includes(domain.readinessStatus)) {
+      throw new Error(`preflight domain readiness status is invalid: ${actionId}`);
     }
+    if (domain.readinessStatus === 'eligible') {
+      requireHash(domain.sourceHash, `${actionId} sourceHash`);
+      requireText(domain.evidencePath, `${actionId} evidencePath`);
+      assertFresh(domain.observedAt, `${actionId} readiness`, nowMs, maxAgeMs);
+      if (domain.stateStoreEpoch != null && domain.stateStoreEpoch !== epoch) {
+        throw new Error(`preflight domain epoch drifted: ${actionId}`);
+      }
+    }
+  }
+
+  if (!snapshot.domains.some((domain) => domain.readinessStatus === 'eligible')) {
+    throw new Error('preflight has no eligible scheduler domain');
+  }
+  const canary = normalizeSchedulerCanaryAction(canaryActionId ?? snapshot.canaryActionId, snapshot.domains);
+  if (!snapshot.domains.some((domain) => (
+    domain.actionId === canary.actionId && domain.readinessStatus === 'eligible'
+  ))) {
+    throw new Error('scheduler canary action must match an eligible domain');
   }
 
   if (!Array.isArray(snapshot.policyRows) || snapshot.policyRows.length === 0) {
@@ -169,7 +183,7 @@ export function buildCrawlerV2SchedulerActivationPreflight({
 } = {}) {
   assertReaderReadOnly(reader);
   const nowMs = parseTime(now, 'now');
-  assertSnapshot(snapshot, { nowMs, maxAgeMs });
+  assertSnapshot(snapshot, { nowMs, maxAgeMs, canaryActionId });
   const canary = normalizeSchedulerCanaryAction(canaryActionId ?? snapshot.canaryActionId, snapshot.domains);
   if (!t1Report || t1Report.status !== 'passed' || t1Report.scheduledTickObserved !== true || t1Report.cleanupPassed !== true) {
     throw new Error('preflight requires a passed cleaned runtime T1 report');
@@ -197,7 +211,11 @@ export function buildCrawlerV2SchedulerActivationPreflight({
     v2: snapshot.v2,
     counts: snapshot.counts,
     reconciler: snapshot.reconciler,
-    domains: snapshot.domains,
+    // Blocked domains remain visible in the raw backend snapshot, but the
+    // activation artifact carries only the domains that may enter this
+    // canary. This keeps an unrelated blocked domain from widening or
+    // vetoing a single-domain activation window.
+    domains: snapshot.domains.filter((domain) => domain.readinessStatus === 'eligible'),
     canary,
     policyRows: snapshot.policyRows,
     policySetHash: snapshot.policySetHash,

@@ -662,8 +662,10 @@ function withoutStorageIdentity(row) {
 // writes, an executable packet, runtime policy authority or allocated DB IDs.
 async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIndependent = false } = {}) {
   const hasTypedSources = Object.hasOwn(input, 'itemEffectSources');
+  const hasSecondaryScope = Object.hasOwn(input, 'secondaryProjectionScope');
   exactKeys(input, ['relationInput', 'currentRows', 'dependencyRows', 'consumerRows', 'managedImageUrlPrefixes',
     ...(hasTypedSources ? ['itemEffectSources'] : []),
+    ...(hasSecondaryScope ? ['secondaryProjectionScope'] : []),
     ...(Object.hasOwn(input, 'defenseAuthority') ? ['defenseAuthority'] : []),
     ...(Object.hasOwn(input, 'unresolvedSourceEffects') ? ['unresolvedSourceEffects'] : []),
     ...(Object.hasOwn(input, 'allowPartialApply') ? ['allowPartialApply'] : []),
@@ -672,6 +674,9 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
   const snapshot = canonical(structuredClone(input), false);
   if (snapshot.defenseAuthority != null && snapshot.defenseAuthority !== 'armor_attribute_zero') {
     throw new Error('Armor defense authority is invalid');
+  }
+  if (snapshot.secondaryProjectionScope != null && snapshot.secondaryProjectionScope !== 'preserve') {
+    throw new Error('Armor secondary projection scope is invalid');
   }
   const partialPolicyFields = [snapshot.unresolvedSourceEffects, snapshot.allowPartialApply,
     snapshot.unresolvedRowsMustRemainUntouched];
@@ -725,11 +730,23 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
       } else block('complete-item-and-set-coverage-unverified');
     }
   }
-  const itemEffects = checkItemEffects(sources, snapshot.dependencyRows, block, typedSources, snapshot);
-  const sourceEffects = checkSourceEffects(sources, snapshot.dependencyRows, block, snapshot);
+  const secondaryProjectionPreserved = snapshot.secondaryProjectionScope === 'preserve';
+  const itemEffects = secondaryProjectionPreserved
+    ? { accepted: [], typedOwnerIds: new Set(), quarantined: [] }
+    : checkItemEffects(sources, snapshot.dependencyRows, block, typedSources, snapshot);
+  const sourceEffects = secondaryProjectionPreserved
+    ? { accepted: [], quarantined: [] }
+    : checkSourceEffects(sources, snapshot.dependencyRows, block, snapshot);
   const acceptedEffects = [...sourceEffects.accepted, ...itemEffects.accepted];
+  const projectionDependencies = secondaryProjectionPreserved
+    ? {
+        ...snapshot.dependencyRows,
+        relation_armor_attribute_rows: [],
+        relation_equipment_effect_attributes: [],
+      }
+    : snapshot.dependencyRows;
   const payload = buildProjectionPayload({
-    ...Object.fromEntries(Object.entries({ ...sources, ...snapshot.dependencyRows, relation_equipment_effect_attributes: acceptedEffects })
+    ...Object.fromEntries(Object.entries({ ...sources, ...projectionDependencies, relation_equipment_effect_attributes: acceptedEffects })
       .map(([table, rows]) => [camelName(table), rows.filter(active).map(camel)])),
     managedImageUrlPrefixes: prefixes,
   });
@@ -777,8 +794,10 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
       .map(row => withoutStorageIdentity({ ...row,
         owner_id: row.owner_kind === 'armor_set' ? owners.get(row.owner_key) ?? null : row.owner_id })),
   };
-  auditDependencies(snapshot, sources, payload, expectedRows, dependencyExpectations, prefixes, block,
-    itemEffects.typedOwnerIds, snapshot.defenseAuthority ?? null);
+  if (!secondaryProjectionPreserved) {
+    auditDependencies(snapshot, sources, payload, expectedRows, dependencyExpectations, prefixes, block,
+      itemEffects.typedOwnerIds, snapshot.defenseAuthority ?? null);
+  }
   for (const row of dependencyExpectations.projection_equipment_effect_attributes) if (!positiveId(row.owner_id)) {
     unresolvedDependencies.push({ table: 'projection_equipment_effect_attributes', recordKey: row.relation_record_key,
       column: 'owner_id', referencedTable: TABLE, textKey: row.owner_key });
@@ -800,6 +819,7 @@ async function buildArmorCanonicalProjectionCandidateInternal(input = {}, { idIn
       allowPartialApply: snapshot.allowPartialApply ?? false,
       unresolvedRowsMustRemainUntouched: snapshot.unresolvedRowsMustRemainUntouched ?? false,
     },
+    secondaryProjectionScope: snapshot.secondaryProjectionScope ?? 'owned',
     quarantinedSourceEffects: [...sourceEffects.quarantined, ...itemEffects.quarantined],
     acceptance: { status: blockers.length ? 'blocked' : 'dependencies-satisfied', runtimeVerified: false, blockers },
     inputSnapshots: snapshot, inputSha256: hash(snapshot), baselineSha256: hash(snapshot.currentRows),

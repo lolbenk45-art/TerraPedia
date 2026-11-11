@@ -55,6 +55,8 @@ test('Armor full-chain ingestion is a governed catalog operation with an exact l
     'reports/authorization/canonical/canonical-armor-ingestion.retry-01.journal.json',
   ]);
   assert.deepEqual(manifest.ownershipKeys, [
+    'local.armor_sets',
+    'local.armor_set_items',
     'local.source_dataset_landings.armor_sets_raw',
     'local.source_dataset_landings.armor_set_images_raw',
     'maint.maint_armor_sets',

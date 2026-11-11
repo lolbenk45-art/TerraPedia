@@ -4,7 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { runArmorAutomaticOperation } from './run-armor-automatic-operation.mjs';
+import {
+  acknowledgeArmorSourceAfterFreshActivation,
+  runArmorAutomaticOperation,
+} from './run-armor-automatic-operation.mjs';
 
 const sourceDispatchIdentity = Object.freeze({
   sourceFingerprint: `sha256:${'a'.repeat(64)}`,
@@ -183,4 +186,46 @@ test('publishes failed progress and keeps acknowledgement untouched on child fai
   }), /canonical child failed/);
   assert.equal(deps.calls.acknowledge.length, 0);
   assert.equal(deps.calls.progress.at(-1).status, 'failed');
+});
+
+test('matches a MySQL local DATETIME scheduler activation to its bound UTC instant', async (t) => {
+  const f = fixture(t);
+  const now = '2026-10-27T15:37:00.000Z';
+  f.binding.activation = {
+    decisionIdentity: 'scheduler-activation-1',
+    packetHash: `sha256:${'a'.repeat(64)}`,
+    policySetHash: `sha256:${'2'.repeat(64)}`,
+    authorizedAt: '2026-10-27T15:36:00.000Z',
+    expiresAt: '2026-10-28T00:30:00.000Z',
+  };
+  const mysqlActivation = {
+    ...f.binding.activation,
+    authorizedAt: '2026-10-27 23:36:00',
+    expiresAt: '2026-10-28 08:30:00',
+  };
+  let acknowledgements = 0;
+  const connection = {
+    query: async () => [[mysqlActivation]],
+    end: async () => {},
+  };
+
+  await acknowledgeArmorSourceAfterFreshActivation({
+    repoRoot: f.repoRoot,
+    binding: f.binding,
+    sourceDispatchIdentity,
+    sourceCheckedAt: sourceDispatchIdentity.sourceRunIdentity,
+    now,
+    env: {
+      ...process.env,
+      TERRAPEDIA_DB_HOST: '127.0.0.1',
+      TERRAPEDIA_DB_PORT: '13306',
+      TERRAPEDIA_DB_USERNAME: 'root',
+      TERRAPEDIA_DB_PASSWORD: 'root',
+      TERRAPEDIA_DB_NAME: 'terria_v1_local',
+    },
+    mysqlModule: { createConnection: async () => connection },
+    acknowledgeBaseImpl: async () => { acknowledgements += 1; },
+  });
+
+  assert.equal(acknowledgements, 1);
 });

@@ -97,6 +97,31 @@ test('proposal is disabled, proposal-only, and derives all current values from p
   assert.equal(proposal.packetHash, undefined);
 });
 
+test('proposal excludes blocked non-canary domains from the activation scope', () => {
+  const base = validPreflight({ canary: { actionId: 'wiki-items-refresh', domainId: 'items' } });
+  const preflight = {
+    ...base,
+    domains: [
+      ...base.domains,
+      {
+        domain: 'projectiles',
+        actionId: 'wiki-projectiles-refresh',
+        readinessStatus: 'blocked',
+      },
+    ],
+  };
+  const proposal = buildCrawlerV2SchedulerActivationProposal({
+    t1Report,
+    preflight: { ...preflight, preflightHash: sha256Json({ ...preflight, preflightHash: undefined }) },
+    codeBundle: preflight.codeBundle,
+    now: '2026-08-10T01:05:00.000Z',
+  });
+  assert.deepEqual(proposal.eligibleDomains, [
+    { domainId: 'items', actionId: 'wiki-items-refresh', readinessStatus: 'eligible' },
+    { domainId: 'npcs', actionId: 'wiki-npcs-refresh', readinessStatus: 'eligible' },
+  ]);
+});
+
 test('proposal rejects a missing or mismatched canary scope', () => {
   const base = validPreflight({ canary: { actionId: 'wiki-items-refresh', domainId: 'items' } });
   for (const candidate of [

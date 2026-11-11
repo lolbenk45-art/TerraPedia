@@ -27,7 +27,9 @@ function recoveryIntent(expected) {
 
 function expectedInsertPlanCount(expected) {
   return (expected?.landingMaintIntent?.insertPlans?.length ?? 0)
-    + (expected?.relationIntent?.insertPlans?.length ?? 0);
+    + (expected?.relationIntent?.insertPlans?.length ?? 0)
+    + (expected?.localProjection?.parentChanges?.inserts?.length ?? 0)
+    + (expected?.localProjection?.itemChanges?.inserts?.length ?? 0);
 }
 
 export function createArmorCanonicalRecoveryJournalAdapter({
@@ -59,7 +61,8 @@ export function createArmorCanonicalRecoveryJournalAdapter({
       }
       if (observedExpected?.recoveryIntent?.intentSha256 !== frozenIntent.intentSha256
           || observedExpected?.landingMaintIntent?.intentSha256 !== expected.landingMaintIntent.intentSha256
-          || observedExpected?.relationIntent?.intentSha256 !== expected.relationIntent.intentSha256) {
+          || observedExpected?.relationIntent?.intentSha256 !== expected.relationIntent.intentSha256
+          || observedExpected?.localProjection?.candidateSha256 !== expected.localProjection?.candidateSha256) {
         throw new Error('Armor recovery expected intent object drifted before preparation');
       }
       const prepared = buildArmorCanonicalPreparedRecoveryJournal({

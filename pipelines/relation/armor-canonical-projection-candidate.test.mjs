@@ -151,6 +151,16 @@ test('composes the reviewed relation builder and preserves actual projection IDs
     input.consumerRows.projection_equipment_effect_attributes.map(({ id, created_at, updated_at, ...row }) => row));
 });
 
+test('preserves secondary attribute/effect projections when the automatic scope owns only armor-set projections', async () => {
+  const input = await fixture();
+  const result = await build({ ...input, secondaryProjectionScope: 'preserve' });
+  assert.equal(result.secondaryProjectionScope, 'preserve');
+  assert.equal(result.acceptance.status, 'dependencies-satisfied');
+  assert.deepEqual(result.acceptance.blockers, []);
+  assert.deepEqual(result.dependencyExpectations.projection_item_armor_attributes, []);
+  assert.deepEqual(result.dependencyExpectations.projection_equipment_effect_attributes, []);
+});
+
 test('applies the explicit armor_attribute_zero defense authority to null source fields', async () => {
   const input = await fixture();
   input.relationInput.maintItems[0].defense_value = null;

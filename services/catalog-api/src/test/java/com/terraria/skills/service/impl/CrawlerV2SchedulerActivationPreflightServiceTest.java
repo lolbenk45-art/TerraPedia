@@ -72,6 +72,48 @@ class CrawlerV2SchedulerActivationPreflightServiceTest {
     }
 
     @Test
+    void prefersFreshFormalCatchUpAdmissionForTheConfiguredCanonicalCanary() throws Exception {
+        Path repoRoot = Files.createTempDirectory("crawler-preflight-catch-up-repo");
+        Path admission = repoRoot.resolve("reports/runtime/local-formal-catch-up/current/domain-admission.json");
+        Files.createDirectories(admission.getParent());
+        Instant generatedAt = Instant.now().minusSeconds(30);
+        Files.writeString(admission, "{\"status\":\"ready\",\"generatedAt\":\""
+            + generatedAt + "\",\"actionScope\":[\"armor_sets\"],\"domains\":[{"
+            + "\"domain\":\"armor_sets\",\"classification\":\"ready\",\"writeAllowed\":true,"
+            + "\"canonicalEvidence\":{\"ready\":true},\"sourceIdentity\":{"
+            + "\"fingerprint\":\"sha256:"
+            + "a".repeat(64) + "\"}}]}\n");
+
+        CrawlerMonitorService monitor = mock(CrawlerMonitorService.class);
+        DomainAcceptanceService domainAcceptance = mock(DomainAcceptanceService.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        properties.setFormalCatchUpAdmissionPath("reports/runtime/local-formal-catch-up/current/domain-admission.json");
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setRepoRoot(repoRoot.toString());
+        overview.setStateStoreEpoch("epoch-current");
+        overview.setDomainStates(List.of(domainState("armor_sets", "armor-refresh", "domain-source-armor-sets")));
+        overview.setLiveQueue(List.of());
+        overview.setReconcilerHealth(new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", generatedAt, generatedAt, 0L, 0L, 0L, null, null, null
+        ));
+        CrawlerV2AutomationDTO automation = new CrawlerV2AutomationDTO();
+        automation.setEnabled(false);
+        automation.setMode("changed-only");
+        when(monitor.getOverview()).thenReturn(overview);
+        when(monitor.getV2AutomationSettings()).thenReturn(automation);
+        when(monitor.getV2AutomationSweepClaimCount()).thenReturn(0);
+        when(domainAcceptance.getOverview()).thenReturn(new DomainAcceptanceOverviewDTO());
+
+        var result = new CrawlerV2SchedulerActivationPreflightServiceImpl(monitor, domainAcceptance, properties)
+            .getPreflight();
+
+        assertEquals("eligible", result.getDomains().get(0).getReadinessStatus());
+        assertEquals("reports/runtime/local-formal-catch-up/current/domain-admission.json",
+            result.getDomains().get(0).getEvidencePath());
+        assertEquals("sha256:" + "a".repeat(64), result.getDomains().get(0).getSourceHash());
+    }
+
+    @Test
     void marksFreshReadOnlyDomainEvidenceEligibleAndHashesItsReport() throws Exception {
         Path repoRoot = Files.createTempDirectory("crawler-preflight-repo");
         Path report = repoRoot.resolve("reports/domain/items/items-20260810.json");

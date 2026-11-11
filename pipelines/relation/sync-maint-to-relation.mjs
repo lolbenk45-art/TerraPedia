@@ -1950,6 +1950,9 @@ export async function runSync(options, dependencies = {}) {
   const managedImageUrlPrefixes = normalizeManagedImageUrlPrefixes(
     dependencies.managedImageUrlPrefixes ?? resolveManagedImageUrlPrefixes()
   );
+  const itemOnlyScope = Array.isArray(options.scopes)
+    && options.scopes.length === 1
+    && options.scopes[0] === 'items';
   const canonicalBuffManagedUrlPrefixes = resolveBuffManagedUrlPrefixes(managedImageUrlPrefixes);
   const mysqlOptions = {
     host: config.database?.host ?? '127.0.0.1',
@@ -2145,23 +2148,30 @@ export async function runSync(options, dependencies = {}) {
     itemNpcShopRelations: itemSource.npcShopRelations,
     itemNpcLootRelations: itemSource.npcLootRelations
   });
-  const armorSet = buildArmorSetRelations({
-    wikiArmorSets,
-    maintArmorSets,
-    armorSetDefinitionMap,
-    maintItems,
-    maintArmorSetImages,
-    existingRelationArmorSetImages,
-    managedImageUrlPrefixes
-  });
+  const armorSet = itemOnlyScope
+    ? {
+      relationArmorSets: [], relationArmorSetItems: [], relationArmorAttributeRows: [],
+      relationArmorSetImages: [], issues: [],
+    }
+    : buildArmorSetRelations({
+      wikiArmorSets,
+      maintArmorSets,
+      armorSetDefinitionMap,
+      maintItems,
+      maintArmorSetImages,
+      existingRelationArmorSetImages,
+      managedImageUrlPrefixes
+    });
 
   const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet);
-  const armorAttributes = buildArmorAttributeDispatch({
-    maintArmorAttributeRows,
-    maintItems,
-    maintLandings: maintItemEffectLandings,
-    relationArmorSetItems: results.relationArmorSetItems
-  });
+  const armorAttributes = itemOnlyScope
+    ? { relationArmorAttributeRows: [], relationEquipmentEffectAttributes: [] }
+    : buildArmorAttributeDispatch({
+      maintArmorAttributeRows,
+      maintItems,
+      maintLandings: maintItemEffectLandings,
+      relationArmorSetItems: results.relationArmorSetItems
+    });
   results.relationArmorAttributeRows = armorAttributes.relationArmorAttributeRows;
   results.relationItems = baseEntities.relationItems;
   results.relationNpcs = baseEntities.relationNpcs;

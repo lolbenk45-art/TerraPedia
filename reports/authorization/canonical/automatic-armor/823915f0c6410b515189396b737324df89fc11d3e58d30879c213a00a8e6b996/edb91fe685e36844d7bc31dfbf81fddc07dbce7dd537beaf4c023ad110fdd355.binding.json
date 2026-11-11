@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "armor-automatic-dispatch-binding/v1",
+  "actionId": "domain-source-armor-sets",
+  "operationId": "canonical-armor-ingestion",
+  "attemptId": "attempt-lfc-20261027-armor-r5",
+  "sourceDispatchIdentity": {
+    "sourceFingerprint": "sha256:823915f0c6410b515189396b737324df89fc11d3e58d30879c213a00a8e6b996",
+    "sourceRunIdentity": "2026-10-27T15:30:11.171Z",
+    "sourceContentIdentity": "sha256:006439b8a8845d922b54ca689dad55078e8288a61aa61fe0eafd47733ed68b93"
+  },
+  "intent": {
+    "path": "reports/authorization/canonical/canonical-armor-ingestion.lfc-20261027-armor-r5.intent.json",
+    "sha256": "sha256:4e38408fca62d307d06db9e21f150129878d3d79b986099fcb6385fcddbcce52",
+    "fullChainSha256": "sha256:99147c9d818b2313ba0ad5af63097773462dd2bf38a0af22d5cda96512b8c1b3"
+  },
+  "authorization": {
+    "packetPath": "reports/authorization/canonical/attempt-lfc-20261027-armor-r5/packet.json",
+    "packetSha256": "sha256:69badfbb54f8114a79a7311c29a489016e4fb48fbec29de196a7674b41a7a5e1",
+    "permitPath": "reports/authorization/canonical/attempt-lfc-20261027-armor-r5/permit.json",
+    "permitHash": "sha256:e6c63f935cd6f17c20551180e34cae3ed1ce572a2ff86ffee702776e4d606438",
+    "nonce": "cc84254f5c4c7f42de3ea9cd030269121666e40c2817a1c7",
+    "serverFingerprintPath": "reports/authorization/canonical/attempt-lfc-20261027-armor-r5/server-fingerprint.json",
+    "serverFingerprintSha256": "sha256:c37560233cc09d1f64c3a99e38dbac7f67bab25490654ae78b24460ff665262c",
+    "policySetHash": "sha256:10cee3eb6062090dbbe7bdacb715c264286d8512e1a0c360f24c96f358ecfde3",
+    "decisionIdentity": "local-formal-catch-up-armor-r5-canonical-admin-01"
+  },
+  "activation": {
+    "decisionIdentity": "local-formal-catch-up-armor-r5-scheduler-admin-07",
+    "packetHash": "sha256:69f235ae3a507e6c57b2383ad1baea6dc3f294456f308dac75c1c518c52619c0",
+    "policySetHash": "sha256:10cee3eb6062090dbbe7bdacb715c264286d8512e1a0c360f24c96f358ecfde3",
+    "authorizedAt": "2026-10-27T15:36:00.000Z",
+    "expiresAt": "2026-10-27T16:30:00.000Z"
+  },
+  "resultLabel": "lfc-20261027-armor-r5",
+  "createdAt": "2026-10-27T15:35:08.637Z",
+  "expiresAt": "2026-10-27T16:30:00.000Z",
+  "consumedAt": null
+}

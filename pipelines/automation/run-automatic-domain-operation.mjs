@@ -51,8 +51,12 @@ export async function runImportThenAcknowledge({
   return result;
 }
 
-export function buildAutomaticRunId(domain, sourceFingerprint) {
-  const identity = `${String(domain ?? '').trim()}\n${String(sourceFingerprint ?? '').trim()}`;
+export function buildAutomaticRunId(domain, sourceFingerprint, sourceContentIdentity = null) {
+  const identityParts = [String(domain ?? '').trim(), String(sourceFingerprint ?? '').trim()];
+  if (sourceContentIdentity != null && String(sourceContentIdentity).trim()) {
+    identityParts.push(String(sourceContentIdentity).trim());
+  }
+  const identity = identityParts.join('\n');
   const digest = createHash('sha256').update(identity).digest('hex').slice(0, 32);
   return `${String(domain ?? '').trim()}_l1_auto_${digest}`;
 }

@@ -118,7 +118,11 @@ export function normalizeSchedulerEligibleDomains(domains) {
   }
   const domainIds = new Set();
   const actionIds = new Set();
-  const normalized = domains.map((domain) => {
+  const eligible = domains.filter((domain) => domain?.readinessStatus === 'eligible');
+  if (eligible.length === 0) {
+    throw new Error('scheduler activation has no eligible domains');
+  }
+  const normalized = eligible.map((domain) => {
     if (domain?.domainId != null && domain?.domain != null && domain.domainId !== domain.domain) {
       throw new Error('eligible domainId and domain alias conflict');
     }

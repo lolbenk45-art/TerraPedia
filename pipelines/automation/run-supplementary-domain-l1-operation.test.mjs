@@ -55,6 +55,110 @@ test('frozen Shimmer apply rejects incomplete write scope before database access
   assert.deepEqual(calls, []);
 });
 
+test('owned table snapshots read the declared formal schema and preserve the row lock', async () => {
+  const calls = [];
+  const connection = {
+    query: async (sql) => { calls.push(sql); return [[{ id: 7 }]]; },
+  };
+
+  const rows = await operationModule.readOwnedScopeRows(connection, {
+    databaseRole: 'maint',
+    table: 'maint_items',
+  }, { lock: true });
+
+  assert.deepEqual(rows, [{ id: 7 }]);
+  assert.deepEqual(calls, [
+    'SELECT * FROM `terria_v1_maint`.`maint_items` ORDER BY `id` FOR UPDATE',
+  ]);
+});
+
+test('Items canonical landing snapshots read only Iteminfo-owned rows while preserving the row lock', async () => {
+  const calls = [];
+  const connection = {
+    query: async (sql, params) => { calls.push({ sql, params }); return [[{ id: 7 }]]; },
+  };
+
+  const rows = await operationModule.readOwnedScopeRows(connection, {
+    databaseRole: 'local',
+    table: 'source_dataset_landings',
+    fieldGroup: 'canonical_owned_rows',
+    logicalPredicateHash: 'sha256:cf8c6f1dcd42850bc89920e0de1a524a381edcb3827cd72df241ae42dfe958f1',
+  }, { domainId: 'items', lock: true });
+
+  assert.deepEqual(rows, [{ id: 7 }]);
+  assert.deepEqual(calls, [{
+    sql: 'SELECT * FROM `terria_v1_local`.`source_dataset_landings`'
+      + ' WHERE `dataset_type` = ? AND `provider` = ? AND `source_key` = ? AND `source_page` = ?'
+      + ' ORDER BY `id` FOR UPDATE',
+    params: ['items_raw', 'terraria.wiki.gg', 'wiki.module.iteminfo', 'Module:Iteminfo/data'],
+  }]);
+});
+
+test('Armor canonical landing snapshots read only Armor-owned landing datasets', async () => {
+  const calls = [];
+  const connection = {
+    query: async (sql, params) => { calls.push({ sql, params }); return [[{ id: 8 }]]; },
+  };
+
+  const rows = await operationModule.readOwnedScopeRows(connection, {
+    databaseRole: 'local',
+    table: 'source_dataset_landings',
+    fieldGroup: 'canonical_owned_rows',
+    logicalPredicateHash: 'sha256:999a98a657ffb93635aba470b4eeaf475b72c9dbcb37f1e8621e92ea246c5042',
+  }, { domainId: 'armor_sets' });
+
+  assert.deepEqual(rows, [{ id: 8 }]);
+  assert.deepEqual(calls, [{
+    sql: 'SELECT * FROM `terria_v1_local`.`source_dataset_landings`'
+      + ' WHERE `dataset_type` IN (?, ?, ?, ?) AND `provider` = ? ORDER BY `id`',
+    params: [
+      'armor_attributes_raw', 'armor_item_effects_raw', 'armor_set_images_raw', 'armor_sets_raw',
+      'terraria.wiki.gg',
+    ],
+  }]);
+});
+
+test('scoped landing snapshots reject an unregistered owner predicate before querying', async () => {
+  let queried = false;
+  await assert.rejects(() => operationModule.readOwnedScopeRows({
+    query: async () => { queried = true; return [[]]; },
+  }, {
+    databaseRole: 'local',
+    table: 'source_dataset_landings',
+    fieldGroup: 'canonical_owned_rows',
+    logicalPredicateHash: 'sha256:' + 'f'.repeat(64),
+  }, { domainId: 'items' }), /registered domain owner predicate/);
+  assert.equal(queried, false);
+});
+
+test('Items canonical snapshots order the NPC relation audit table by its composite primary key', async () => {
+  const calls = [];
+  const connection = {
+    query: async (sql, params) => { calls.push({ sql, params }); return [[{ audit_key: 'item:1' }]]; },
+  };
+
+  const rows = await operationModule.readOwnedScopeRows(connection, {
+    databaseRole: 'relation',
+    table: 'item_npc_relation_audits',
+    fieldGroup: 'canonical_owned_rows',
+    logicalPredicateHash: 'sha256:127393e135fb887a9fb9f2d15fe9b576d7d8c6d4309ba629f8d0e4e103366ee6',
+  }, { domainId: 'items', lock: true });
+
+  assert.deepEqual(rows, [{ audit_key: 'item:1' }]);
+  assert.deepEqual(calls, [{
+    sql: 'SELECT * FROM `terria_v1_relation`.`item_npc_relation_audits` ORDER BY `audit_key` FOR UPDATE',
+    params: undefined,
+  }]);
+});
+
+test('owned table snapshots reject an unknown database role before querying', async () => {
+  let queried = false;
+  await assert.rejects(() => operationModule.readOwnedScopeRows({
+    query: async () => { queried = true; return [[]]; },
+  }, { databaseRole: 'remote', table: 'items' }), /unknown database role/);
+  assert.equal(queried, false);
+});
+
 test('Shimmer rejects a six-table whole-owner scope without cross-owner partition contract', async () => {
   const fixture = writeFrozenSource({});
   const calls = [];
@@ -1374,7 +1478,8 @@ test('automatic current context derives its exact scoped ownership from the live
         }]];
       }
       if (/crawler_automation_mutation_generation/.test(sql)) return [[{ generation: 7 }]];
-      if (/FROM `boss_groups`/.test(sql) || /FROM `npcs`/.test(sql)) return [[]];
+      if (/FROM `terria_v1_local`\.`boss_groups`/.test(sql) || /FROM `terria_v1_local`\.`npcs`/.test(sql)) return [[]];
+      if (/FROM `npcs` WHERE deleted = 0(?: FOR UPDATE)?/.test(sql)) return [[]];
       if (/crawler_automation_activation_decision/.test(sql)) return [[]];
       throw new Error(`unexpected query: ${sql}`);
     },
@@ -1438,7 +1543,8 @@ test('automatic Item context freezes every dependency field used by the importer
         }]];
       }
       if (/crawler_automation_mutation_generation/.test(sql)) return [[{ generation: 7 }]];
-      if (/FROM `items`/.test(sql)) return [[itemRow]];
+      if (/FROM `terria_v1_local`\.`items`/.test(sql)) return [[itemRow]];
+      if (/FROM `items` WHERE deleted = 0/.test(sql)) return [[itemRow]];
       if (/FROM `category`/.test(sql)) return [[{ id: 7, code: 'WEAPON' }]];
       if (/crawler_automation_activation_decision/.test(sql)) return [[]];
       throw new Error(`unexpected query: ${sql}`);
@@ -1501,7 +1607,8 @@ test('automatic current context rejects a bundle whose scope order differs from 
         }]];
       }
       if (/crawler_automation_mutation_generation/.test(sql)) return [[{ generation: 7 }]];
-      if (/FROM `boss_groups`/.test(sql) || /FROM `npcs`/.test(sql)) return [[]];
+      if (/FROM `terria_v1_local`\.`boss_groups`/.test(sql) || /FROM `terria_v1_local`\.`npcs`/.test(sql)) return [[]];
+      if (/FROM `npcs` WHERE deleted = 0(?: FOR UPDATE)?/.test(sql)) return [[]];
       if (/crawler_automation_activation_decision/.test(sql)) return [[]];
       throw new Error(`unexpected query: ${sql}`);
     },
@@ -2971,8 +3078,8 @@ test('MySQL adapter writes reconciliation inputs from the post-apply transaction
           commitMarker: frozen.bundleHash.slice(7),
         }]];
       }
-      if (/FROM `audio_assets`/.test(sql)) return [[{ id: 1, asset_id: 'music:empty' }]];
-      if (/FROM `audio_asset_links`/.test(sql)) return [[{ id: 2, asset_id: 'music:empty' }]];
+      if (/FROM `terria_v1_local`\.`audio_assets`/.test(sql)) return [[{ id: 1, asset_id: 'music:empty' }]];
+      if (/FROM `terria_v1_local`\.`audio_asset_links`/.test(sql)) return [[{ id: 2, asset_id: 'music:empty' }]];
       return [[]];
     },
   };
@@ -3101,8 +3208,8 @@ test('MySQL adapter reads the explicit completed progress path for automatic rec
       }]];
       if (/crawler_automation_run_attempt/.test(sql)) return [[{ activeAttempts: 0, overdueAttempts: 0 }]];
       if (/crawler_automation_attempt_reservation/.test(sql)) return [[{ activeReservations: 0, overdueReservations: 0 }]];
-      if (/FROM `audio_assets`/.test(sql)) return [[{ id: 1, asset_id: 'music:empty' }]];
-      if (/FROM `audio_asset_links`/.test(sql)) return [[{ id: 2, asset_id: 'music:empty' }]];
+      if (/FROM `terria_v1_local`\.`audio_assets`/.test(sql)) return [[{ id: 1, asset_id: 'music:empty' }]];
+      if (/FROM `terria_v1_local`\.`audio_asset_links`/.test(sql)) return [[{ id: 2, asset_id: 'music:empty' }]];
       return [[]];
     },
   };
@@ -3147,7 +3254,7 @@ test('MySQL compensation restores a legacy whole-table snapshot behind the gener
       if (/INSERT IGNORE INTO crawler_automation_mutation_generation/.test(sql)) return [{ affectedRows: 1 }];
       if (/SELECT generation FROM crawler_automation_mutation_generation/.test(sql)) return [[{ generation: 2 }]];
       if (/FROM crawler_automation_activation_decision/.test(sql)) return [[]];
-      if (/SELECT \* FROM `audio_/.test(sql)) {
+      if (/SELECT \* FROM `terria_v1_local`\.`audio_/.test(sql)) {
         const table = sql.includes('audio_assets') ? 'audio_assets' : 'audio_asset_links';
         const count = tableReads.get(table) ?? 0;
         tableReads.set(table, count + 1);
@@ -3191,7 +3298,8 @@ test('MySQL compensation restores a legacy whole-table snapshot behind the gener
   assert.deepEqual(result.restoredTables, ['audio_assets', 'audio_asset_links']);
   assert.ok(queries.some((entry) => entry === 'BEGIN'));
   assert.ok(queries.some((entry) => entry === 'COMMIT'));
-  assert.ok(queries.some((entry) => typeof entry === 'object' && /DELETE FROM `audio_assets`/.test(entry.sql)));
+  assert.ok(queries.some((entry) => typeof entry === 'object' && /SELECT \* FROM `terria_v1_local`\.`audio_assets`/.test(entry.sql)));
+  assert.ok(queries.some((entry) => typeof entry === 'object' && /DELETE FROM `terria_v1_local`\.`audio_assets`/.test(entry.sql)));
   assert.ok(queries.some((entry) => typeof entry === 'object' && /ON DUPLICATE KEY UPDATE/.test(entry.sql)));
   assert.ok(queries.some((entry) => typeof entry === 'object' && /SET status = \?/.test(entry.sql)));
 });
@@ -3225,7 +3333,7 @@ for (const failurePoint of ['write-fence', 'apply', 'run']) {
         if (/INSERT IGNORE INTO crawler_automation_mutation_generation/.test(sql)) return [{ affectedRows: 1 }];
         if (/SELECT generation FROM crawler_automation_mutation_generation/.test(sql)) return [[{ generation: 2 }]];
         if (/FROM crawler_automation_activation_decision/.test(sql)) return [[]];
-        if (/SELECT \* FROM `audio_/.test(sql)) {
+        if (/SELECT \* FROM `terria_v1_local`\.`audio_/.test(sql)) {
           const table = sql.includes('audio_assets') ? 'audio_assets' : 'audio_asset_links';
           const count = tableReadCounts.get(table) ?? 0;
           tableReadCounts.set(table, count + 1);
@@ -3439,7 +3547,8 @@ test('MySQL compensation rejects a scoped snapshot before a transaction or table
       }
       if (/INSERT IGNORE INTO crawler_automation_mutation_generation/.test(sql)) return [{ affectedRows: 1 }];
       if (/SELECT generation FROM crawler_automation_mutation_generation/.test(sql)) return [[{ generation: 2 }]];
-      if (/FROM `boss_groups`/.test(sql) || /FROM `npcs`/.test(sql)) return [[]];
+      if (/FROM `terria_v1_local`\.`boss_groups`/.test(sql) || /FROM `terria_v1_local`\.`npcs`/.test(sql)) return [[]];
+      if (/FROM `npcs` WHERE deleted = 0(?: FOR UPDATE)?/.test(sql)) return [[]];
       if (/crawler_automation_activation_decision/.test(sql)) return [[]];
       throw new Error(`unexpected setup query: ${sql}`);
     },

@@ -9,11 +9,9 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { runIndependentEntityImport } from '../import/import-independent-entities-to-db.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
-import {
-  assertRepositoryOrdinaryFile,
-  assertRepositoryPathConfinement,
-} from '../lib/private-repository-path.mjs';
+import { assertRepositoryOrdinaryFile, assertRepositoryPathConfinement } from '../lib/private-repository-path.mjs';
 import { resolveSharedDataRoot } from '../lib/project-root.mjs';
+import { parseIteminfoModulePayload } from '../lib/wiki-item-utils.mjs';
 import {
   advanceWikiIngestionManifestForSource,
   DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
@@ -41,11 +39,13 @@ import {
   assertFrozenSourceMatchesDispatchIdentity,
   assertFrozenSourceMonitorStateMatches,
   canonicalSourceFingerprint,
+  readFrozenSourceSnapshot,
   readFrozenSourceMonitorState,
   sourceDispatchIdentityFromEnvironment,
 } from './source-dispatch-identity.mjs';
 import { createContentHash } from '../lib/wiki-sync-manifest.mjs';
 import { connectionOptions as isolatedConnectionOptions, loadIsolatedAcceptanceManifest } from './eight-domain-v2-isolated-acceptance.mjs';
+import { mysqlDateTimeToUtcIso } from './run-automation-policy-decision.mjs';
 import {
   buildActionProgressPayload,
   createCrawlerAttemptProgressSequencer,
@@ -55,6 +55,7 @@ import {
 
 const BASE_DOMAINS = new Set(['items', 'npcs', 'projectiles', 'armor_sets', 'buffs']);
 const SCHEDULER_ACTIVATION_DOMAIN = 'crawler_v2_scheduler';
+const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 
 export async function runBaseDomainAutomaticOperation({
   argv = process.argv.slice(2),
@@ -64,6 +65,7 @@ export async function runBaseDomainAutomaticOperation({
   mysqlModule = null,
   requireAutoDomainOperationImpl = requireAutoDomainOperation,
   runSourceImpl = runSource,
+  prepareStandardizedInputImpl = prepareCanonicalItemsStandardizedDataset,
   readSourceFingerprintImpl = readBaseDomainSourceFingerprint,
   readCurrentContextImpl = readCurrentSupplementaryContext,
   isCommittedRunImpl = readCommittedBaseAutomaticRun,
@@ -93,13 +95,31 @@ export async function runBaseDomainAutomaticOperation({
         repoRoot,
         sourceStatePath,
       });
+  const frozenSourceSnapshot = sourceDispatchIdentity == null
+    ? null
+    : readFrozenSourceSnapshot({
+        repoRoot,
+        source: frozenProbeState.source,
+        domain,
+        expectedFingerprint: sourceDispatchIdentity.sourceFingerprint,
+      });
+  assertBaseSourceSnapshotUsable(domain, frozenSourceSnapshot);
+  const sourceSnapshotReference = frozenSourceSnapshot == null
+    ? null
+    : {
+        ...frozenProbeState.source.snapshot,
+        path: frozenSourceSnapshot.path,
+      };
+  const isolatedMode = String(env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE ?? '').trim() === 'true';
+  const acceptanceManifestPath = isolatedMode
+    ? args['manifest-path'] ?? env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH
+    : null;
   const manifestPath = resolveBaseDomainManifestPath({
-    manifestPath: args['manifest-path'],
+    manifestPath: args['source-manifest-path'] ?? (!isolatedMode ? args['manifest-path'] : null),
     repoRoot,
   });
-  const isolatedMode = String(env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE ?? '').trim() === 'true';
   const isolatedManifest = isolatedMode
-    ? loadIsolatedAcceptanceManifest({ repoRoot, manifestPath, domain, env })
+    ? loadIsolatedAcceptanceManifest({ repoRoot, manifestPath: acceptanceManifestPath, domain, env })
     : null;
   const sourceMode = args['source-mode'] ?? (isolatedMode ? 'local' : 'live');
   const crawlRunId = `${domain}_source_${startTime.replace(/\D/g, '').slice(0, 14)}`;
@@ -120,7 +140,7 @@ export async function runBaseDomainAutomaticOperation({
 
     if (!['live', 'local'].includes(sourceMode)) throw new Error('--source-mode must be live or local');
     if (sourceMode === 'live') {
-      await runSourceImpl({ domain, progressPath, runId: crawlRunId, env });
+      await runSourceImpl({ domain, progressPath, runId: crawlRunId, env, sourceSnapshot: sourceSnapshotReference });
       if (automaticAttemptIdentity != null) {
         readCompletedBaseSourceProgressTimestamp({ repoRoot, progressPath, automaticAttemptIdentity });
       }
@@ -132,8 +152,44 @@ export async function runBaseDomainAutomaticOperation({
     const sourceFingerprint = canonicalSourceFingerprint(readSourceFingerprintImpl(domain));
     assertFrozenSourceMonitorStateMatches(sourceDispatchIdentity, frozenProbeState);
     assertFrozenSourceMatchesDispatchIdentity(sourceDispatchIdentity, sourceFingerprint);
+    const formalCatchUp = Boolean(
+      env.TERRARIA_CRAWLER_QUEUE_V2_FORMAL_CATCH_UP_ADMISSION_PATH
+        ?? env.TERRAPEDIA_CRAWLER_QUEUE_V2_FORMAL_CATCH_UP_ADMISSION_PATH,
+    );
+    const predictedRunId = buildAutomaticRunId(domain, sourceFingerprint, formalCatchUp
+      ? sourceDispatchIdentity?.sourceContentIdentity ?? null
+      : null);
+    const standardizedDataDir = domain === 'items' && config.canonicalV2 === true && sourceDispatchIdentity != null
+      ? await prepareStandardizedInputImpl({
+          repoRoot,
+          sourceDataDir: env.TERRAPEDIA_SHARED_DATA_ROOT ?? resolveSharedDataRoot(),
+          outputDirectory: path.join(
+            repoRoot,
+            '.local',
+            'tmp',
+            'local-formal-catch-up-standardized',
+            automaticArtifactRunId({
+              runId: predictedRunId,
+              sourceDispatchIdentity,
+              importPlan: { automaticAttemptIdentity },
+            }),
+          ),
+          sourceSnapshotBinding: buildBaseSourceSnapshotBinding({
+            repoRoot,
+            frozenProbeState,
+            frozenSourceSnapshot,
+            sourceDispatchIdentity,
+          }),
+        })
+      : null;
     const { runId, frozen } = freezeBaseAutomaticInput({
-      domain, sourceFingerprint, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity,
+      domain,
+      sourceFingerprint,
+      repoRoot,
+      sourceDispatchIdentity,
+      automaticAttemptIdentity,
+      formalCatchUp,
+      standardizedDataDir,
     });
     const outputPath = resolveBaseAutomaticResultOutputPath({
       outputPath: args.output,
@@ -241,11 +297,18 @@ export async function runBaseDomainAutomaticOperation({
         domainId: domain,
         ownedTables: config.ownedTables,
         executionMode: 'ACTIVATION_GATED_AUTO',
+        importPlan: config.canonicalV2 === true ? { canonicalV2: true } : undefined,
       },
     });
     if (activation.policySetHash !== current.policySetHash) {
       throw new Error('scheduler activation policy set does not match current policy set');
     }
+    const sourceSnapshotBinding = buildBaseSourceSnapshotBinding({
+      repoRoot,
+      frozenProbeState,
+      frozenSourceSnapshot,
+      sourceDispatchIdentity,
+    });
     const bundle = buildBaseAutomaticBundle({
       domain,
       config,
@@ -256,6 +319,7 @@ export async function runBaseDomainAutomaticOperation({
       sourceFingerprint,
       sourceCheckedAt: frozenSourceCheckedAt,
       sourceDispatchIdentity,
+      sourceSnapshotBinding,
       reconciliationInput: buildReconciliationInputFromArgs(args)
         ?? buildAutomaticReconciliationInput(domain, runId, { sourceDispatchIdentity, importPlan: frozen.importPlan }),
     });
@@ -339,12 +403,18 @@ export function buildBaseAutomaticBundle({
   sourceFingerprint,
   sourceCheckedAt,
   sourceDispatchIdentity = null,
+  sourceSnapshotBinding = null,
   reconciliationInput,
 } = {}) {
   const domainId = requireText(domain, 'domain');
   if (!config?.operationId) throw new Error('base automatic operation config is required');
   if (!current?.policyJson || !Array.isArray(current.ownedTables) || current.ownedTables.length === 0) {
     throw new Error('base automatic operation requires current scoped L2 policy ownership');
+  }
+  const canonicalItemsV2 = domainId === 'items' && config.canonicalV2 === true
+    && current.ownedTables.some((scope) => scope?.table === 'source_dataset_landings');
+  if (canonicalItemsV2 && sourceSnapshotBinding == null) {
+    throw new Error('Items canonical V2 requires the admitted immutable module source snapshot binding');
   }
   return buildSupplementaryL1Bundle({
     operationId: config.operationId,
@@ -368,9 +438,54 @@ export function buildBaseAutomaticBundle({
       ...frozen?.importPlan,
       automaticSourceFingerprint: requireText(sourceFingerprint, 'sourceFingerprint'),
       sourceCheckedAt: requireTimestamp(sourceCheckedAt, 'sourceCheckedAt'),
+      ...(canonicalItemsV2
+        ? { canonicalV2: true, sourceSnapshotBinding }
+        : {}),
     },
     ...(sourceDispatchIdentity == null ? {} : { sourceDispatchIdentity }),
     reconciliationInput,
+  });
+}
+
+export function buildBaseSourceSnapshotBinding({
+  repoRoot,
+  frozenProbeState,
+  frozenSourceSnapshot,
+  sourceDispatchIdentity,
+} = {}) {
+  if (sourceDispatchIdentity == null) return null;
+  if (!frozenProbeState?.source || !frozenSourceSnapshot?.path) {
+    throw new Error('Items canonical V2 requires the admitted immutable source snapshot binding');
+  }
+  const root = path.resolve(requireText(repoRoot, 'repoRoot'));
+  const snapshotPath = path.resolve(frozenSourceSnapshot.path);
+  const relativePath = path.relative(root, snapshotPath);
+  if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+    throw new Error('Items canonical V2 source snapshot must remain inside the runner repository');
+  }
+  const source = frozenProbeState.source;
+  const reference = source.snapshot;
+  if (!reference || frozenSourceSnapshot.snapshotHash !== reference.snapshotHash
+      || source.key !== reference.sourceKey && reference.sourceKey != null
+      || sourceDispatchIdentity.sourceFingerprint !== reference.sourceFingerprint
+      || sourceDispatchIdentity.sourceRunIdentity !== frozenSourceSnapshot.checkedAt) {
+    throw new Error('Items canonical V2 source snapshot binding drifted from the admitted dispatch');
+  }
+  const rawContentHash = reference.contentHash ?? sourceDispatchIdentity.sourceFingerprint;
+  const contentHash = /^[a-f0-9]{64}$/i.test(String(rawContentHash))
+    ? `sha256:${rawContentHash}`
+    : rawContentHash;
+  return Object.freeze({
+    path: relativePath.split(path.sep).join('/'),
+    snapshotHash: frozenSourceSnapshot.snapshotHash,
+    sourceKey: source.key,
+    sourceFingerprint: sourceDispatchIdentity.sourceFingerprint,
+    sourceRunIdentity: sourceDispatchIdentity.sourceRunIdentity,
+    sourceContentIdentity: sourceDispatchIdentity.sourceContentIdentity,
+    probeStateHash: frozenSourceSnapshot.probeStateHash,
+    revisionId: frozenSourceSnapshot.revisionId ?? null,
+    revisionTimestamp: frozenSourceSnapshot.revisionTimestamp ?? null,
+    contentHash,
   });
 }
 
@@ -405,12 +520,16 @@ export function freezeBaseAutomaticInput({
   repoRoot,
   sourceDispatchIdentity = null,
   automaticAttemptIdentity = null,
+  formalCatchUp = false,
+  standardizedDataDir = null,
   freezeInputImpl = freezeStandardizedInput,
 }) {
-  const runId = buildAutomaticRunId(domain, sourceFingerprint);
+  const runId = buildAutomaticRunId(domain, sourceFingerprint, formalCatchUp
+    ? sourceDispatchIdentity?.sourceContentIdentity ?? null
+    : null);
   return {
     runId,
-    frozen: freezeInputImpl({ domain, runId, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity }),
+    frozen: freezeInputImpl({ domain, runId, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity, standardizedDataDir }),
   };
 }
 
@@ -463,8 +582,8 @@ function sameSourceDispatchIdentity(actual, expected) {
     && actual.sourceContentIdentity === expected.sourceContentIdentity;
 }
 
-function runSource({ domain, progressPath, env }) {
-  const [script, ...args] = buildBaseDomainSourceCommand(domain, progressPath);
+function runSource({ domain, progressPath, env, sourceSnapshot = null }) {
+  const [script, ...args] = buildBaseDomainSourceCommand(domain, progressPath, sourceSnapshot);
   const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const result = spawnSync(process.execPath, [path.resolve(sourceRoot, script), ...args], {
     cwd: env.WORKTREE_ROOT ?? process.cwd(),
@@ -474,7 +593,11 @@ function runSource({ domain, progressPath, env }) {
   if (result.status !== 0) throw new Error(`${domain} source operation failed with exit ${result.status}`);
 }
 
-export function buildBaseDomainSourceCommand(domain, progressPath) {
+export function buildBaseDomainSourceCommand(domain, progressPath, sourceSnapshot = null) {
+  if (sourceSnapshot?.metadataOnly === true && ['items', 'npcs', 'projectiles', 'armor_sets'].includes(domain)) {
+    throw new Error(`metadata-only source snapshot cannot drive complete ${domain} capture; bounded capture is required`);
+  }
+  const snapshotArg = sourceSnapshot?.path ? [`--source-snapshot-path=${sourceSnapshot.path}`] : [];
   if (['items', 'npcs', 'projectiles'].includes(domain)) {
     const stagingRoot = path.dirname(progressPath);
     return [
@@ -484,6 +607,7 @@ export function buildBaseDomainSourceCommand(domain, progressPath) {
       `--entity=${domain}`,
       `--manifest-path=${path.join(stagingRoot, `${domain}-source-manifest.staging.json`)}`,
       `--plan-path=${path.join(stagingRoot, `${domain}-wiki-sync-plan.staging.json`)}`,
+      ...snapshotArg,
     ];
   }
   if (domain === 'buffs') {
@@ -491,12 +615,26 @@ export function buildBaseDomainSourceCommand(domain, progressPath) {
       'pipelines/fetch/fetch-wiki-buffs.mjs',
       `--progress-path=${progressPath}`,
       '--resume-mode=auto',
+      ...snapshotArg,
     ];
   }
   if (domain === 'armor_sets') {
-    return ['pipelines/fetch/fetch-wiki-armorsetbonuses.mjs', `--progress-path=${progressPath}`];
+    return ['pipelines/fetch/fetch-wiki-armorsetbonuses.mjs', `--progress-path=${progressPath}`, ...snapshotArg];
   }
   throw new Error(`unsupported base automatic source domain: ${domain}`);
+}
+
+export function assertBaseSourceSnapshotUsable(domain, snapshot) {
+  if (snapshot == null) return;
+  if (snapshot.metadataOnly === true) {
+    throw new Error(`metadata-only source snapshot cannot drive complete ${domain} capture; bounded capture is required`);
+  }
+  const moduleDomains = ['items', 'npcs', 'projectiles', 'armor_sets', 'buffs'];
+  const moduleContent = snapshot.payload?.moduleContent;
+  if (moduleDomains.includes(domain)
+      && (typeof moduleContent !== 'string' || !moduleContent.trim())) {
+    throw new Error(`partial source snapshot cannot drive complete ${domain} capture`);
+  }
 }
 
 export function acknowledgeBaseDomainSource({
@@ -639,10 +777,113 @@ export function readBaseDomainSourceFingerprint(domain) {
   return `sha256:${createContentHash(moduleContent)}`;
 }
 
-function freezeStandardizedInput({ domain, runId, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity }) {
+export async function prepareCanonicalItemsStandardizedDataset({
+  repoRoot,
+  sourceDataDir = resolveSharedDataRoot(),
+  outputDirectory,
+  sourceSnapshotBinding,
+  spawnSyncImpl = spawnSync,
+} = {}) {
+  const root = path.resolve(requireText(repoRoot, 'repository root'));
+  const sourceRoot = path.resolve(requireText(sourceDataDir, 'shared source data root'));
+  const binding = sourceSnapshotBinding;
+  if (!binding || binding.sourceKey !== 'wiki.module.iteminfo'
+      || !HASH_PATTERN.test(binding.sourceFingerprint ?? '')
+      || !HASH_PATTERN.test(binding.contentHash ?? '')
+      || binding.sourceFingerprint !== binding.contentHash
+      || (binding.revisionId != null && !Number.isInteger(Number(binding.revisionId)))
+      || !Number.isFinite(Date.parse(binding.revisionTimestamp))) {
+    throw new Error('Items standardization requires the exact immutable Iteminfo source snapshot binding');
+  }
+  const rawPath = path.join(sourceRoot, 'raw', 'wiki', 'module__iteminfo__data.latest.json');
+  const normalizedPath = path.join(sourceRoot, 'normalized', 'items.wiki.json');
+  for (const [filePath, label] of [[rawPath, 'raw Iteminfo'], [normalizedPath, 'normalized Items']]) {
+    const stat = fs.lstatSync(filePath);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`${label} source must be an ordinary file`);
+  }
+  const rawBytes = fs.readFileSync(rawPath);
+  const normalizedBytes = fs.readFileSync(normalizedPath);
+  const rawPayload = JSON.parse(rawBytes.toString('utf8'));
+  if (rawPayload.pageTitle !== 'Module:Iteminfo/data'
+      || (rawPayload.revisionId ?? null) !== (binding.revisionId ?? null)
+      || rawPayload.revisionTimestamp !== binding.revisionTimestamp
+      || typeof rawPayload.moduleContent !== 'string'
+      || `sha256:${createHash('sha256').update(rawPayload.moduleContent, 'utf8').digest('hex')}` !== binding.contentHash) {
+    throw new Error('latest raw Iteminfo artifact does not match the immutable source snapshot');
+  }
+  const rawModule = parseIteminfoModulePayload(rawPayload.moduleContent);
+  const normalizedSource = JSON.parse(normalizedBytes.toString('utf8'));
+  if (normalizedSource.sourcePageTitle !== 'Module:Iteminfo/data'
+      || normalizedSource.sourceRevisionTimestamp !== binding.revisionTimestamp
+      || normalizedSource.wikiVersion !== (rawModule._terrariaversion ?? null)
+      || !Array.isArray(normalizedSource.items)) {
+    throw new Error('normalized Items revision does not match the immutable source snapshot');
+  }
+  const target = assertRepositoryPathConfinement({
+    repoRoot: root,
+    filePath: path.resolve(requireText(outputDirectory, 'standardized output directory')),
+    label: 'Items automatic standardized dataset directory',
+    createParent: true,
+  });
+  try {
+    fs.mkdirSync(target, { mode: 0o700 });
+  } catch (error) {
+    if (error?.code === 'EEXIST') throw new Error(`Items automatic standardized output already exists: ${target}`);
+    throw error;
+  }
+  const directoryStat = fs.lstatSync(target);
+  if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()
+      || (typeof process.getuid === 'function' && directoryStat.uid !== process.getuid())
+      || (directoryStat.mode & 0o077) !== 0) {
+    throw new Error('Items automatic standardized output directory must be private and scheduler-owned');
+  }
+  const frozenSourceRoot = path.join(target, 'source-input');
+  fs.mkdirSync(frozenSourceRoot, { mode: 0o700 });
+  const frozenRawPath = path.join(frozenSourceRoot, 'raw', 'wiki', 'module__iteminfo__data.latest.json');
+  const frozenNormalizedPath = path.join(frozenSourceRoot, 'normalized', 'items.wiki.json');
+  fs.mkdirSync(path.dirname(frozenRawPath), { recursive: true, mode: 0o700 });
+  fs.mkdirSync(path.dirname(frozenNormalizedPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(frozenRawPath, rawBytes, { flag: 'wx', mode: 0o600 });
+  fs.writeFileSync(frozenNormalizedPath, normalizedBytes, { flag: 'wx', mode: 0o600 });
+  const standardizedOutputDirectory = path.join(target, 'standardized');
+  fs.mkdirSync(standardizedOutputDirectory, { mode: 0o700 });
+  const standardizerPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'transform', 'standardize-existing-data.mjs');
+  const result = spawnSyncImpl(process.execPath, [standardizerPath], {
+    cwd: root,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      WORKTREE_ROOT: root,
+      TERRAPEDIA_SOURCE_DATA_DIR: frozenSourceRoot,
+      TERRAPEDIA_STANDARDIZED_OUTPUT_DIR: standardizedOutputDirectory,
+    },
+    stdio: 'pipe',
+  });
+  if (result.status !== 0) {
+    throw new Error(`Items standardized projection failed: ${String(result.stderr ?? result.stdout ?? '').slice(-2000)}`);
+  }
+  const standardizedPath = assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath: path.join(standardizedOutputDirectory, 'items.standardized.json'),
+    label: 'Items automatic standardized candidate',
+  });
+  const standardized = JSON.parse(fs.readFileSync(standardizedPath, 'utf8'));
+  if (standardized.entity !== 'items' || !Array.isArray(standardized.records)
+      || standardized.totalRecords !== normalizedSource.items.length
+      || standardized.upstreamMeta?.sourceRevisionTimestamp !== binding.revisionTimestamp
+      || standardized.upstreamMeta?.wikiVersion !== rawModule._terrariaversion) {
+    throw new Error('Items standardized candidate is incomplete or not bound to the immutable source snapshot');
+  }
+  return standardizedOutputDirectory;
+}
+
+function freezeStandardizedInput({ domain, runId, repoRoot, sourceDispatchIdentity, automaticAttemptIdentity, standardizedDataDir = null }) {
   const datasets = {};
+  const dataDirectory = standardizedDataDir == null
+    ? path.join(repoRoot, 'data', 'standardized')
+    : path.resolve(requireText(standardizedDataDir, 'standardizedDataDir'));
   for (const entity of new Set([domain, 'items'])) {
-    const filePath = path.join(repoRoot, 'data', 'standardized', `${entity}.standardized.json`);
+    const filePath = path.join(dataDirectory, `${entity}.standardized.json`);
     const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     if (payload.entity !== entity || !Array.isArray(payload.records)) {
       throw new Error(`standardized ${entity} dataset is invalid`);
@@ -919,7 +1160,13 @@ export async function loadFreshActivation(connection) {
     + ' ORDER BY authorized_at DESC, id DESC LIMIT 1',
     ['SCHEDULER_ACTIVATION', SCHEDULER_ACTIVATION_DOMAIN],
   );
-  return rows?.[0] ?? null;
+  const activation = rows?.[0];
+  if (!activation) return null;
+  return {
+    ...activation,
+    authorizedAt: mysqlDateTimeToUtcIso(activation.authorizedAt),
+    expiresAt: mysqlDateTimeToUtcIso(activation.expiresAt),
+  };
 }
 
 export async function loadFreshActivationForMutation({

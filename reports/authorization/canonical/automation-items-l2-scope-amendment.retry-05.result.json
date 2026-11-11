@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "operationId": "automation-items-l2-scope-amendment",
+  "domainId": "items",
+  "status": "registered",
+  "authoritative": true,
+  "policyVersion": 3,
+  "policyHash": "sha256:cfb06806d70503d3366b334ecb6896aa7d530494a08859e896a72a9aa034a564",
+  "policySetHash": "sha256:66daef7214db85d1002f08a7250369a488a97e5cdbb527db50f7f8aa8f2214a4",
+  "amendmentHash": "sha256:fcdc5dec1d22ac32bc935ad9d89ab35ce6ca52e5548393458d26846773891c9a",
+  "actor": "admin",
+  "reason": "User-authorized append-only Items formal canonical owner/policy scope amendment for local Desktop/PC 1.4.5.8 catch-up; no deletes, no scheduler activation, no business data writes in this operation.",
+  "authorizationReference": "user://conversation/2026-10-25/local-formal-catch-up/items-armor-scope",
+  "decisionIdentity": "automation-items-l2-scope-amendment-20261025-admin-05",
+  "packetHash": "sha256:131e0461f09e33e1c30edd35739d8ea0de089336027182ce0a218a0d59be4a33",
+  "createsBusinessDataWrites": false,
+  "completedAt": "2026-10-25T11:12:07.028Z"
+}

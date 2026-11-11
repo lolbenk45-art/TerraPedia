@@ -5,11 +5,12 @@ import test from 'node:test';
 import { buildArmorSourceEvidenceTransition } from '../landing/armor-source-evidence-transition.mjs';
 import { buildArmorCanonicalLandingMaintIntent } from './armor-canonical-landing-maint-intent.mjs';
 import {
-  buildArmorCanonicalFullChainIntent,
+  buildArmorCanonicalFullChainIntent as buildArmorCanonicalFullChainIntentImpl,
   validateArmorCanonicalFullChainIntent,
 } from './armor-canonical-full-chain-intent.mjs';
 import { materializeArmorCanonicalIntent } from './armor-canonical-intent.mjs';
 import { executeArmorCanonicalTransaction } from './armor-canonical-transaction-executor.mjs';
+import { ARMOR_CANONICAL_POLICY_OWNER_SCOPES, buildArmorCanonicalFenceCommit } from './armor-canonical-write-fence.mjs';
 
 const digest = value => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 const canonical = value => Array.isArray(value) ? value.map(canonical)
@@ -18,15 +19,50 @@ const canonical = value => Array.isArray(value) ? value.map(canonical)
 const KEY = 'a'.repeat(64);
 const MAINT_KEY = 'b'.repeat(64);
 const PREFIX = 'https://media.example.test/terrapedia-images/items/';
-const CONTENT_HASH = 'c'.repeat(64);
 const WRITE_TIME = '2026-09-26T04:00:00Z';
+const SOURCE_ARMOR_SET = {
+  textKey: 'ArmorSetBonus.Test',
+  benefitExpression: 'Test benefit',
+  primaryPart: 'head',
+  setCount: 1,
+  uniqueItemIds: [2, 3, 5049],
+  sets: [[5049, 2, 3]],
+};
+const MODULE_PAYLOAD = { armorSets: [SOURCE_ARMOR_SET] };
+const CONTENT_HASH = digest(MODULE_PAYLOAD).slice('sha256:'.length);
+const MAINT_ITEMS = [
+  { source_id: 5049, internal_name: 'RoninShirt', english_name: 'Wandering Yukata', status: 1, deleted: 0 },
+  { source_id: 2, internal_name: 'TestBody', english_name: 'Test Body', status: 1, deleted: 0 },
+  { source_id: 3, internal_name: 'TestLegs', english_name: 'Test Legs', status: 1, deleted: 0 },
+];
+const LOCAL_ITEMS = [
+  { id: 8423, internal_name: 'RoninShirt', name: 'Wandering Yukata', status: 1, deleted: 0 },
+  { id: 2, internal_name: 'TestBody', name: 'Test Body', status: 1, deleted: 0 },
+  { id: 3, internal_name: 'TestLegs', name: 'Test Legs', status: 1, deleted: 0 },
+];
+
+function localArmorBaseline() {
+  return {
+    currentLocalArmorSets: [{
+      id: 700, source_key: 'ArmorSetBonus.Test', text_key: 'ArmorSetBonus.Test',
+      benefit_expression: 'Test benefit', primary_part: 'head', set_count: 1, unique_item_count: 3,
+      sets_json: '[[5049,2,3]]', unique_item_ids_json: '[2,3,5049]',
+      male_images: null, female_images: null, special_images: null, status: 1, deleted: 0,
+    }],
+    currentLocalArmorSetItems: [
+      { id: 10, armor_set_id: 700, set_variant_index: 0, part_index: 0, source_item_id: 5049, item_id: 8423, item_internal_name: 'RoninShirt', item_name: 'Wandering Yukata' },
+      { id: 11, armor_set_id: 700, set_variant_index: 0, part_index: 1, source_item_id: 2, item_id: 2, item_internal_name: 'TestBody', item_name: 'Test Body' },
+      { id: 12, armor_set_id: 700, set_variant_index: 0, part_index: 2, source_item_id: 3, item_id: 3, item_internal_name: 'TestLegs', item_name: 'Test Legs' },
+    ],
+  };
+}
 
 function landing(overrides = {}) {
   return {
     dataset_type: 'armor_sets_raw', provider: 'terraria.wiki.gg', source_kind: 'module',
     source_key: 'wiki.module.armorsetbonuses', source_page: 'Module:ArmorSetBonuses',
     source_revision_timestamp: '2026-09-26T03:00:00Z', content_hash: CONTENT_HASH,
-    payload_json: '{}', fetched_at: '2026-09-26T03:01:00Z', parsed_at: '2026-09-26T03:01:00Z',
+    payload_json: JSON.stringify(MODULE_PAYLOAD), fetched_at: '2026-09-26T03:01:00Z', parsed_at: '2026-09-26T03:01:00Z',
     parse_status: 'ok', artifact_role: 'source_evidence', producer_id: 'armor.test',
     producer_version: 'v1', producer_run_key: 'run-1', bootstrap_manifest_hash: null,
     is_current: 1, current_slot: 1, ...overrides,
@@ -73,7 +109,7 @@ function projectionCandidate(landingMaint, { includeLandingSourcePage = true } =
       landingRows: [landing(), imageLanding()], currentRows: { maint_armor_sets: [], maint_armor_set_images: [] },
       managedImageUrlPrefixes: [PREFIX], allowUnmaterializedLandingIds: true,
     },
-    maintItems: [], currentRows: { relation_armor_sets: [], relation_armor_set_items: [], relation_armor_set_images: [] },
+      maintItems: MAINT_ITEMS, currentRows: { relation_armor_sets: [], relation_armor_set_items: [], relation_armor_set_images: [] },
   };
   const relationRow = {
     record_key: KEY, text_key: 'ArmorSetBonus.Test', source_maint_table: 'maint_armor_sets',
@@ -103,9 +139,10 @@ function projectionCandidate(landingMaint, { includeLandingSourcePage = true } =
   { const { candidateSha256: _ignored, ...body } = relationCandidate; relationCandidate.candidateSha256 = digest(body); }
   const projectionRow = {
     text_key: 'ArmorSetBonus.Test', relation_record_key: KEY, source_key: 'ArmorSetBonus.Test',
+    male_images: `${PREFIX}ArmorSetBonus.Test_Male.png`,
     entity_type: 'armor_set', status: 1, deleted: 0,
   };
-  const snapshot = { relationInput, currentRows: { projection_armor_sets: [] }, dependencyRows: {}, consumerRows: {}, managedImageUrlPrefixes: [PREFIX] };
+  const snapshot = { relationInput, currentRows: { projection_armor_sets: [] }, dependencyRows: {}, consumerRows: { items: LOCAL_ITEMS }, managedImageUrlPrefixes: [PREFIX] };
   const candidate = {
     schemaVersion: 'armor-canonical-projection-candidate/v1', executable: false,
     candidateSha256: null, baselineSha256: digest(snapshot.currentRows), inputSha256: digest(snapshot),
@@ -123,10 +160,18 @@ function projectionCandidate(landingMaint, { includeLandingSourcePage = true } =
   return candidate;
 }
 
+function buildArmorCanonicalFullChainIntent(options) {
+  return buildArmorCanonicalFullChainIntentImpl({ ...localArmorBaseline(), ...options });
+}
+
 test('composes one typed full-chain graph and declares landing, maint, relation, and projection dependencies', () => {
   const landingMaint = structuredClone(landingMaintIntent());
   const result = buildArmorCanonicalFullChainIntent({ landingMaintIntent: landingMaint, projectionCandidate: projectionCandidate(landingMaint), writeTimestamp: WRITE_TIME });
   assert.equal(result.executable, false);
+  assert.equal(result.localProjection.expectedRows.armor_sets[0].id, 700);
+  assert.equal(result.localProjection.expectedRows.armor_set_items[0].item_id, 8423);
+  assert.equal(result.localProjection.expectedRows.armor_set_items[0].source_item_id, 5049);
+  assert.equal(result.recoveryIntent.localProjectionSha256, result.localProjection.candidateSha256);
   assert.equal(result.landingMaintIntent.intentSha256, landingMaint.intentSha256);
   assert.equal(result.relationIntent.insertPlans.length, 2);
   assert.deepEqual([...result.relationIntent.upstreamReferenceDeclarations].sort(), [
@@ -143,6 +188,24 @@ test('composes one typed full-chain graph and declares landing, maint, relation,
   assert.equal(result.recoveryIntent.operationId, 'canonical-armor-ingestion');
   assert.match(result.recoveryIntent.intentSha256, /^sha256:[0-9a-f]{64}$/);
   assert.doesNotThrow(() => validateArmorCanonicalFullChainIntent(result));
+});
+
+test('full-chain intent binds source-derived local Armor parent/member inserts without guessed parent IDs', () => {
+  const lm = landingMaintIntent();
+  const result = buildArmorCanonicalFullChainIntentImpl({
+    landingMaintIntent: lm,
+    projectionCandidate: projectionCandidate(lm),
+    currentLocalArmorSets: [],
+    currentLocalArmorSetItems: [],
+    localItems: LOCAL_ITEMS,
+    writeTimestamp: WRITE_TIME,
+  });
+
+  assert.equal(result.localProjection.parentChanges.inserts.length, 1);
+  assert.equal(result.localProjection.itemChanges.inserts.length, 3);
+  assert.ok(result.localProjection.itemChanges.inserts.every(candidate => !Object.hasOwn(candidate.row, 'armor_set_id')));
+  assert.equal(result.localProjection.itemChanges.inserts[0].row.item_id, 8423);
+  assert.equal(validateArmorCanonicalFullChainIntent(result), true);
 });
 
 test('resolves the landing page for relation references from the exact frozen landing insert', () => {
@@ -304,9 +367,23 @@ test('materializes relation receipts only with declared landing and maint receip
 
 test('full-chain executor consumes the composed relation intent with real landing and maint plans', async () => {
   const landingMaint = landingMaintIntent();
-  const expected = buildArmorCanonicalFullChainIntent({ landingMaintIntent: landingMaint, projectionCandidate: projectionCandidate(landingMaint), writeTimestamp: WRITE_TIME });
+  const baseline = localArmorBaseline();
+  baseline.currentLocalArmorSetItems[0].item_id = 5049;
+  const expected = buildArmorCanonicalFullChainIntent({
+    landingMaintIntent: landingMaint, projectionCandidate: projectionCandidate(landingMaint), ...baseline, writeTimestamp: WRITE_TIME,
+  });
+  assert.equal(expected.localProjection.parentChanges.updates.length, 1);
+  assert.equal(expected.localProjection.itemChanges.updates.length, 1);
   const calls = [];
   let nextId = 700;
+  const generationRows = new Map();
+  const fenceRows = new Map();
+  const fenceCommit = buildArmorCanonicalFenceCommit({
+    runId: 'run-full', expiresAt: '2030-10-27T10:00:00Z',
+    generations: ARMOR_CANONICAL_POLICY_OWNER_SCOPES.map(scope => ({ ...scope, generation: 0 })),
+    tokenFactory: (() => { let index = 0; return () => `fence:${String(++index).padStart(64, '0')}`; })(),
+    markerFactory: (() => { let index = 0; return () => String(++index).padStart(64, '0'); })(),
+  });
   const connection = {
     async beginTransaction() { calls.push('begin'); },
     async commit() { calls.push('commit'); },
@@ -315,8 +392,33 @@ test('full-chain executor consumes the composed relation intent with real landin
       calls.push(sql);
       if (sql.includes('@@server_uuid')) return [[{ serverUuid: '11111111-1111-1111-1111-111111111111' }]];
       if (sql.includes('crawler_automation_owner')) return [[{ username: 'owner', status: 'ACTIVE' }]];
+      if (sql.startsWith('SELECT') && sql.includes('crawler_automation_write_fence')) {
+        const row = fenceRows.get(`${params[1]}.${params[2]}|${params[3]}|${params[4]}`);
+        return [[...(row ? [{ ...row, active: 1 }] : [])]];
+      }
+      if (sql.startsWith('SELECT') && sql.includes('crawler_automation_mutation_generation')) {
+        const row = generationRows.get(params.at(-1));
+        return [[...(row ? [row] : [])]];
+      }
+      if (sql.startsWith('INSERT IGNORE') && sql.includes('crawler_automation_mutation_generation')) {
+        generationRows.set(params[3], { generation: 0, schema_hash: params[4] });
+        return [{ affectedRows: 1 }];
+      }
+      if (sql.startsWith('INSERT INTO') && sql.includes('crawler_automation_write_fence')) {
+        fenceRows.set(`${params[1]}.${params[2]}|${params[3]}|${params[4]}`, {
+          environment_id: params[0], database_role: params[1], physical_table: params[2], field_group: params[3],
+          logical_predicate_hash: params[4], latest_run_id: params[5], fence_token: params[6], before_generation: params[7],
+          expires_at: params[8], committed_generation: null, commit_marker: null,
+        });
+        return [{ affectedRows: 1, insertId: nextId++ }];
+      }
+      if (sql.startsWith('UPDATE') && sql.includes('crawler_automation_mutation_generation')) {
+        const row = generationRows.get(params[5]);
+        if (!row || Number(row.generation) !== Number(params[6])) return [{ affectedRows: 0 }];
+        generationRows.set(params[5], { ...row, generation: params[0], last_writer_run_id: params[1] });
+        return [{ affectedRows: 1 }];
+      }
       if (sql.startsWith('UPDATE') && sql.includes('crawler_automation_write_fence')) return [{ affectedRows: 1 }];
-      if (sql.includes('crawler_automation_write_fence')) return [[{ latest_run_id: 'run-full', fence_token: 'fence-full', active: 1 }]];
       if (sql.includes('COLLATE utf8mb4_0900_ai_ci')) return [[]];
       if (sql.startsWith('SELECT id FROM')) return [[{ id: params[0] }]];
       if (sql.startsWith('INSERT INTO')) return [{ affectedRows: 1, insertId: nextId++ }];
@@ -331,11 +433,13 @@ test('full-chain executor consumes the composed relation intent with real landin
     connection,
     packet: {
       runId: 'run-full', decisionIdentity: 'decision-full', packetHash: `sha256:${'d'.repeat(64)}`,
-      actor: 'owner', serverUuid: '11111111-1111-1111-1111-111111111111', fenceToken: 'fence-full',
-      fenceCommit: { generation: 1, marker: 'commit-full' },
+      actor: 'owner', serverUuid: '11111111-1111-1111-1111-111111111111',
+      fenceToken: fenceCommit.bindings[0].fenceToken, authorizationExpiresAt: fenceCommit.expiresAt, fenceCommit,
     },
     expected,
     deriveLocked: async () => expected,
+    strictReadback: false,
+    allowPartial: true,
     journal: {
       prepared: async () => {},
       materialized: async ({ receipts }) => { materializedReceipts = receipts.length; },
@@ -346,6 +450,8 @@ test('full-chain executor consumes the composed relation intent with real landin
   assert.equal(materializedReceipts, expected.landingMaintIntent.insertPlans.length + expected.relationIntent.insertPlans.length);
   assert.equal(calls.some(sql => sql.includes('`relation_armor_sets`')), true);
   assert.equal(calls.some(sql => sql.includes('projection_armor_sets')), true);
+  assert.equal(calls.some(sql => sql.startsWith('UPDATE') && sql.includes('armor_sets')), true);
+  assert.equal(calls.filter(sql => sql.startsWith('UPDATE') && sql.includes('crawler_automation_mutation_generation')).length, 9);
 });
 
 test('rejects a rehashed full-chain envelope whose dependency graph no longer matches its typed plans', () => {

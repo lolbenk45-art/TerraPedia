@@ -22,6 +22,58 @@ test('armorsetbonuses source request includes revision ids required by source ev
   assert.match(source, /searchParams\.set\(['"]rvslots['"], ['"]main['"]\)/);
 });
 
+test('armorsetbonuses fetch adapts an immutable source-probe snapshot into its revision-bound response', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armorsetbonuses-probe-snapshot-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const sharedDataRoot = path.join(tempDir, 'shared');
+  const snapshotPath = path.join(tempDir, 'armor-source-probe.json');
+  const progressPath = path.join(tempDir, 'progress.json');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  fs.writeFileSync(snapshotPath, JSON.stringify({
+    schemaVersion: 1,
+    sourceKey: 'wiki.module.armorsetbonuses',
+    sourceFingerprint: `sha256:${'a'.repeat(64)}`,
+    checkedAt: '2026-10-26T08:39:54.081Z',
+    revisionId: 964993,
+    revisionTimestamp: '2026-01-31T20:21:00Z',
+    metadataOnly: false,
+    payload: {
+      apiUrl: 'https://terraria.wiki.gg/api.php',
+      fetchedAt: '2026-10-26T06:29:50.232Z',
+      pageId: 72704,
+      pageTitle: 'Module:ArmorSetBonuses',
+      moduleTitle: 'Module:ArmorSetBonuses',
+      revisionId: 964993,
+      revisionTimestamp: '2026-01-31T20:21:00Z',
+      moduleContent: 'ArmorSetBonuses.Add(ArmorSetBonuses.Benefits.Wood, "ArmorSetBonus.Wood", 727, 728, 729);',
+    },
+  }), 'utf8');
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--progress-path=${progressPath}`,
+    `--source-snapshot-path=${snapshotPath}`,
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_SHARED_DATA_ROOT: sharedDataRoot,
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+  assert.equal(progress.status, 'completed');
+  const raw = JSON.parse(fs.readFileSync(path.join(
+    sharedDataRoot, 'raw', 'wiki', 'module__armorsetbonuses.latest.json',
+  ), 'utf8'));
+  assert.equal(raw.revisionId, 964993);
+  assert.equal(raw.revisionTimestamp, '2026-01-31T20:21:00Z');
+});
+
 test('armorsetbonuses fetch writes progress and finalizes ingestion manifest after successful output writes', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-armorsetbonuses-'));
   const worktreeRoot = path.join(tempDir, 'worktree');

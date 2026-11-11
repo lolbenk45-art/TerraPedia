@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +30,17 @@ class PcVersionUpdateStateStoreTest {
             new ObjectMapper(),
             Clock.fixed(Instant.parse("2026-10-23T12:00:00Z"), ZoneOffset.UTC)
         );
+    }
+
+    @Test
+    void springContainerUsesTheProductionConstructor() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.registerBean(ObjectMapper.class);
+            context.register(PcVersionUpdateStateStore.class);
+            context.refresh();
+
+            assertNotNull(context.getBean(PcVersionUpdateStateStore.class));
+        }
     }
 
     @Test

@@ -214,18 +214,41 @@ export function parseCliArgs(argv) {
 
 export async function fetchWikiModuleContent({
   moduleTitle = DEFAULT_MODULE_TITLE,
-  apiUrl = DEFAULT_WIKI_API_URL
+  apiUrl = DEFAULT_WIKI_API_URL,
+  sourceSnapshotPath = null,
+  fetchWikiApiJsonImpl = fetchWikiApiJson,
 } = {}) {
+  if (sourceSnapshotPath != null && String(sourceSnapshotPath).trim() !== '') {
+    const snapshotPath = path.resolve(String(sourceSnapshotPath));
+    const stat = fs.lstatSync(snapshotPath);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error('module source snapshot must be an ordinary file');
+    }
+    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+    const payload = snapshot?.payload ?? snapshot;
+    if (!payload || typeof payload !== 'object' || typeof payload.moduleContent !== 'string' || !payload.moduleContent.trim()) {
+      throw new Error(`module source snapshot is missing moduleContent: ${snapshotPath}`);
+    }
+    if (payload.moduleTitle && String(payload.moduleTitle) !== String(moduleTitle)) {
+      throw new Error(`module source snapshot title mismatch: ${payload.moduleTitle}`);
+    }
+    return {
+      ...payload,
+      apiUrl: payload.apiUrl ?? apiUrl,
+      moduleTitle: payload.moduleTitle ?? moduleTitle,
+      fetchedAt: payload.fetchedAt ?? new Date().toISOString(),
+    };
+  }
   const url = new URL(apiUrl);
   url.searchParams.set('action', 'query');
   url.searchParams.set('titles', moduleTitle);
   url.searchParams.set('prop', 'revisions');
-  url.searchParams.set('rvprop', 'content|timestamp');
+  url.searchParams.set('rvprop', 'content|timestamp|ids');
   url.searchParams.set('rvslots', 'main');
   url.searchParams.set('format', 'json');
   url.searchParams.set('formatversion', '2');
 
-  const body = await fetchWikiApiJson({
+  const body = await fetchWikiApiJsonImpl({
     url,
     profile: 'revision',
     sourceKey: moduleTitle
@@ -247,6 +270,7 @@ export async function fetchWikiModuleContent({
     fetchedAt: new Date().toISOString(),
     pageId: page.pageid ?? null,
     pageTitle: page.title ?? moduleTitle,
+    revisionId: revision?.revid ?? null,
     revisionTimestamp: revision?.timestamp ?? null,
     moduleContent: content
   };

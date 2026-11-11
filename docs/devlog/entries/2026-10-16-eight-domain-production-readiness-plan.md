@@ -2,11 +2,11 @@
 
 ## Status
 
-`active`
+`closed`
 
 - Owner: Codex coordinator.
-- Branch: `exec/eight-domain-production-readiness`.
-- Worktree: `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness`.
+- Branch: `main` for the V2 contract discussion; create a dedicated task branch before implementation.
+- Worktree: `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness-main`.
 - Parent plan: `docs/superpowers/plans/2026-10-16-eight-domain-production-readiness.md`.
 - Child plans: the eight `2026-10-16-eight-domain-production-readiness-*.md` files beside the parent plan.
 
@@ -48,7 +48,7 @@ Prove basic functionality, maintained-chain writes, and one real V2-dispatched a
 
 ## Next Action
 
-Shimmer's fixed-source isolated T1 child is complete and its result is recorded below. Keep the parent eight-domain readiness plan active; do not begin V2, scheduler, formal ownership, or release gates under this task scope. Any next lane requires its own user-directed scope and fresh preflight.
+All eight isolated maintained-chain T1 baselines are complete; see `docs/devlog/entries/2026-10-22-eight-domain-t1-baseline-closeout.md`. Keep this parent entry active for the V2 follow-up. Next: discuss the V2 contract and resolve the three recorded source-manifest, `armor_sets` runner-map, and live attempt-identity blockers before any V2 execution.
 
 ## Execution Baseline Inventory - 2026-10-17 01:44 CST
 
@@ -453,3 +453,17 @@ Keep the Items T1, recorded compatibility, and crawler resume artifacts as the b
 - Merge conflict resolution preserved both `main` and T1 behavior in the shared acceptance adapter, live acceptance, and Buff T1 acceptance. The historical 400-row Buff and 2026-10-14 Shimmer runners remain available under `*-legacy.mjs`; the unsuffixed runner paths now refer to the eight-domain T1 runners used by the final reports. Historical references were updated accordingly.
 - The ignored runtime evidence tree was copied to the new main worktree and compared recursively with the execution worktree; the eight final reports still parse as `passed` with `formalDatabaseWrites=false`.
 - Post-integration validation across changed/new test files from both sides of the merge: Node `v26.1.0` `626 passed`, `1 skipped`, `0 failed`; Maven `403/403`; changed `.mjs` syntax and `git diff --check` pass. The Node API allocation fixtures now bind the copied execution manifest to the worktree under test; the Redis reservation mock is isolated by logical DB and key. V2 launch/identity blockers remain as recorded above.
+
+## Workspace and branch reconciliation - 2026-10-22
+
+- Current continuation workspace is `/home/lolben/TerraPedia/.worktrees/eight-domain-production-readiness-main` on `main` at `42ab9d1a7bcd939b2831bff20773e90383b78902`, matching `origin/main`; it has only this uncommitted devlog handoff update. The eight-domain T1 implementation and closeout are integrated there; see the closeout child entry for reports and validation.
+- The original `/home/lolben/TerraPedia` worktree remains on `feat/supplementary-domains-readiness` at `f84d42931a6621b6fe170425baa5caad6e601080`, four commits ahead of its upstream, with 7 tracked modified paths, 155 untracked paths, and no staged paths. It contains generated source/data, authorization evidence, and uncommitted plans/devlog material; preserve it without switching, stashing, or cleanup. These local commits are not part of the V2 continuation.
+- Removed the clean `feat/three-domain-isolated-ingestion` worktree and local branch after verifying its HEAD `12900d9263e2db34bb5c029947364923ed750222` is contained in `origin/main` and recoverable from its remote branch. Other dirty or unmerged worktrees remain preserved.
+- V2 stays unrun. Before implementation, create a dedicated branch from the integrated `main`; first resolve the three blockers recorded in the pre-merge review section. No scheduler, crawler, database, or production authorization action was taken during this workspace reconciliation.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.

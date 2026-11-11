@@ -21,7 +21,8 @@ public interface CrawlerAutomationPolicyMapper extends BaseMapper<CrawlerAutomat
     @Select("""
         SELECT p.domain_id AS domainId, p.current_version AS policyVersion,
                pv.policy_hash AS policyHash, p.current_level AS currentLevel,
-               p.operational_state AS operationalState
+               p.operational_state AS operationalState,
+               (pv.reason LIKE '%scope amendment%') AS scopeAmended
         FROM crawler_automation_policy p
         JOIN crawler_automation_policy_version pv
           ON pv.domain_id = p.domain_id AND pv.policy_version = p.current_version
@@ -42,7 +43,8 @@ public interface CrawlerAutomationPolicyMapper extends BaseMapper<CrawlerAutomat
     @Select("""
         SELECT p.domain_id AS domainId, p.current_version AS policyVersion,
                pv.policy_hash AS policyHash, p.current_level AS currentLevel,
-               p.operational_state AS operationalState
+               p.operational_state AS operationalState,
+               (pv.reason LIKE '%scope amendment%') AS scopeAmended
         FROM crawler_automation_policy p
         JOIN crawler_automation_policy_version pv
           ON pv.domain_id = p.domain_id AND pv.policy_version = p.current_version

@@ -142,6 +142,11 @@ const L2_REAUTHORIZATION_OPERATION_IDS = Object.freeze({
   bosses: 'automation-bosses-l2-reauthorization',
   shimmer: 'automation-shimmer-l2-reauthorization',
 });
+const L2_SCOPE_AMENDMENT_OPERATION_IDS = Object.freeze({
+  items: 'automation-items-l2-scope-amendment',
+  armor_sets: 'automation-armor-sets-l2-scope-amendment',
+  armor_sets_after_items: 'automation-armor-sets-l2-scope-amendment-after-items',
+});
 const L2_POLICY_DECISION_OPERATION_IDS = new Set([
   'automation-biomes-l2-promotion',
   ...Object.values(L2_OPERATION_IDS),
@@ -172,6 +177,10 @@ const SCHEDULER_RUNTIME_CODE_PATHS = Object.freeze([
   'pipelines/automation/run-base-domain-automatic-operation.mjs',
   'pipelines/automation/run-armor-automatic-operation.mjs',
   'pipelines/automation/armor-automatic-dispatch-binding.mjs',
+  // The Armor automatic runner spawns this canonical executor as a child;
+  // pinning the actual transaction root also transitively freezes its
+  // full-chain, local projection, fence, and recovery helpers.
+  'pipelines/relation/run-armor-canonical-ingestion.mjs',
   'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
   'pipelines/monitor/check-source-updates.mjs',
   'pipelines/workflow/run-wiki-sync.mjs',
@@ -251,6 +260,16 @@ const CODE_PATHS = Object.freeze({
       'pipelines/automation/build-l2-policy-stable-reauthorization-proposal.mjs',
       'pipelines/automation/l2-policy-stable-reauthorization.mjs',
       'pipelines/automation/reconciliation-evidence-contract.mjs',
+      ...AUTHORIZED_CONTEXT_CODE_PATHS,
+      'pipelines/lib/mysql-module.mjs',
+    ]),
+  ])),
+  ...Object.fromEntries(Object.entries(L2_SCOPE_AMENDMENT_OPERATION_IDS).map(([domainId, operationId]) => [
+    operationId, Object.freeze([
+      'pipelines/automation/register-l2-policy-scope-amendment.mjs',
+      'pipelines/automation/l2-policy-scope-amendment.mjs',
+      'pipelines/automation/policy-set-hash.mjs',
+      'pipelines/automation/bootstrap-automation-policy.mjs',
       ...AUTHORIZED_CONTEXT_CODE_PATHS,
       'pipelines/lib/mysql-module.mjs',
     ]),
@@ -1188,6 +1207,7 @@ export function buildCanonicalOperationExecutionContract({
       && operationId !== BUFF_NPC_SECONDARY_OPERATION_ID
       && operationId !== BUFF_NPC_INFLICTION_DEDUP_OPERATION_ID
       && operationId !== BUFF_ITEM_MAINT_INSERT_OPERATION_ID
+      && !Object.values(L2_SCOPE_AMENDMENT_OPERATION_IDS).includes(operationId)
       && operationId !== 'automation-crawler-v2-scheduler-activation') {
     throw new Error('result label is supported only for an NPC owner operation');
   }
@@ -2235,6 +2255,8 @@ function buildDefinition(
       reportPaths: [],
       progressPaths: [],
       ownershipKeys: [
+        'local.armor_sets',
+        'local.armor_set_items',
         'local.source_dataset_landings.armor_sets_raw',
         'local.source_dataset_landings.armor_set_images_raw',
         'maint.maint_armor_sets',
@@ -2746,6 +2768,10 @@ function buildDefinition(
         databaseEvidenceRoot,
         historicalSourceHashDispositionPaths,
       }),
+    ])),
+    ...Object.fromEntries(Object.values(L2_SCOPE_AMENDMENT_OPERATION_IDS).map((operationId) => [
+      operationId,
+      policyScopeAmendmentDefinition({ operationId, resultLabel }),
     ])),
     ...Object.fromEntries(Object.values(L2_OPERATION_IDS).map((promotionOperationId) => {
       const operationId = promotionOperationId.replace(/-l2-promotion$/, '-l2-policy-ceiling-registration');
@@ -3966,6 +3992,31 @@ function policyDecisionDefinition({
       ? { policyDecisionEvidence: evidenceBinding.manifestBinding }
       : {}),
     ...(reauthorization ? { policyDecisionReauthorization: true } : {}),
+    databaseWrites: true,
+    networkAccess: false,
+  };
+}
+
+function policyScopeAmendmentDefinition({ operationId, resultLabel = null }) {
+  const suffix = resultLabel == null ? '' : `.${normalizeResultLabel(resultLabel)}`;
+  const inputPath = `reports/authorization/canonical/${operationId}.input.json`;
+  const outputPath = `reports/authorization/canonical/${operationId}${suffix}.result.json`;
+  const commitMarkerPath = `${outputPath}.commit.json`;
+  return {
+    executionClass: 'formal_l2_policy_scope_amendment',
+    command: [
+      'node', CANONICAL_OPERATION_ENTRYPOINTS[operationId],
+      `--operation-id=${operationId}`,
+      `--input=${inputPath}`,
+      `--output=${outputPath}`,
+      ...(resultLabel == null ? [] : [`--result-label=${normalizeResultLabel(resultLabel)}`]),
+      '--apply=true',
+    ],
+    inputPaths: [inputPath],
+    outputPaths: [outputPath, commitMarkerPath],
+    reportPaths: [],
+    progressPaths: [],
+    policyScopeAmendmentPublication: { pendingResultPath: outputPath, commitMarkerPath },
     databaseWrites: true,
     networkAccess: false,
   };

@@ -37,11 +37,21 @@ const options = parseCliArgs(process.argv.slice(2));
 const checkedAt = new Date().toISOString();
 const timestamp = checkedAt.replaceAll(':', '-');
 const reportDir = resolveOptionPath(options['report-dir'], sharedDataPath('reports', 'fetch'));
+const snapshotRoot = resolveOptionPath(
+  options['snapshot-dir'],
+  resolveProjectPath('reports', 'runtime', 'source-probe-snapshots'),
+);
 const statePath = resolveOptionPath(
   options['state-file'],
   sharedDataPath('generated', 'source-update-monitor.latest.json')
 );
 const manifestPath = resolveOptionPath(options['manifest-path'], DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
+const formalCatchUpAdmissionPath = resolveOptionPath(
+  options['formal-catch-up-admission-path']
+    ?? process.env.TERRARIA_CRAWLER_QUEUE_V2_FORMAL_CATCH_UP_ADMISSION_PATH
+    ?? process.env.TERRAPEDIA_CRAWLER_QUEUE_V2_FORMAL_CATCH_UP_ADMISSION_PATH,
+  null,
+);
 const progressPath = resolveOptionPath(
   options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH,
   sharedDataPath('generated', 'source-update-monitor-progress.latest.json')
@@ -75,10 +85,12 @@ try {
 let previousState;
 let previousSourceMap;
 let ingestionManifest;
+let formalCatchUpAdmission;
 try {
   previousState = readJsonIfExists(statePath);
   previousSourceMap = buildPreviousSourceMap(previousState);
   ingestionManifest = loadWikiSourceManifest(manifestPath);
+  formalCatchUpAdmission = loadFormalCatchUpAdmission(formalCatchUpAdmissionPath);
 } catch (error) {
   publishTerminalFailure({
     phase: 'initialization',
@@ -134,6 +146,16 @@ try {
   monitorProgress.assertHealthy();
   const summary = buildSummary(sources);
   const recommendedActions = buildRecommendedActions(summary);
+  const probeStateHash = createContentHash(canonicalJson({
+    schemaVersion: '1.0.0',
+    checkedAt,
+    wikiApiUrl,
+    officialCheckMode,
+    summary,
+    recommendedActions,
+    sources: sources.map(stripSnapshotPayload),
+  }));
+  const publishedSources = sources.map((source) => publishSourceSnapshot(source, probeStateHash));
   const payload = {
     schemaVersion: '1.0.0',
     checkedAt,
@@ -142,7 +164,7 @@ try {
     stateFile: toWorkspaceRelative(statePath),
     summary,
     recommendedActions,
-    sources
+    sources: publishedSources
   };
 
   try {
@@ -263,6 +285,16 @@ function buildOfficialSources() {
 }
 
 async function checkWikiSource(source) {
+  const formalEntry = formalCatchUpEntryForSource(source);
+  if (formalEntry != null) {
+    return readFormalCatchUpSource(source, formalEntry);
+  }
+  if (formalCatchUpAdmission?.actionScope?.length > 0) {
+    const domain = source.domainId ?? formalDomainForSource(source);
+    if (!formalCatchUpAdmission.actionScope.includes(domain)) {
+      return formalCatchUpScopeExcludedSource(source);
+    }
+  }
   const ingestedRecord = resolveIngestedRecord(ingestionManifest, {
     sourceKey: source.key,
     locator: source.locator
@@ -288,7 +320,8 @@ async function checkWikiSource(source) {
       previousValue: comparison.previousValue,
       ingestedValue: comparison.ingestedValue,
       changed: comparison.changed,
-      meta: comparison.meta
+      meta: comparison.meta,
+      ...(apiFingerprint.snapshotPayload == null ? {} : { snapshotPayload: apiFingerprint.snapshotPayload }),
     };
   } catch (error) {
     return {
@@ -311,6 +344,112 @@ async function checkWikiSource(source) {
   }
 }
 
+function formalCatchUpScopeExcludedSource(source) {
+  return {
+    key: source.key,
+    provider: 'terraria.wiki.gg',
+    category: source.category,
+    locator: source.locator,
+    trigger: source.trigger,
+    status: 'ok',
+    checkedAt,
+    currentValue: null,
+    previousValue: null,
+    ingestedValue: null,
+    changed: false,
+    meta: {
+      compareBasis: 'formal-catch-up-action-scope',
+      compareField: 'scopeExcluded',
+      admissionPath: formalCatchUpAdmissionPath,
+    },
+  };
+}
+
+function loadFormalCatchUpAdmission(filePath) {
+  if (!filePath) return null;
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    const value = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return value?.status === 'ready' && Array.isArray(value?.actionScope) && Array.isArray(value?.domains)
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function formalCatchUpEntryForSource(source) {
+  if (!formalCatchUpAdmission?.actionScope?.includes(source.domainId ?? formalDomainForSource(source))) {
+    return null;
+  }
+  const domain = source.domainId ?? formalDomainForSource(source);
+  const entry = formalCatchUpAdmission.domains.find((candidate) => (
+    candidate?.domain === domain
+    && candidate.classification === 'ready'
+    && candidate.writeAllowed === true
+    && candidate.sourceIdentity?.fingerprint
+    && candidate.sourceSnapshot?.path
+  ));
+  return entry ?? null;
+}
+
+function formalDomainForSource(source) {
+  return {
+    'wiki.module.iteminfo': 'items',
+    'wiki.module.armorsetbonuses': 'armor_sets',
+    'wiki.module.npcinfo': 'npcs',
+    'wiki.module.projectileinfo': 'projectiles',
+    'wiki.page.template_getbuffinfo': 'buffs',
+    'wiki.audio_assets.catalog': 'audio',
+    'wiki.bosses.catalog': 'bosses',
+    'wiki.shimmer.page_and_langlinks': 'shimmer',
+  }[source.key] ?? null;
+}
+
+function readFormalCatchUpSource(source, entry) {
+  const root = terraPediaRoot;
+  const snapshotPath = path.resolve(root, entry.sourceSnapshot.path);
+  const relative = path.relative(root, snapshotPath);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`formal catch-up source snapshot escapes repository: ${entry.sourceSnapshot.path}`);
+  }
+  const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+  const fingerprint = String(entry.sourceIdentity.fingerprint);
+  if (!/^sha256:[a-f0-9]{64}$/i.test(fingerprint)
+      || snapshot.sourceFingerprint !== fingerprint
+      || !snapshot.payload || typeof snapshot.payload !== 'object') {
+    throw new Error(`formal catch-up source snapshot identity drifted for ${source.key}`);
+  }
+  const previous = entry.formalIdentity?.acknowledgement?.fingerprint ?? null;
+  return {
+    key: source.key,
+    provider: 'terraria.wiki.gg',
+    category: source.category,
+    locator: source.locator,
+    trigger: source.trigger,
+    status: 'ok',
+    checkedAt,
+    currentValue: fingerprint.slice('sha256:'.length),
+    previousValue: previous?.startsWith('sha256:') ? previous.slice('sha256:'.length) : previous,
+    ingestedValue: previous?.startsWith('sha256:') ? previous.slice('sha256:'.length) : previous,
+    changed: true,
+    meta: {
+      compareBasis: 'formal-catch-up-admission',
+      compareField: 'formalLineage',
+      admissionPath: formalCatchUpAdmissionPath,
+      formalClassification: entry.classification,
+    },
+    snapshotPayload: {
+      sourceFingerprint: fingerprint,
+      checkedAt,
+      revisionId: snapshot.revisionId ?? null,
+      revisionTimestamp: snapshot.revisionTimestamp ?? null,
+      metadataOnly: snapshot.metadataOnly === true,
+      payload: snapshot.payload,
+    },
+  };
+}
+
 async function fetchWikiFingerprint(source) {
   if (source.category === 'supplementary_probe') {
     const snapshot = await probeSupplementarySource({
@@ -320,7 +459,15 @@ async function fetchWikiFingerprint(source) {
     return {
       contentHash: snapshot.contentHash,
       revisionId: snapshot.revisionId,
-      revisionTimestamp: snapshot.revisionTimestamp
+      revisionTimestamp: snapshot.revisionTimestamp,
+      snapshotPayload: {
+    sourceFingerprint: `sha256:${snapshot.contentHash}`,
+        checkedAt: snapshot.checkedAt,
+        revisionId: snapshot.revisionId,
+        revisionTimestamp: snapshot.revisionTimestamp,
+        metadataOnly: true,
+        payload: snapshot.snapshot,
+      }
     };
   }
   if (source.category === 'wiki_module' || source.key === 'wiki.page.template_getbuffinfo') {
@@ -331,7 +478,15 @@ async function fetchWikiFingerprint(source) {
     return {
       contentHash: createContentHash(result.moduleContent),
       revisionId: result.revisionId ?? null,
-      revisionTimestamp: result.revisionTimestamp ?? null
+      revisionTimestamp: result.revisionTimestamp ?? null,
+      snapshotPayload: {
+        sourceFingerprint: `sha256:${createContentHash(result.moduleContent)}`,
+        checkedAt,
+        revisionId: result.revisionId ?? null,
+        revisionTimestamp: result.revisionTimestamp ?? null,
+        metadataOnly: false,
+        payload: result,
+      }
     };
   }
   const [metadata] = await fetchWikiPageMetadataBatch({
@@ -341,7 +496,60 @@ async function fetchWikiFingerprint(source) {
   });
   return {
     revisionId: metadata?.revisionId ?? null,
-    revisionTimestamp: metadata?.revisionTimestamp ?? null
+    revisionTimestamp: metadata?.revisionTimestamp ?? null,
+    snapshotPayload: {
+      sourceFingerprint: null,
+      checkedAt,
+      revisionId: metadata?.revisionId ?? null,
+      revisionTimestamp: metadata?.revisionTimestamp ?? null,
+      metadataOnly: true,
+      payload: metadata,
+    }
+  };
+}
+
+function stripSnapshotPayload(source) {
+  const { snapshotPayload, ...rest } = source;
+  return rest;
+}
+
+function publishSourceSnapshot(source, probeStateHash) {
+  if (!source.snapshotPayload) return source;
+  const sourceFingerprint = source.currentValue == null
+    ? null
+    : String(source.currentValue).startsWith('sha256:')
+      ? String(source.currentValue)
+      : `sha256:${source.currentValue}`;
+  const payload = {
+    schemaVersion: 1,
+    sourceKey: source.key,
+    sourceFingerprint,
+    checkedAt: source.checkedAt,
+    revisionId: source.snapshotPayload.revisionId ?? null,
+    revisionTimestamp: source.snapshotPayload.revisionTimestamp ?? null,
+    metadataOnly: source.snapshotPayload.metadataOnly === true,
+    probeStateHash: `sha256:${probeStateHash}`,
+    payload: source.snapshotPayload.payload,
+  };
+  const timestampSegment = checkedAt.replaceAll(':', '-');
+  const safeKey = source.key.replace(/[^A-Za-z0-9_.-]+/g, '_');
+  const snapshotPath = path.join(snapshotRoot, timestampSegment, `${safeKey}.json`);
+  writeJsonNoOverwrite(snapshotPath, payload);
+  const snapshotBytes = fs.readFileSync(snapshotPath);
+  const snapshotHash = `sha256:${crypto.createHash('sha256').update(snapshotBytes).digest('hex')}`;
+  return {
+    ...stripSnapshotPayload(source),
+    snapshot: {
+      path: toWorkspaceRelative(snapshotPath),
+      snapshotHash,
+      probeStateHash: `sha256:${probeStateHash}`,
+      contentHash: source.currentValue,
+      sourceFingerprint,
+      checkedAt: payload.checkedAt,
+      revisionId: payload.revisionId,
+      revisionTimestamp: payload.revisionTimestamp,
+      metadataOnly: payload.metadataOnly,
+    }
   };
 }
 
@@ -571,6 +779,14 @@ function buildOfficialStableSignature(preview) {
   }
 
   return crypto.createHash('sha256').update(parts.join('|')).digest('hex');
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
 }
 
 function toWorkspaceRelative(targetPath) {

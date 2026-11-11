@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -58,6 +59,7 @@ public class PcVersionUpdateStateStore {
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
+    @Autowired
     public PcVersionUpdateStateStore(ObjectMapper objectMapper) {
         this(objectMapper, Clock.systemUTC());
     }

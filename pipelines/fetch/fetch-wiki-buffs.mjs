@@ -84,7 +84,7 @@ async function main(argv = process.argv.slice(2)) {
       startedAt
     });
 
-    const result = await fetchWikiModuleContent({ moduleTitle: templateTitle });
+    const result = await fetchWikiModuleContent({ moduleTitle: templateTitle, sourceSnapshotPath: options['source-snapshot-path'] });
     const timestamp = new Date().toISOString().replaceAll(':', '-');
     const baseName = templateTitle.replaceAll(':', '__').replaceAll('/', '__').replaceAll(' ', '_').toLowerCase();
     const latestJsonPath = path.join(rawDir, `${baseName}.latest.json`);

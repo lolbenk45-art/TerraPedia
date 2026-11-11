@@ -25,7 +25,7 @@ const keepSnapshot = shouldKeepSnapshot(options);
 ensureDir(rawDir);
 ensureDir(reportDir);
 
-const result = await fetchWikiModuleContent({ moduleTitle });
+const result = await fetchWikiModuleContent({ moduleTitle, sourceSnapshotPath: options['source-snapshot-path'] });
 const timestamp = new Date().toISOString().replaceAll(':', '-');
 const baseName = moduleTitle.replaceAll(':', '__').replaceAll('/', '__').toLowerCase();
 const latestJsonPath = path.join(rawDir, `${baseName}.latest.json`);

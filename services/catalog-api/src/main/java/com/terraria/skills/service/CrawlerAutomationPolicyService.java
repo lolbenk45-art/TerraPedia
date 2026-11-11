@@ -144,7 +144,13 @@ public interface CrawlerAutomationPolicyService {
     record OwnerRecord(String username, String status, long version) { }
 
     record PolicyState(String domainId, long policyVersion, String policyHash,
-                       String currentLevel, String operationalState) { }
+                       String currentLevel, String operationalState,
+                       boolean scopeAmended) {
+        public PolicyState(String domainId, long policyVersion, String policyHash,
+                           String currentLevel, String operationalState) {
+            this(domainId, policyVersion, policyHash, currentLevel, operationalState, false);
+        }
+    }
 
     record RunPolicyRow(String domainId, long policyVersion, String policyHash,
                         String policySetHash) { }

@@ -17,6 +17,8 @@ const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const OPERATION_ID = 'canonical-armor-ingestion';
 const ID_TABLES = new Set([
   'local.source_dataset_landings',
+  'local.armor_sets',
+  'local.armor_set_items',
   'maint.maint_armor_sets',
   'maint.maint_armor_set_images',
   'relation.relation_armor_sets',

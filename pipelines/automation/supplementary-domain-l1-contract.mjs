@@ -77,6 +77,19 @@ const OWNED_TABLES_BY_DOMAIN = Object.freeze({
   ]),
 });
 
+const ITEMS_CANONICAL_V2_TABLES = Object.freeze([
+  ['local', 'source_dataset_landings'], ['local', 'category'], ['local', 'item_images'],
+  ['local', 'item_acquisition_sources'], ['local', 'recipes'], ['local', 'recipe_ingredients'],
+  ['local', 'recipe_stations'], ['local', 'item_biomes'], ['local', 'biome_resources'],
+  ['maint', 'maint_items'], ['maint', 'maint_item_categories'], ['maint', 'maint_item_images'],
+  ['maint', 'maint_item_recipes'], ['maint', 'maint_item_sources'], ['maint', 'maint_item_biomes'],
+  ['relation', 'relation_items'], ['relation', 'relation_item_images'], ['relation', 'relation_item_rarities'],
+  ['relation', 'category_nodes'], ['relation', 'item_category_assignments'], ['relation', 'item_recipe_heads'],
+  ['relation', 'item_recipe_ingredients'], ['relation', 'item_recipe_stations'], ['relation', 'item_source_facts'],
+  ['relation', 'item_source_details'], ['relation', 'item_npc_shop_relations'], ['relation', 'item_npc_loot_relations'],
+  ['relation', 'item_npc_relation_audits'], ['relation', 'item_biome_relations'], ['relation', 'projection_items'],
+]);
+
 const SHIMMER_PARTITION_OWNED_TABLES = Object.freeze(SHIMMER_PARTITION_SCOPES.map((scope) => Object.freeze({
   databaseRole: scope.databaseRole,
   table: scope.table,
@@ -104,7 +117,10 @@ export function buildSupplementaryL1Bundle(input = {}) {
   const shimmerPartition = domainId === 'shimmer' && (hasShimmerCrossOwnerScope || importPlan.shimmerPartition != null)
     ? validateShimmerPartitionImportPlan({ importPlan, ownedTables })
     : null;
-  assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerPartition });
+  assertSupplementaryOwnedTables(domainId, ownedTables, {
+    shimmerPartition,
+    canonicalV2: domainId === 'items' && importPlan.canonicalV2 === true,
+  });
   if (executionMode === 'ACTIVATION_GATED_AUTO') {
     assertAutomaticPolicyOwnedTables(policy, ownedTables);
   }
@@ -215,9 +231,24 @@ function normalizeSourceDispatchIdentity(value) {
   return { sourceFingerprint, sourceRunIdentity, sourceContentIdentity };
 }
 
-export function assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerPartition = null } = {}) {
+export function assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerPartition = null, canonicalV2 = false } = {}) {
   const domain = requireDomain(domainId);
   const normalized = normalizeOwnedTables(ownedTables);
+  if (canonicalV2 && domain === 'items') {
+    const expected = new Set(ITEMS_CANONICAL_V2_TABLES.map(([databaseRole, table]) => `${databaseRole}.${table}`));
+    const actual = new Set(normalized.map((scope) => `${scope.databaseRole}.${scope.table}`));
+    const optionalLocalEntity = normalized.filter((scope) => scope.databaseRole === 'local' && scope.table === 'items');
+    const invalidOptionalLocalEntity = optionalLocalEntity.length > 1
+      || optionalLocalEntity.some((scope) => scope.fieldGroup !== 'all_columns' || scope.logicalPredicateHash != null);
+    if (actual.size < expected.size || actual.size > expected.size + 1
+        || [...expected].some((key) => !actual.has(key))
+        || invalidOptionalLocalEntity
+        || normalized.some((scope) => !(scope.databaseRole === 'local' && scope.table === 'items')
+          && (scope.fieldGroup !== 'canonical_owned_rows' || !HASH_PATTERN.test(scope.logicalPredicateHash ?? '')))) {
+      throw new Error('Items canonical V2 owned table set is invalid');
+    }
+    return true;
+  }
   const expected = domain === 'shimmer' && shimmerPartition != null
     ? SHIMMER_PARTITION_OWNED_TABLES
     : OWNED_TABLES_BY_DOMAIN[domain];

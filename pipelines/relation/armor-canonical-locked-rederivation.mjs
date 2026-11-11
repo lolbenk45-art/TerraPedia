@@ -33,6 +33,8 @@ function resolveDatabases(databaseNames = DEFAULT_DATABASES) {
 // share lock for dependencies and a write lock for Armor-owned baselines so a
 // candidate cannot be rederived from a row set that changes before DML.
 export const ARMOR_CANONICAL_LOCKED_SNAPSHOT_TABLES = Object.freeze([
+  { key: 'local_armor_sets', qualified: 'terria_v1_local.armor_sets', role: 'local', table: 'armor_sets', section: 'currentLocalArmorSets' },
+  { key: 'local_armor_set_items', qualified: 'terria_v1_local.armor_set_items', role: 'local', table: 'armor_set_items', section: 'currentLocalArmorSetItems' },
   { key: 'maintItems', qualified: 'terria_v1_maint.maint_items', role: 'maint', table: 'maint_items', section: 'maintItems' },
   { key: 'maint_item_effect_landings', qualified: 'terria_v1_maint.source_dataset_landings', role: 'maint', table: 'source_dataset_landings', section: 'itemEffectLandings', where: "dataset_type = 'armor_item_effects_raw' AND is_current = 1" },
   { key: 'maint_item_effect_attributes', qualified: 'terria_v1_maint.maint_armor_attribute_rows', role: 'maint', table: 'maint_armor_attribute_rows', section: 'itemEffectAttributes', where: 'status = 1 AND deleted = 0' },
@@ -118,6 +120,8 @@ export async function readArmorCanonicalLockedSnapshot({ connection, lockedRows,
   const databases = resolveDatabases(databaseNames);
   const snapshot = {
     landingRows: landingRows ? clone(landingRows) : rowsFor(lockedRows, ARMOR_LANDING_QUERY_KEY),
+    currentLocalArmorSets: [],
+    currentLocalArmorSetItems: [],
     maintItems: [],
     maintRows: {},
     itemEffectSources: { maintLandings: [], maintArmorAttributeRows: [] },
@@ -139,7 +143,9 @@ export async function readArmorCanonicalLockedSnapshot({ connection, lockedRows,
   for (const entry of ARMOR_CANONICAL_LOCKED_SNAPSHOT_TABLES) {
     const prelocked = rowsFor(lockedRows, `${entry.role}.${entry.table}`);
     const rows = prelocked ?? await readRows(connection, entry, databases);
-    if (entry.section === 'maintItems') snapshot.maintItems = rows;
+    if (entry.section === 'currentLocalArmorSets') snapshot.currentLocalArmorSets = rows;
+    else if (entry.section === 'currentLocalArmorSetItems') snapshot.currentLocalArmorSetItems = rows;
+    else if (entry.section === 'maintItems') snapshot.maintItems = rows;
     else if (entry.section === 'itemEffectLandings') snapshot.itemEffectSources.maintLandings = rows;
     else if (entry.section === 'itemEffectAttributes') {
       snapshot.itemEffectSources.maintArmorAttributeRows = rows.filter(isArmorItemEffectMaintRow);
@@ -243,7 +249,8 @@ export function createArmorCanonicalLockedRederivation({
       currentRows: { projection_armor_sets: snapshot.projectionRows },
       dependencyRows: snapshot.dependencyRows,
       consumerRows: snapshot.consumerRows,
-      itemEffectSources: snapshot.itemEffectSources,
+      ...(Object.hasOwn(candidate.inputSnapshots, 'itemEffectSources')
+        ? { itemEffectSources: snapshot.itemEffectSources } : {}),
       ...(Object.hasOwn(candidate.inputSnapshots, 'defenseAuthority')
         ? { defenseAuthority: candidate.inputSnapshots.defenseAuthority } : {}),
       ...(Object.hasOwn(candidate.inputSnapshots, 'unresolvedSourceEffects')
@@ -252,11 +259,16 @@ export function createArmorCanonicalLockedRederivation({
         ? { allowPartialApply: candidate.inputSnapshots.allowPartialApply } : {}),
       ...(Object.hasOwn(candidate.inputSnapshots, 'unresolvedRowsMustRemainUntouched')
         ? { unresolvedRowsMustRemainUntouched: candidate.inputSnapshots.unresolvedRowsMustRemainUntouched } : {}),
+      ...(Object.hasOwn(candidate.inputSnapshots, 'secondaryProjectionScope')
+        ? { secondaryProjectionScope: candidate.inputSnapshots.secondaryProjectionScope } : {}),
       managedImageUrlPrefixes: prefixes,
     });
     const rebuilt = await builders.buildArmorCanonicalFullChainIntent({
       landingMaintIntent,
       projectionCandidate,
+      currentLocalArmorSets: snapshot.currentLocalArmorSets,
+      currentLocalArmorSetItems: snapshot.currentLocalArmorSetItems,
+      localItems: snapshot.consumerRows.items,
       writeTimestamp: expected.writeTimestamp,
     });
     if (rebuilt.fullChainSha256 !== expected.fullChainSha256) {

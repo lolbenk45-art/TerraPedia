@@ -58,6 +58,57 @@ export function assertFrozenSourceMatchesDispatchIdentity(identity, sourceFinger
   }
 }
 
+export function readFrozenSourceSnapshot({ repoRoot, source, domain, expectedFingerprint = null } = {}) {
+  if (!source || typeof source !== 'object' || !source.snapshot) {
+    throw new Error('scheduler source snapshot reference is missing');
+  }
+  const reference = source.snapshot;
+  const root = path.resolve(requireText(repoRoot, 'repository root'));
+  const configuredPath = requireText(reference.path, 'scheduler source snapshot path');
+  const filePath = path.isAbsolute(configuredPath)
+    ? path.resolve(configuredPath)
+    : path.resolve(root, configuredPath);
+  const snapshotPath = assertRepositoryOrdinaryFile({
+    repoRoot: root,
+    filePath,
+    label: 'scheduler source snapshot',
+  });
+  const bytes = fs.readFileSync(snapshotPath);
+  const snapshotHash = `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+  if (snapshotHash !== reference.snapshotHash) {
+    throw new Error('scheduler source snapshot hash drifted');
+  }
+  let payload;
+  try {
+    payload = JSON.parse(bytes.toString('utf8'));
+  } catch (error) {
+    throw new Error('scheduler source snapshot is unavailable or invalid', { cause: error });
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('scheduler source snapshot must be an object');
+  }
+  const admittedFingerprint = String(source.currentValue ?? '').startsWith('sha256:')
+    ? String(source.currentValue)
+    : `sha256:${String(source.currentValue ?? '')}`;
+  if (payload.schemaVersion !== 1
+      || payload.sourceKey !== source.key
+      || payload.checkedAt !== source.checkedAt
+      || payload.metadataOnly !== (reference.metadataOnly === true)
+      || payload.probeStateHash !== reference.probeStateHash
+      || payload.sourceFingerprint !== reference.sourceFingerprint
+      || payload.sourceFingerprint !== admittedFingerprint) {
+    throw new Error('scheduler source snapshot identity does not match the admitted probe');
+  }
+  if (expectedFingerprint != null && String(expectedFingerprint) !== admittedFingerprint) {
+    throw new Error('scheduler source snapshot fingerprint does not match the admitted probe');
+  }
+  return Object.freeze({
+    ...payload,
+    path: snapshotPath,
+    snapshotHash,
+  });
+}
+
 /**
  * Bind a child runner to the exact source-monitor state that admitted its V2
  * attempt. The monitor state is mutable, so callers must retain the returned

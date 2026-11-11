@@ -85,6 +85,7 @@ export function buildIsolatedAcceptanceManifest({
       queueId: text(authorization?.queueId, 'authorization queueId'),
       attemptId: text(authorization?.attemptId, 'authorization attemptId'),
       stateStoreEpoch: text(authorization?.stateStoreEpoch, 'authorization stateStoreEpoch'),
+      sourceDispatchIdentity: requireSourceDispatchIdentity(authorization?.sourceDispatchIdentity, source?.fingerprint),
     },
   };
   if (!HASH.test(body.codeBundleSha256) || !HASH.test(body.source.fingerprint)
@@ -111,6 +112,28 @@ export function loadIsolatedAcceptanceManifest({ repoRoot, manifestPath, domain,
   const mysql = requireTargetIdentity(manifest.mysql, 'isolated V2');
   const redis = requireRedisIdentity(manifest.redis, runKey);
   if (manifest.authorization?.sourceMode !== 'local' || manifest.authorization?.stateStoreEpoch !== redis.stateStoreEpoch) throw new Error('isolated V2 source mode or epoch drifted');
+  const liveIdentity = {
+    runId: text(env.TERRAPEDIA_EIGHT_DOMAIN_RUN_ID, 'live isolated runId'),
+    queueId: text(env.TERRAPEDIA_CRAWLER_QUEUE_ID, 'live V2 queueId'),
+    attemptId: text(env.TERRAPEDIA_CRAWLER_ATTEMPT_ID, 'live V2 attemptId'),
+    stateStoreEpoch: text(env.TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH, 'live V2 stateStoreEpoch'),
+    sourceFingerprint: text(env.TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT, 'live sourceFingerprint'),
+    sourceRunIdentity: text(env.TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY, 'live sourceRunIdentity'),
+    sourceContentIdentity: text(env.TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY, 'live sourceContentIdentity'),
+  };
+  if (manifest.runId !== liveIdentity.runId
+      || manifest.authorization.queueId !== liveIdentity.queueId
+      || manifest.authorization.attemptId !== liveIdentity.attemptId
+      || manifest.authorization.stateStoreEpoch !== liveIdentity.stateStoreEpoch
+      || manifest.source.fingerprint !== liveIdentity.sourceFingerprint
+      || manifest.authorization.sourceDispatchIdentity.sourceFingerprint !== liveIdentity.sourceFingerprint
+      || manifest.authorization.sourceDispatchIdentity.sourceRunIdentity !== liveIdentity.sourceRunIdentity
+      || manifest.authorization.sourceDispatchIdentity.sourceContentIdentity !== liveIdentity.sourceContentIdentity) {
+    throw new Error('isolated V2 manifest does not match the live run, queue, attempt, epoch, or source dispatch identity');
+  }
+  if (env.TERRAPEDIA_EIGHT_DOMAIN_DOMAIN != null && env.TERRAPEDIA_EIGHT_DOMAIN_DOMAIN !== domain) {
+    throw new Error('isolated V2 live domain identity drifted');
+  }
   const sourcePath = insideRoot(root, path.resolve(root, text(manifest.source?.path, 'source manifest path')), 'source manifest');
   const source = privateOrdinaryFile(sourcePath, 'source manifest');
   if (!HASH.test(manifest.source?.sha256 ?? '') || hashBytes(source.bytes) !== manifest.source.sha256) throw new Error('isolated V2 source manifest hash drifted');
@@ -127,6 +150,20 @@ export function loadIsolatedAcceptanceManifest({ repoRoot, manifestPath, domain,
   if (env.TERRAPEDIA_DB_NAME !== databases.local || env.TERRAPEDIA_DB_MAINT !== databases.maint || env.TERRAPEDIA_DB_RELATION !== databases.relation) throw new Error('isolated V2 database environment differs from manifest');
   if (env.TERRAPEDIA_DB_HOST !== mysql.host || Number(env.TERRAPEDIA_DB_PORT) !== mysql.port || env.TERRAPEDIA_REDIS_HOST !== redis.host || Number(env.TERRAPEDIA_REDIS_PORT) !== redis.port || Number(env.TERRAPEDIA_REDIS_DATABASE) !== redis.logicalDb) throw new Error('isolated V2 endpoint environment differs from manifest');
   return Object.freeze({ ...manifest, manifestPath: target, manifestSha256, mysql: { ...mysql, databases }, redis, source: { ...manifest.source, path: path.relative(root, sourcePath).replaceAll('\\', '/'), manifestPayload: sourcePayload } });
+}
+
+function requireSourceDispatchIdentity(value, expectedFingerprint) {
+  const identity = {
+    sourceFingerprint: text(value?.sourceFingerprint, 'source dispatch fingerprint'),
+    sourceRunIdentity: text(value?.sourceRunIdentity, 'source dispatch run identity'),
+    sourceContentIdentity: text(value?.sourceContentIdentity, 'source dispatch content identity'),
+  };
+  if (!HASH.test(identity.sourceFingerprint)
+      || !HASH.test(identity.sourceContentIdentity)
+      || identity.sourceFingerprint !== expectedFingerprint) {
+    throw new Error('isolated V2 source dispatch identity is invalid or differs from the frozen source');
+  }
+  return Object.freeze(identity);
 }
 
 export function connectionOptions(env = process.env, { domain, repoRoot = process.cwd(), manifestPath = env.TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH } = {}) {

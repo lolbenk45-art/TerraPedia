@@ -1,11 +1,12 @@
-const apply = (operationId, ownedTables) => Object.freeze({
+const apply = (operationId, ownedTables, options = {}) => Object.freeze({
   operationId,
   databaseMode: 'ACTIVATION_GATED_APPLY',
   ownedTables: Object.freeze(ownedTables.map((table) => Object.freeze({ databaseRole: 'local', table }))),
+  ...(options.canonicalV2 === true ? { canonicalV2: true } : {}),
 });
 
 export const AUTO_DOMAIN_OPERATION_CONFIG = Object.freeze({
-  items: apply('automation-items-l1', ['items']),
+  items: apply('automation-items-l1', ['items'], { canonicalV2: true }),
   npcs: apply('automation-npcs-l1', ['npcs']),
   projectiles: apply('automation-projectiles-l1', ['projectiles']),
   armor_sets: apply('automation-armor-sets-l1', ['armor_sets', 'armor_set_items']),

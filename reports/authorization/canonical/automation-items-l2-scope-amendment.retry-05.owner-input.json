@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "User-authorized append-only Items formal canonical owner/policy scope amendment for local Desktop/PC 1.4.5.8 catch-up; no deletes, no scheduler activation, no business data writes in this operation.",
+  "authorizationReference": "user://conversation/2026-10-25/local-formal-catch-up/items-armor-scope",
+  "decisionIdentity": "automation-items-l2-scope-amendment-20261025-admin-05",
+  "authorizedAt": "2026-10-25T11:11:06.743Z"
+}

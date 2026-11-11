@@ -121,6 +121,13 @@ export async function applyArmorCanonicalIngestion({
     relativePath: paths.intentPath,
     expectedHash: binding.intentFileSha256,
   });
+  const existingBinding = context.executionManifest.armorCanonicalIntent;
+  const fenceCommit = existingBinding.fenceCommit?.schemaVersion === 'armor-canonical-write-fence-commit/v1'
+    ? existingBinding.fenceCommit
+    : null;
+  if (intent.localProjection && !fenceCommit) {
+    throw new Error('Armor local canonical ingestion requires a fresh nine-scope fence commit binding');
+  }
   // The run/fence values are carried by the operation-specific manifest
   // binding and copied into the transaction packet below. Validate the
   // binding against that same effective context before opening MySQL.
@@ -151,6 +158,7 @@ export async function applyArmorCanonicalIngestion({
     runId: binding.runId,
     fenceToken: binding.fenceToken,
     fenceCommit: binding.fenceCommit,
+    authorizationExpiresAt: context.expiresAt,
     serverUuid: fingerprint.serverUuid,
   };
   const store = createArmorCanonicalRecoveryJournalStore({ repoRoot: root, relativePath: paths.journalPath });

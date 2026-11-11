@@ -38,7 +38,14 @@ function fixture() {
       sha256: `sha256:${createHash('sha256').update(sourceBytes).digest('hex')}`,
       fingerprint: `sha256:${'c'.repeat(64)}`,
     },
-    authorization: { sourceMode: 'local', queueId: 'queue-1', attemptId: 'attempt-1', stateStoreEpoch: 'epoch-e8p_547b4e28fb4004a0' },
+    authorization: {
+      sourceMode: 'local', queueId: 'queue-1', attemptId: 'attempt-1', stateStoreEpoch: 'epoch-e8p_547b4e28fb4004a0',
+      sourceDispatchIdentity: {
+        sourceFingerprint: `sha256:${'c'.repeat(64)}`,
+        sourceRunIdentity: '2026-10-24T09:00:00.000Z',
+        sourceContentIdentity: `sha256:${'d'.repeat(64)}`,
+      },
+    },
   });
   return { root, manifestPath, manifest };
 }
@@ -57,6 +64,13 @@ test('isolated V2 manifest binds one domain, exact target triple, source, and lo
     TERRAPEDIA_REDIS_HOST: '127.0.0.1',
     TERRAPEDIA_REDIS_PORT: '16380',
     TERRAPEDIA_REDIS_DATABASE: '1',
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1',
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-e8p_547b4e28fb4004a0',
+    TERRAPEDIA_EIGHT_DOMAIN_RUN_ID: 'e8pr-items-20261017-v1',
+    TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT: `sha256:${'c'.repeat(64)}`,
+    TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY: '2026-10-24T09:00:00.000Z',
+    TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY: `sha256:${'d'.repeat(64)}`,
   };
   const loaded = loadIsolatedAcceptanceManifest({
     repoRoot: value.root,
@@ -78,6 +92,12 @@ test('isolated V2 guard rejects formal target, wrong Redis DB, and source-mode d
     TERRAPEDIA_DB_HOST: '127.0.0.1', TERRAPEDIA_DB_PORT: '13306',
     TERRAPEDIA_DB_USERNAME: 'prov', TERRAPEDIA_DB_PASSWORD: 'secret',
     TERRAPEDIA_REDIS_HOST: '127.0.0.1', TERRAPEDIA_REDIS_PORT: '16380', TERRAPEDIA_REDIS_DATABASE: '1',
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1', TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-e8p_547b4e28fb4004a0',
+    TERRAPEDIA_EIGHT_DOMAIN_RUN_ID: 'e8pr-items-20261017-v1',
+    TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT: `sha256:${'c'.repeat(64)}`,
+    TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY: '2026-10-24T09:00:00.000Z',
+    TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY: `sha256:${'d'.repeat(64)}`,
   };
   assert.throws(() => connectionOptions(baseEnv, { domain: 'items', repoRoot: value.root, manifestPath: value.manifestPath }), /formal|run-derived|database/i);
   assert.throws(() => loadIsolatedAcceptanceManifest({
@@ -96,6 +116,38 @@ test('isolated V2 guard rejects formal target, wrong Redis DB, and source-mode d
     domain: 'items',
     env: { ...baseEnv, TERRAPEDIA_DB_NAME: value.manifest.mysql.databases.local },
   }), /sourceMode|source mode|local/i);
+});
+
+test('isolated V2 manifest rejects queue, attempt, epoch, or run identity drift', () => {
+  const value = fixture();
+  const env = {
+    TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE: 'true',
+    TERRAPEDIA_DB_NAME: value.manifest.mysql.databases.local,
+    TERRAPEDIA_DB_MAINT: value.manifest.mysql.databases.maint,
+    TERRAPEDIA_DB_RELATION: value.manifest.mysql.databases.relation,
+    TERRAPEDIA_DB_HOST: '127.0.0.1', TERRAPEDIA_DB_PORT: '13306',
+    TERRAPEDIA_DB_USERNAME: 'apiV2Test', TERRAPEDIA_DB_PASSWORD: 'secret',
+    TERRAPEDIA_REDIS_HOST: '127.0.0.1', TERRAPEDIA_REDIS_PORT: '16380', TERRAPEDIA_REDIS_DATABASE: '1',
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1', TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-e8p_547b4e28fb4004a0',
+    TERRAPEDIA_EIGHT_DOMAIN_RUN_ID: 'e8pr-items-20261017-v1',
+    TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT: `sha256:${'c'.repeat(64)}`,
+    TERRAPEDIA_CRAWLER_SOURCE_RUN_IDENTITY: '2026-10-24T09:00:00.000Z',
+    TERRAPEDIA_CRAWLER_SOURCE_CONTENT_IDENTITY: `sha256:${'d'.repeat(64)}`,
+  };
+  for (const [name, valueToUse] of [
+    ['TERRAPEDIA_CRAWLER_QUEUE_ID', 'queue-other'],
+    ['TERRAPEDIA_CRAWLER_ATTEMPT_ID', 'attempt-other'],
+    ['TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH', 'epoch-other'],
+    ['TERRAPEDIA_EIGHT_DOMAIN_RUN_ID', 'e8pr-items-other'],
+  ]) {
+    assert.throws(() => loadIsolatedAcceptanceManifest({
+      repoRoot: value.root,
+      manifestPath: value.manifestPath,
+      domain: 'items',
+      env: { ...env, [name]: valueToUse },
+    }), /identity|queue|attempt|epoch|run/i);
+  }
 });
 
 test('production connection guard remains formal-local only when isolated mode is absent', () => {

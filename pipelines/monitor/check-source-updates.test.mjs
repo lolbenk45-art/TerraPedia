@@ -455,6 +455,54 @@ test('check-source-updates compares wiki sources against ingestion manifest, not
   assert.equal(progress.childStatusPath, progressPath);
 });
 
+test('check-source-updates publishes a complete immutable module snapshot reference', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-snapshot-'));
+  const statePath = path.join(tempDir, 'state.json');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const reportDir = path.join(tempDir, 'reports');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  const itemContent = 'return { ["data"] = [[{"1":{"name":"Wood"}}]] }';
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(mockApiPath, JSON.stringify({
+    __byRequest: {
+      'query:revisions:Module:Iteminfo/data': wikiModuleResponse('Module:Iteminfo/data', itemContent, 101, '2026-06-20T00:00:00Z')
+    }
+  }), 'utf8');
+
+  const result = spawnSourceMonitor({
+    statePath,
+    manifestPath,
+    reportDir,
+    progressPath,
+    mockApiPath,
+  });
+  assert.equal(result.status, 1, result.stderr || result.stdout);
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  const source = state.sources.find((entry) => entry.key === 'wiki.module.iteminfo');
+  assert.equal(source.currentValue, createContentHash(itemContent));
+  assert.equal(source.snapshot.metadataOnly, false);
+  assert.match(source.snapshot.path, /reports\/runtime\/source-probe-snapshots\//);
+  assert.match(source.snapshot.snapshotHash, /^sha256:[a-f0-9]{64}$/);
+  assert.match(source.snapshot.probeStateHash, /^sha256:[a-f0-9]{64}$/);
+  const snapshotPath = path.resolve(repoRoot, source.snapshot.path);
+  assert.equal(fs.lstatSync(snapshotPath).isFile(), true);
+  const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+  assert.equal(snapshot.sourceFingerprint, `sha256:${source.currentValue}`);
+  assert.equal(snapshot.metadataOnly, false);
+  assert.equal(snapshot.payload.moduleContent, itemContent);
+
+  const second = spawnSourceMonitor({
+    statePath,
+    manifestPath,
+    reportDir,
+    progressPath,
+    mockApiPath,
+  });
+  assert.equal(second.status, 1, second.stderr || second.stdout);
+  assert.equal(fs.readFileSync(snapshotPath, 'utf8'), fs.readFileSync(snapshotPath, 'utf8'));
+});
+
 test('check-source-updates fails closed when a wiki probe errors', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-source-update-progress-failed-'));
   const statePath = path.join(tempDir, 'state.json');

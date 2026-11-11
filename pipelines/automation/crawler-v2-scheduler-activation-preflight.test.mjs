@@ -196,6 +196,52 @@ test('binds one registered canary action to its eligible domain', () => {
   );
 });
 
+test('allows blocked non-canary domains while publishing only the eligible activation subset', () => {
+  const blocked = {
+    domain: 'npcs',
+    actionId: 'wiki-npcs-refresh',
+    readinessStatus: 'blocked',
+    sourceHash: HASH,
+    observedAt: '2026-09-19T16:42:30.000Z',
+    evidencePath: 'reports/domain/npcs/source-readiness.json',
+  };
+  const preflight = buildCrawlerV2SchedulerActivationPreflight({
+    snapshot: validSnapshot({ domains: [...validSnapshot().domains, blocked] }),
+    t1Report: validT1(),
+    codeBundle: [{ path: 'pipelines/automation/preflight.mjs', sha256: CODE_HASH }],
+    canaryActionId: 'wiki-items-refresh',
+    now: '2026-08-10T01:05:00.000Z',
+  });
+  assert.deepEqual(preflight.domains.map((domain) => domain.domain), ['items']);
+  assert.deepEqual(preflight.canary, { actionId: 'wiki-items-refresh', domainId: 'items' });
+});
+
+test('rejects a canary that is explicitly blocked even when another domain is eligible', () => {
+  assert.throws(
+    () => buildCrawlerV2SchedulerActivationPreflight({
+      snapshot: validSnapshot({
+        canaryActionId: 'wiki-npcs-refresh',
+        domains: [
+          validSnapshot().domains[0],
+          {
+            domain: 'npcs',
+            actionId: 'wiki-npcs-refresh',
+            readinessStatus: 'blocked',
+            sourceHash: HASH,
+            observedAt: '2026-09-19T16:42:30.000Z',
+            evidencePath: 'reports/domain/npcs/source-readiness.json',
+          },
+        ],
+      }),
+      t1Report: validT1(),
+      codeBundle: [{ path: 'pipelines/automation/preflight.mjs', sha256: CODE_HASH }],
+      canaryActionId: 'wiki-npcs-refresh',
+      now: '2026-08-10T01:05:00.000Z',
+    }),
+    /canary.*eligible|canary.*domain/i,
+  );
+});
+
 test('accepts a numeric queueContractVersion from the real backend DTO', () => {
   const preflight = buildCrawlerV2SchedulerActivationPreflight({
     snapshot: validSnapshot({ v2: { stateStoreEpoch: 'epoch-current', namespace: 'terrapedia:crawler:wiki-monitor:v2:production:', queueContractVersion: 2 } }),

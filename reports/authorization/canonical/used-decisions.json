@@ -777,5 +777,65 @@
   {
     "decisionIdentity": "armor-image-cache-a63-20260927-33",
     "dispatchPermitHash": "sha256:1bad37a3b0996f60f241fd3e0432c07ea667d2f1eb6853db36aebbfbdc2f0a05"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-scope-amendment-20261025-admin-01",
+    "dispatchPermitHash": "sha256:df66bda3f874df3b5c71d272952f65c9e9d78bce2c18080fbfda6c651cde5476"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-scope-amendment-20261025-admin-02",
+    "dispatchPermitHash": "sha256:bc59b4b7b7ca8d3831670fe6ec61aafd1ad476355ecfc2ac95817d1be7a16e45"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-scope-amendment-20261025-admin-03",
+    "dispatchPermitHash": "sha256:a91c8384d54bad7db945ca5e60bab5145233372c230a927b3c1d5af7332bfa62"
+  },
+  {
+    "decisionIdentity": "automation-items-l2-scope-amendment-20261025-admin-05",
+    "dispatchPermitHash": "sha256:a50f65f67f31e19e841214a749b1bfdaf8594eac1fac214ac872a8d43cad5999"
+  },
+  {
+    "decisionIdentity": "automation-armor-sets-l2-scope-amendment-20261025-admin-01",
+    "dispatchPermitHash": "sha256:9cc98786402ee3de75e5c5a2a3086149e93a910822b15eca497fdeb93eba35b1"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261026-items-lfc-r3",
+    "dispatchPermitHash": "sha256:82f0633b570dc279630b5e05fa7935508c308cd1bd36991a5bfb9b184de01f86"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261026-items-lfc-r4",
+    "dispatchPermitHash": "sha256:51ca8fe08ce44d05cbc0b5042653c9394e16a7d36e1ac8c59c076d37a128e754"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261026-items-lfc-r5",
+    "dispatchPermitHash": "sha256:9981d2f193e16d2853de4401ac44ab21fbbc9b09e2402ba8c90d504b23a0e190"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261026-items-lfc-r6",
+    "dispatchPermitHash": "sha256:8e6e58b8763a94cd88c4930551247a95591e5712b0826789aaffc83648accd17"
+  },
+  {
+    "decisionIdentity": "automation-crawler-v2-scheduler-activation-20261026-armor-lfc-r1",
+    "dispatchPermitHash": "sha256:7db21cd1b31b20229cd3bfc7c2ec0b37a960b26779c41adaba7f82347a40be26"
+  },
+  {
+    "decisionIdentity": "local-formal-catch-up-armor-r4-canonical-admin-01",
+    "dispatchPermitHash": "sha256:fd4af132ab549904fcd1a60643ecb73c1e7fc2373574edc219822911a05a20be"
+  },
+  {
+    "decisionIdentity": "local-formal-catch-up-armor-r5-scheduler-admin-01",
+    "dispatchPermitHash": "sha256:a90659b66fe36521fc93cb46c9fd29921e3736f202b58df01f082ab5fb2e2ccd"
+  },
+  {
+    "decisionIdentity": "local-formal-catch-up-armor-r5-scheduler-admin-02",
+    "dispatchPermitHash": "sha256:2206738b10883d0af6b4633e245a6bc523208cfbb099db6772a1b7175c861efc"
+  },
+  {
+    "decisionIdentity": "local-formal-catch-up-armor-r5-canonical-admin-01",
+    "dispatchPermitHash": "sha256:45b1a55705400c2a7e2a7ff09f3c737edbdf70056009a0270edc7012e49586e9"
+  },
+  {
+    "decisionIdentity": "local-formal-catch-up-armor-r5-scheduler-admin-07",
+    "dispatchPermitHash": "sha256:7ab4d0505e59c6b1ae68e8fc7e2e6452617e8b24da73db4d0914ee6f58b945e6"
   }
 ]

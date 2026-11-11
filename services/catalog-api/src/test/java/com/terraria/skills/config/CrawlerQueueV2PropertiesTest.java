@@ -20,6 +20,10 @@ class CrawlerQueueV2PropertiesTest {
 
         assertEquals(RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX, properties.resolveRedisNamespace());
         assertEquals(repositoryRoot.toAbsolutePath().normalize(), properties.resolveFixtureRoot(repositoryRoot));
+        assertEquals(
+            "reports/runtime/local-formal-catch-up/current/domain-admission.json",
+            properties.resolveFormalCatchUpAdmissionPath()
+        );
     }
 
     @Test

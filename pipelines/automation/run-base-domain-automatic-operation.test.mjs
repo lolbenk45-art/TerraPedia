@@ -13,13 +13,120 @@ import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.m
 
 const {
   buildBaseDomainSourceCommand,
+  prepareCanonicalItemsStandardizedDataset,
+  buildBaseSourceSnapshotBinding,
+  assertBaseSourceSnapshotUsable,
   buildAutomaticReconciliationInput,
   buildReconciliationInputFromArgs,
   hashFrozenSourcePayload,
+  loadFreshActivation,
   runBaseDomainAutomaticOperation,
   validateItemDryRunDataset,
 } = baseOperationModule;
 import { createHash } from 'node:crypto';
+
+test('normalizes activation MySQL DATETIME values from configured database time to UTC', async () => {
+  const connection = {
+    query: async () => [[{
+      decisionIdentity: 'activation-datetime',
+      packetHash: `sha256:${'a'.repeat(64)}`,
+      policySetHash: `sha256:${'b'.repeat(64)}`,
+      actor: 'admin',
+      reason: 'test',
+      authorizationReference: 'test',
+      authorizedAt: '2026-10-27 23:36:00',
+      expiresAt: '2026-10-28 08:30:00',
+    }]],
+  };
+
+  const activation = await loadFreshActivation(connection);
+
+  assert.equal(activation.authorizedAt, '2026-10-27T15:36:00.000Z');
+  assert.equal(activation.expiresAt, '2026-10-28T00:30:00.000Z');
+});
+
+test('Items standardization derives a private frozen dataset from the exact probed raw snapshot', async (t) => {
+  const sourceDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'items-source-data-'));
+  const repoRoot = process.cwd();
+  fs.mkdirSync(path.join(repoRoot, '.local', 'tmp'), { recursive: true });
+  const outputRoot = fs.mkdtempSync(path.join(repoRoot, '.local', 'tmp', 'items-standardized-output-'));
+  t.after(() => fs.rmSync(sourceDataDir, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(outputRoot, { recursive: true, force: true }));
+  const moduleContent = 'return { ["data"] = [=====[{"_terrariaversion":"1.4.5.7","_generated":"2026-08-22","1":{"name":"Iron Pickaxe","internalName":"IronPickaxe","pick":40,"maxStack":1},"2":{"name":"Dirt Block","internalName":"DirtBlock","material":true,"maxStack":9999}}]=====] }';
+  const revisionTimestamp = '2026-08-22T03:26:22Z';
+  const rawPayload = {
+    apiUrl: 'https://terraria.wiki.gg/api.php',
+    pageTitle: 'Module:Iteminfo/data',
+    revisionId: 101,
+    revisionTimestamp,
+    fetchedAt: '2026-10-25T09:02:07.554Z',
+    moduleContent,
+  };
+  fs.mkdirSync(path.join(sourceDataDir, 'raw', 'wiki'), { recursive: true });
+  fs.mkdirSync(path.join(sourceDataDir, 'normalized'), { recursive: true });
+  fs.writeFileSync(path.join(sourceDataDir, 'raw', 'wiki', 'module__iteminfo__data.latest.json'), JSON.stringify(rawPayload));
+  fs.writeFileSync(path.join(sourceDataDir, 'normalized', 'items.wiki.json'), JSON.stringify({
+    source: 'terraria.wiki.gg:Module:Iteminfo/data',
+    sourcePageTitle: 'Module:Iteminfo/data',
+    sourceRevisionTimestamp: revisionTimestamp,
+    wikiVersion: '1.4.5.7',
+    generatedAt: '2026-10-25T09:02:07.554Z',
+    items: [
+      { name: 'Iron Pickaxe', internalName: 'IronPickaxe', categoryCode: 'PICKAXE', damage: 5, stackSize: 1 },
+      { name: 'Dirt Block', internalName: 'DirtBlock', categoryCode: 'MATERIAL', stackSize: 9999 },
+    ],
+  }));
+  const snapshotBinding = {
+    sourceKey: 'wiki.module.iteminfo',
+    sourceFingerprint: `sha256:${createHash('sha256').update(moduleContent).digest('hex')}`,
+    contentHash: `sha256:${createHash('sha256').update(moduleContent).digest('hex')}`,
+    revisionId: 101,
+    revisionTimestamp,
+  };
+
+  const standardizedPath = await prepareCanonicalItemsStandardizedDataset({
+    repoRoot,
+    sourceDataDir,
+    outputDirectory: path.join(outputRoot, 'attempt-1'),
+    sourceSnapshotBinding: snapshotBinding,
+  });
+  const standardized = JSON.parse(fs.readFileSync(path.join(standardizedPath, 'items.standardized.json'), 'utf8'));
+  assert.equal(standardized.totalRecords, 2);
+  assert.equal(standardized.upstreamMeta.wikiVersion, '1.4.5.7');
+  assert.equal(standardized.upstreamMeta.sourceRevisionTimestamp, revisionTimestamp);
+  assert.deepEqual(standardized.records.map((row) => row.id), [1, 2]);
+});
+
+test('Items standardization blocks normalized metadata that belongs to a different module revision', async (t) => {
+  const sourceDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'items-source-drift-'));
+  const repoRoot = process.cwd();
+  fs.mkdirSync(path.join(repoRoot, '.local', 'tmp'), { recursive: true });
+  const outputRoot = fs.mkdtempSync(path.join(repoRoot, '.local', 'tmp', 'items-standardized-drift-'));
+  t.after(() => fs.rmSync(sourceDataDir, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(outputRoot, { recursive: true, force: true }));
+  const moduleContent = 'return { ["data"] = [=====[{"_terrariaversion":"1.4.5.7","1":{"name":"Iron Pickaxe","internalName":"IronPickaxe"}}]=====] }';
+  fs.mkdirSync(path.join(sourceDataDir, 'raw', 'wiki'), { recursive: true });
+  fs.mkdirSync(path.join(sourceDataDir, 'normalized'), { recursive: true });
+  fs.writeFileSync(path.join(sourceDataDir, 'raw', 'wiki', 'module__iteminfo__data.latest.json'), JSON.stringify({
+    pageTitle: 'Module:Iteminfo/data', revisionId: 101, revisionTimestamp: '2026-08-22T03:26:22Z', moduleContent,
+  }));
+  fs.writeFileSync(path.join(sourceDataDir, 'normalized', 'items.wiki.json'), JSON.stringify({
+    sourceRevisionTimestamp: '2026-03-09T22:52:58Z', wikiVersion: '1.4.5.6', items: [],
+  }));
+  await assert.rejects(() => prepareCanonicalItemsStandardizedDataset({
+    repoRoot,
+    sourceDataDir,
+    outputDirectory: path.join(outputRoot, 'attempt-1'),
+    sourceSnapshotBinding: {
+      sourceKey: 'wiki.module.iteminfo',
+      sourceFingerprint: `sha256:${createHash('sha256').update(moduleContent).digest('hex')}`,
+      contentHash: `sha256:${createHash('sha256').update(moduleContent).digest('hex')}`,
+      revisionId: 101,
+      revisionTimestamp: '2026-08-22T03:26:22Z',
+    },
+  }), /normalized Items revision does not match the immutable source snapshot/i);
+  assert.equal(fs.existsSync(path.join(outputRoot, 'attempt-1')), false);
+});
 
 test('full reconciliation inputs are all-or-nothing and remain explicit read-only artifacts', () => {
   assert.equal(buildReconciliationInputFromArgs({}), undefined);
@@ -71,6 +178,56 @@ test('base automatic runner carries a scheduler source dispatch identity into it
   }));
 
   assert.deepEqual(capturedBundle.sourceDispatchIdentity, sourceDispatchIdentity);
+  const state = JSON.parse(fs.readFileSync(fixture.sourceStatePath, 'utf8'));
+  const source = state.sources[0];
+  const snapshot = JSON.parse(fs.readFileSync(fixture.sourceSnapshotPath, 'utf8'));
+  const binding = buildBaseSourceSnapshotBinding({
+    repoRoot: fixture.repoRoot,
+    frozenProbeState: { source },
+    frozenSourceSnapshot: {
+      ...snapshot,
+      path: fixture.sourceSnapshotPath,
+      snapshotHash: source.snapshot.snapshotHash,
+    },
+    sourceDispatchIdentity,
+  });
+  assert.deepEqual(binding, {
+    path: path.relative(fixture.repoRoot, fixture.sourceSnapshotPath).replaceAll('\\', '/'),
+    snapshotHash: source.snapshot.snapshotHash,
+    sourceKey: 'wiki.module.iteminfo',
+    sourceFingerprint: fixture.sourceFingerprint,
+    sourceRunIdentity: fixture.sourceRunIdentity,
+    sourceContentIdentity: fixture.sourceContentIdentity,
+    probeStateHash: source.snapshot.probeStateHash,
+    revisionId: 101,
+    revisionTimestamp: fixture.sourceRunIdentity,
+    contentHash: fixture.sourceFingerprint,
+  });
+});
+
+test('base Items source binding normalizes the monitor raw content hash to sha256 form', (t) => {
+  const fixture = createLiveBaseAutomaticRunnerFixture();
+  t.after(() => fs.rmSync(fixture.repoRoot, { recursive: true, force: true }));
+  const state = JSON.parse(fs.readFileSync(fixture.sourceStatePath, 'utf8'));
+  const source = structuredClone(state.sources[0]);
+  source.snapshot.contentHash = fixture.sourceFingerprint.slice('sha256:'.length);
+  const snapshot = JSON.parse(fs.readFileSync(fixture.sourceSnapshotPath, 'utf8'));
+  const binding = buildBaseSourceSnapshotBinding({
+    repoRoot: fixture.repoRoot,
+    frozenProbeState: { source },
+    frozenSourceSnapshot: {
+      ...snapshot,
+      path: fixture.sourceSnapshotPath,
+      snapshotHash: source.snapshot.snapshotHash,
+    },
+    sourceDispatchIdentity: {
+      sourceFingerprint: fixture.sourceFingerprint,
+      sourceRunIdentity: fixture.sourceRunIdentity,
+      sourceContentIdentity: fixture.sourceContentIdentity,
+    },
+  });
+
+  assert.equal(binding.contentHash, fixture.sourceFingerprint);
 });
 
 test('base automatic bundle preserves the live L2 policy scope instead of static configuration scope', () => {
@@ -240,6 +397,41 @@ test('base automatic source commands defer manifest acknowledgement to the outer
   ]);
   assert.equal(buildBaseDomainSourceCommand('buffs', '/tmp/buffs-progress.json').some((arg) => arg.startsWith('--manifest-path=')), false);
   assert.equal(buildBaseDomainSourceCommand('armor_sets', '/tmp/armor-progress.json').some((arg) => arg.startsWith('--manifest-path=')), false);
+});
+
+test('base automatic source commands consume the admitted immutable module snapshot', () => {
+  assert.deepEqual(buildBaseDomainSourceCommand('npcs', '/tmp/npcs-progress.json', {
+    path: '/repo/reports/runtime/source-probe-snapshots/npcs.json',
+    metadataOnly: false,
+  }), [
+    'pipelines/workflow/run-wiki-sync.mjs',
+    '--mode=apply',
+    '--force=true',
+    '--entity=npcs',
+    '--manifest-path=/tmp/npcs-source-manifest.staging.json',
+    '--plan-path=/tmp/npcs-wiki-sync-plan.staging.json',
+    '--source-snapshot-path=/repo/reports/runtime/source-probe-snapshots/npcs.json',
+  ]);
+});
+
+test('base automatic source commands reject a metadata-only snapshot for module ingestion', () => {
+  assert.throws(
+    () => buildBaseDomainSourceCommand('npcs', '/tmp/npcs-progress.json', {
+      path: '/repo/reports/runtime/source-probe-snapshots/npcs.json',
+      metadataOnly: true,
+    }),
+    /metadata-only.*bounded capture|complete source snapshot/i,
+  );
+});
+
+test('base automatic runner rejects a partial module snapshot before source work', () => {
+  assert.throws(
+    () => assertBaseSourceSnapshotUsable('items', {
+      metadataOnly: false,
+      payload: { moduleTitle: 'Module:Iteminfo/data' },
+    }),
+    /partial source snapshot/i,
+  );
 });
 
 test('base automatic Buff source resumes a valid page checkpoint after a failed natural tick', () => {
@@ -535,7 +727,10 @@ test('base automatic runner rejects acknowledgement when activation changes duri
         return {
           runIdentity: fixture.sourceRunIdentity,
           contentIdentity: fixture.sourceContentIdentity,
-          source: { currentValue: fixture.sourceFingerprint },
+          source: {
+            ...JSON.parse(fs.readFileSync(fixture.sourceStatePath, 'utf8')).sources[0],
+            currentValue: fixture.sourceFingerprint,
+          },
         };
       },
       acknowledgeSourceImpl: async () => { acknowledgements += 1; },
@@ -1525,6 +1720,7 @@ test('base source executes reviewed code when the durable data root contains dif
     authorizedAt: '2000-01-01T00:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' };
   const script = `const { runBaseDomainAutomaticOperation } = await import(${JSON.stringify(pathToFileURL(path.join(codeRoot, 'pipelines/automation/run-base-domain-automatic-operation.mjs')).href)});
     await runBaseDomainAutomaticOperation({ argv: ['--domain=items', ${JSON.stringify(`--progress-path=${fixture.progressPath}`)}],
+      prepareStandardizedInputImpl: async () => null,
       mysqlModule: { createConnection: async () => ({ query: async () => [[${JSON.stringify(activation)}]], end: async () => {} }) },
       readSourceFingerprintImpl: () => ${JSON.stringify(fixture.sourceFingerprint)}, readCurrentContextImpl: async () => (${JSON.stringify(fixture.current)}),
       isCommittedRunImpl: async () => false, createAdapterImpl: () => ({}), executeOperationImpl: async () => ({ status: 'completed' }), acknowledgeSourceImpl: () => {} });`;
@@ -1731,6 +1927,19 @@ for (const changedProbe of [false, true]) {
       const state = JSON.parse(fs.readFileSync(fixture.sourceStatePath));
       state.checkedAt = '2026-08-31T09:01:00.000Z';
       state.sources[0].checkedAt = state.checkedAt;
+      const nextSnapshotPath = path.join(fixture.repoRoot, 'reports', 'runtime', 'source-probe-snapshots', 'items-0901.json');
+      const nextSnapshot = {
+        ...JSON.parse(fs.readFileSync(fixture.sourceSnapshotPath, 'utf8')),
+        checkedAt: state.checkedAt,
+      };
+      const nextSnapshotBytes = `${JSON.stringify(nextSnapshot, null, 2)}\n`;
+      fs.writeFileSync(nextSnapshotPath, nextSnapshotBytes, { mode: 0o600 });
+      state.sources[0].snapshot = {
+        ...state.sources[0].snapshot,
+        path: path.relative(fixture.repoRoot, nextSnapshotPath).replaceAll('\\', '/'),
+        snapshotHash: `sha256:${createHash('sha256').update(nextSnapshotBytes).digest('hex')}`,
+        checkedAt: state.checkedAt,
+      };
       fs.writeFileSync(fixture.sourceStatePath, JSON.stringify(state));
       fixture.sourceRunIdentity = state.checkedAt;
       fixture.sourceContentIdentity = `sha256:${createHash('sha256').update(JSON.stringify(state)).digest('hex')}`;
@@ -1770,6 +1979,22 @@ function createLiveBaseAutomaticRunnerFixture() {
   fs.writeFileSync(standardizedPath, JSON.stringify({ entity: 'items', records: [] }));
   const sourceRunIdentity = '2026-08-31T09:00:00.000Z';
   const sourceStatePath = path.join(repoRoot, 'data', 'generated', 'source-update-monitor.latest.json');
+  const sourceSnapshotPath = path.join(repoRoot, 'reports', 'runtime', 'source-probe-snapshots', 'items.json');
+  const sourceSnapshotPayload = {
+    schemaVersion: 1,
+    sourceKey: 'wiki.module.iteminfo',
+    sourceFingerprint: `sha256:${'e'.repeat(64)}`,
+    checkedAt: sourceRunIdentity,
+    revisionId: 101,
+    revisionTimestamp: sourceRunIdentity,
+    metadataOnly: false,
+    probeStateHash: `sha256:${'p'.repeat(64)}`,
+    payload: { moduleContent: 'fixture-source' },
+  };
+  fs.mkdirSync(path.dirname(sourceSnapshotPath), { recursive: true });
+  const sourceSnapshotBytes = `${JSON.stringify(sourceSnapshotPayload, null, 2)}\n`;
+  fs.writeFileSync(sourceSnapshotPath, sourceSnapshotBytes, { mode: 0o600 });
+  const sourceSnapshotHash = `sha256:${createHash('sha256').update(sourceSnapshotBytes).digest('hex')}`;
   const sourceState = {
     checkedAt: sourceRunIdentity,
     summary: { probeHealthy: true, errorSources: 0 },
@@ -1779,6 +2004,16 @@ function createLiveBaseAutomaticRunnerFixture() {
       checkedAt: sourceRunIdentity,
       currentValue: `sha256:${'e'.repeat(64)}`,
       changed: true,
+      snapshot: {
+        path: path.relative(repoRoot, sourceSnapshotPath).replaceAll('\\', '/'),
+        snapshotHash: sourceSnapshotHash,
+        probeStateHash: `sha256:${'p'.repeat(64)}`,
+        contentHash: `sha256:${'e'.repeat(64)}`,
+        sourceFingerprint: `sha256:${'e'.repeat(64)}`,
+        revisionId: 101,
+        revisionTimestamp: sourceRunIdentity,
+        metadataOnly: false,
+      },
     }],
   };
   fs.mkdirSync(path.dirname(sourceStatePath), { recursive: true });
@@ -1832,6 +2067,7 @@ function createLiveBaseAutomaticRunnerFixture() {
     sourceRunIdentity,
     sourceContentIdentity,
     sourceStatePath,
+    sourceSnapshotPath,
     current,
     connection: { query: async () => [[activation]], end: async () => {} },
     env: {
@@ -1856,6 +2092,7 @@ function createLiveBaseAutomaticRunnerOptions(fixture, overrides = {}) {
         attemptId: env.TERRAPEDIA_CRAWLER_ATTEMPT_ID,
       }));
     },
+    prepareStandardizedInputImpl: async () => null,
     readSourceFingerprintImpl: () => fixture.sourceFingerprint,
     readCurrentContextImpl: async () => fixture.current,
     isCommittedRunImpl: async () => false,

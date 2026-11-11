@@ -251,12 +251,18 @@ async function loadCategoryCodeMap(conn) {
   return map;
 }
 
-export async function runBaseItemsImport({ connection, records, categoryRows = null, existingRows = null } = {}) {
+export async function runBaseItemsImport({ connection, records, categoryRows = null, existingRows = null, preserveSourceIds = false } = {}) {
   if (!connection || typeof connection.query !== 'function' || typeof connection.execute !== 'function') {
     throw new TypeError('base Item import requires a MySQL connection');
   }
   if (!Array.isArray(records)) {
     throw new TypeError('base Item import requires standardized Item records');
+  }
+  if (preserveSourceIds) {
+    const ids = records.map((record) => Number(record?.id));
+    if (ids.some((id) => !Number.isSafeInteger(id) || id <= 0) || new Set(ids).size !== ids.length) {
+      throw new Error('stable Item source IDs must be unique positive safe integers');
+    }
   }
 
   const categoryByCode = categoryRows == null
@@ -273,7 +279,7 @@ export async function runBaseItemsImport({ connection, records, categoryRows = n
   }
 
   const items = makeStatsSection();
-  await importItems(connection, records, categoryByCode, items, existingRows);
+  await importItems(connection, records, categoryByCode, items, existingRows, { preserveSourceIds });
   return { items };
 }
 

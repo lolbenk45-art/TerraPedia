@@ -11,11 +11,14 @@ const {
 } = await import('./armor-canonical-transaction-executor.mjs');
 const { createArmorCanonicalRecoveryJournalAdapter } = await import('./armor-canonical-recovery-journal-adapter.mjs');
 const { createArmorCanonicalRecoveryJournalStore } = await import('./armor-canonical-recovery-journal-store.mjs');
+const { ARMOR_CANONICAL_POLICY_OWNER_SCOPES, buildArmorCanonicalFenceCommit } = await import('./armor-canonical-write-fence.mjs');
+const { buildArmorCanonicalLocalProjectionCandidate } = await import('./armor-canonical-local-projection.mjs');
 
 const HASH = value => `sha256:${value.repeat(64)}`;
 
-function fakeConnection({ failOn, rows = {}, serverUuid = 'server-1' } = {}) {
+function fakeConnection({ failOn, rows = {}, serverUuid = 'server-1', fenceBindings = [] } = {}) {
   const calls = [];
+  const reservedFenceKeys = new Set();
   let nextId = 700;
   let lastInsertId = 0;
   const connection = {
@@ -28,9 +31,41 @@ function fakeConnection({ failOn, rows = {}, serverUuid = 'server-1' } = {}) {
       if (failOn && sql.includes(failOn) && /^(INSERT|UPDATE)/.test(sql)) throw new Error(`query failed: ${failOn}`);
       if (sql.includes('@@server_uuid')) return [[{ serverUuid, serverPort: 3306, databaseName: 'terria_v1_local' }]];
       if (sql.includes('crawler_automation_owner')) return [[{ username: 'owner', status: 'ACTIVE' }]];
-      if (sql.includes('crawler_automation_write_fence')) return [[{ latest_run_id: 'run-1', fence_token: 'fence-1', active: 1 }]];
+      if (sql.startsWith('SELECT') && sql.includes('crawler_automation_write_fence') && fenceBindings.length > 0) {
+        const key = `${params[1]}.${params[2]}|${params[3]}|${params[4]}`;
+        const binding = fenceBindings.find(candidate => candidate.environmentId === params[0]
+          && candidate.databaseRole === params[1] && candidate.table === params[2]
+          && candidate.fieldGroup === params[3] && candidate.logicalPredicateHash === params[4]);
+        return [[...(binding && reservedFenceKeys.has(key) ? [{
+          environment_id: binding.environmentId,
+          database_role: binding.databaseRole,
+          physical_table: binding.table,
+          field_group: binding.fieldGroup,
+          logical_predicate_hash: binding.logicalPredicateHash,
+          latest_run_id: binding.runId,
+          fence_token: binding.fenceToken,
+          before_generation: binding.beforeGeneration,
+          committed_generation: null,
+          commit_marker: null,
+          active: 1,
+        }] : [])]];
+      }
+      if (sql.startsWith('SELECT') && sql.includes('crawler_automation_write_fence')) return [[{ latest_run_id: 'run-1', fence_token: 'fence-1', active: 1 }]];
+      if (sql.startsWith('SELECT') && sql.includes('crawler_automation_mutation_generation')) {
+        const binding = fenceBindings.find(candidate => candidate.mutationGenerationScopeHash === params.at(-1));
+        return [[{ generation: 0, last_writer_run_id: null, schema_hash: binding?.generationSchemaHash }]];
+      }
+      if (sql.startsWith('INSERT IGNORE') && sql.includes('crawler_automation_mutation_generation')) return [{ affectedRows: 0 }];
+      if (sql.startsWith('INSERT INTO') && sql.includes('crawler_automation_write_fence')) {
+        reservedFenceKeys.add(`${params[1]}.${params[2]}|${params[3]}|${params[4]}`);
+        return [{ affectedRows: 1, insertId: nextId++ }];
+      }
       if (sql.includes('COLLATE utf8mb4_0900_ai_ci')) return [[]];
-      if (sql.startsWith('INSERT INTO')) { lastInsertId = nextId++; return [{ affectedRows: 1, insertId: lastInsertId }]; }
+      if (sql.startsWith('INSERT INTO')) {
+        lastInsertId = nextId++;
+        calls.at(-1).resultingInsertId = lastInsertId;
+        return [{ affectedRows: 1, insertId: lastInsertId }];
+      }
       if (sql.startsWith('UPDATE')) return [{ affectedRows: 1 }];
       if (sql.startsWith('SELECT *')) return [[rows[params.at(-1)] ?? { id: sql.includes('WHERE `id`') ? params.at(-1) : (lastInsertId || params.at(-1)), created_at: '2026-09-25 00:00:00', updated_at: '2026-09-25 00:00:00' }]];
       return [[]];
@@ -65,6 +100,40 @@ function intentFixture() {
     demotions: [],
   };
   return { landingMaintIntent: intent, relationIntent: null };
+}
+
+function localProjectionFixture({ itemId = 5049, missingParent = false } = {}) {
+  return buildArmorCanonicalLocalProjectionCandidate({
+    sourceArmorSets: [{
+      textKey: 'ArmorSetBonus.Test', benefitExpression: 'Test benefit', primaryPart: 'head', setCount: 1,
+      uniqueItemIds: [2, 3, 5049], sets: [[5049, 2, 3]],
+    }],
+    projectionArmorSets: [{
+      text_key: 'ArmorSetBonus.Test', source_key: 'ArmorSetBonus.Test',
+      male_images: '/managed/test.png', female_images: null, special_images: null,
+    }],
+    maintItems: [
+      { source_id: 5049, internal_name: 'RoninShirt', english_name: 'Wandering Yukata', status: 1, deleted: 0 },
+      { source_id: 2, internal_name: 'TestBody', english_name: 'Test Body', status: 1, deleted: 0 },
+      { source_id: 3, internal_name: 'TestLegs', english_name: 'Test Legs', status: 1, deleted: 0 },
+    ],
+    localItems: [
+      { id: itemId, internal_name: 'RoninShirt', name: 'Wandering Yukata', status: 1, deleted: 0 },
+      { id: 2, internal_name: 'TestBody', name: 'Test Body', status: 1, deleted: 0 },
+      { id: 3, internal_name: 'TestLegs', name: 'Test Legs', status: 1, deleted: 0 },
+    ],
+    currentArmorSets: missingParent ? [] : [{
+      id: 700, source_key: 'ArmorSetBonus.Test', text_key: 'ArmorSetBonus.Test',
+      benefit_expression: 'Test benefit', primary_part: 'head', set_count: 1, unique_item_count: 3,
+      sets_json: '[[5049,2,3]]', unique_item_ids_json: '[2,3,5049]',
+      male_images: null, female_images: null, special_images: null, status: 1, deleted: 0,
+    }],
+    currentArmorSetItems: missingParent ? [] : [
+      { id: 10, armor_set_id: 700, set_variant_index: 0, part_index: 0, source_item_id: 5049, item_id: 5049, item_internal_name: 'RoninShirt', item_name: 'Wandering Yukata' },
+      { id: 11, armor_set_id: 700, set_variant_index: 0, part_index: 1, source_item_id: 2, item_id: 2, item_internal_name: 'TestBody', item_name: 'Test Body' },
+      { id: 12, armor_set_id: 700, set_variant_index: 0, part_index: 2, source_item_id: 3, item_id: 3, item_internal_name: 'TestLegs', item_name: 'Test Legs' },
+    ],
+  });
 }
 
 test('builds a native collation-equivalence range lock for every Armor landing identity', () => {
@@ -279,4 +348,88 @@ test('Armor full-chain mode rejects partial intent or an uncommittable fence bef
     validateContracts: false,
   }), /relation intent is required/);
   assert.equal(connection.calls.some(call => call.op === 'begin'), false);
+});
+
+test('Armor full-chain local writes reject a legacy single-row fence before BEGIN', async () => {
+  const connection = fakeConnection();
+  const fixture = intentFixture();
+  fixture.localProjection = localProjectionFixture({ itemId: 8423 });
+  await assert.rejects(() => executeArmorCanonicalTransaction({
+    connection,
+    packet: { runId: 'run-1', decisionIdentity: 'decision-1', packetHash: HASH('b'), actor: 'owner', serverUuid: 'server-1', fenceToken: 'fence-1', fenceCommit: { generation: 1, marker: 'single-marker' } },
+    expected: fixture,
+    deriveLocked: async () => fixture,
+    journal: { prepared: async () => {}, materialized: async () => {}, rolledBack: async () => {}, commitUnknown: async () => {}, committed: async () => {} },
+    validateContracts: false,
+    allowPartial: true,
+  }), /complete owner-scope fence bindings/i);
+  assert.equal(connection.calls.some(call => call.op === 'begin'), false);
+});
+
+test('Armor full-chain commits all exact policy scope fence generations in the same transaction', async () => {
+  const fixture = intentFixture();
+  fixture.localProjection = localProjectionFixture({ itemId: 8423 });
+  const fenceCommit = buildArmorCanonicalFenceCommit({
+    runId: 'run-1',
+    expiresAt: '2030-10-27T10:00:00Z',
+    generations: ARMOR_CANONICAL_POLICY_OWNER_SCOPES.map(scope => ({ ...scope, generation: 0 })),
+    tokenFactory: (() => { let i = 0; return () => `fence:${String(++i).padStart(64, '0')}`; })(),
+    markerFactory: (() => { let i = 0; return () => String(++i).padStart(64, '0'); })(),
+  });
+  const connection = fakeConnection({ fenceBindings: fenceCommit.bindings });
+  const result = await executeArmorCanonicalTransaction({
+    connection,
+    packet: { runId: 'run-1', decisionIdentity: 'decision-1', packetHash: HASH('b'), actor: 'owner', serverUuid: 'server-1', fenceToken: fenceCommit.bindings[0].fenceToken, authorizationExpiresAt: fenceCommit.expiresAt, fenceCommit },
+    expected: fixture,
+    deriveLocked: async () => fixture,
+    journal: { prepared: async () => {}, materialized: async () => {}, rolledBack: async () => {}, commitUnknown: async () => {}, committed: async () => {} },
+    validateContracts: false,
+    allowPartial: true,
+    strictReadback: false,
+  });
+  assert.equal(result.status, 'committed');
+  const fenceWrites = connection.calls.filter(call => call.op === 'query' && call.sql.startsWith('UPDATE') && call.sql.includes('crawler_automation_write_fence'));
+  assert.equal(fenceWrites.length, 9);
+  assert.ok(fenceWrites.every(call => call.params[0] === 1 && call.params[7]?.startsWith('fence:')));
+  const generationWrites = connection.calls.filter(call => call.op === 'query' && call.sql.startsWith('UPDATE') && call.sql.includes('crawler_automation_mutation_generation'));
+  assert.equal(generationWrites.length, 9);
+});
+
+test('Armor executor inserts a missing local parent before members and binds generated parent ID', async () => {
+  const fixture = intentFixture();
+  fixture.localProjection = localProjectionFixture({ itemId: 8423, missingParent: true });
+  const fenceCommit = buildArmorCanonicalFenceCommit({
+    runId: 'run-parent-insert',
+    expiresAt: '2030-10-27T10:00:00Z',
+    generations: ARMOR_CANONICAL_POLICY_OWNER_SCOPES.map(scope => ({ ...scope, generation: 0 })),
+    tokenFactory: (() => { let i = 0; return () => `fence:${String(++i).padStart(64, '0')}`; })(),
+    markerFactory: (() => { let i = 0; return () => String(++i).padStart(64, '0'); })(),
+  });
+  const connection = fakeConnection({ fenceBindings: fenceCommit.bindings });
+  await executeArmorCanonicalTransaction({
+    connection,
+    packet: {
+      runId: 'run-parent-insert', decisionIdentity: 'decision-parent-insert', packetHash: HASH('c'),
+      actor: 'owner', serverUuid: 'server-1', fenceToken: fenceCommit.bindings[0].fenceToken,
+      authorizationExpiresAt: fenceCommit.expiresAt, fenceCommit,
+    },
+    expected: fixture,
+    deriveLocked: async () => fixture,
+    journal: { prepared: async () => {}, materialized: async () => {}, rolledBack: async () => {}, commitUnknown: async () => {}, committed: async () => {} },
+    validateContracts: false,
+    allowPartial: true,
+    strictReadback: false,
+  });
+
+  const parentInsert = connection.calls.find(call => call.op === 'query' && call.sql.startsWith('INSERT') && call.sql.includes('armor_sets'));
+  const memberInserts = connection.calls.filter(call => call.op === 'query' && call.sql.startsWith('INSERT') && call.sql.includes('armor_set_items'));
+  assert.ok(parentInsert);
+  assert.equal(memberInserts.length, 3);
+  assert.ok(connection.calls.indexOf(parentInsert) < connection.calls.indexOf(memberInserts[0]));
+  const memberColumns = memberInserts[0].sql.match(/\(([^)]+)\) VALUES/)[1]
+    .split(', ')
+    .map(column => column.replaceAll('`', ''));
+  const parentIdIndex = memberColumns.indexOf('armor_set_id');
+  assert.ok(parentInsert.resultingInsertId > 0);
+  assert.ok(memberInserts.every(call => call.params[parentIdIndex] === parentInsert.resultingInsertId));
 });

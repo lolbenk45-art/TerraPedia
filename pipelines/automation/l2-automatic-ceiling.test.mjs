@@ -365,7 +365,8 @@ test('exposes exact importer contracts for the remaining automatic domains', () 
       keyColumns: ['source_key'],
       compareColumns: [
         'source_key', 'text_key', 'benefit_expression', 'primary_part', 'set_count',
-        'unique_item_count', 'sets_json', 'unique_item_ids_json', 'status', 'deleted',
+        'unique_item_count', 'sets_json', 'unique_item_ids_json', 'male_images', 'female_images',
+        'special_images', 'status', 'deleted',
       ],
       numericColumns: ['set_count', 'unique_item_count', 'status', 'deleted'],
       jsonColumns: ['sets_json', 'unique_item_ids_json'],

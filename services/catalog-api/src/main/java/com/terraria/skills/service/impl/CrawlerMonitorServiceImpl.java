@@ -6202,7 +6202,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (crawlerAutomationPolicyService == null) {
             return List.of("SCHEDULER_POLICY_SERVICE_UNAVAILABLE");
         }
-        for (String domain : CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS) {
+        List<String> domains = canaryActionId == null || canaryActionId.isBlank()
+            ? new ArrayList<>(CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS)
+            : CrawlerMonitorActionRegistry.AUTO_DISPATCH_DOMAINS.stream()
+                .filter(domain -> WIKI_MONITOR_RULES.stream().anyMatch(rule ->
+                    rule.domain().equals(domain) && canaryActionId.equals(rule.actionId())))
+                .toList();
+        if (domains.isEmpty()) {
+            return List.of("SCHEDULER_CANARY_ACTION_UNKNOWN");
+        }
+        for (String domain : domains) {
             CrawlerAutomationPolicyService.AutomationEligibility eligibility;
             try {
                 if (canaryActionId == null || canaryActionId.isBlank()) {
@@ -6451,9 +6460,22 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         String hex = identity.sourceFingerprint().substring("sha256:".length());
         Path root = repoRoot.resolve("reports/authorization/canonical/automatic-armor").normalize();
-        Path path = root.resolve(hex + ".binding.json").normalize();
+        String dispatchIdentityHash;
         try {
-            if (!path.startsWith(root)
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            dispatchIdentityHash = HexFormat.of().formatHex(digest.digest(
+                (identity.sourceRunIdentity() + "\n" + identity.sourceContentIdentity())
+                    .getBytes(StandardCharsets.UTF_8)
+            ));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable for Armor binding identity", exception);
+        }
+        Path bindingDirectory = root.resolve(hex).normalize();
+        Path path = bindingDirectory.resolve(dispatchIdentityHash + ".binding.json").normalize();
+        try {
+            if (!path.startsWith(bindingDirectory)
+                || Files.isSymbolicLink(bindingDirectory)
+                || !Files.isDirectory(bindingDirectory, LinkOption.NOFOLLOW_LINKS)
                 || Files.isSymbolicLink(path)
                 || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)
                 || !isPrivateRegularFile(path)) {

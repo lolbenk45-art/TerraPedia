@@ -115,6 +115,9 @@ export const CANONICAL_CUTOVER_OPERATION_IDS = Object.freeze([
   'automation-audio-l2-reauthorization',
   'automation-bosses-l2-reauthorization',
   'automation-shimmer-l2-reauthorization',
+  'automation-items-l2-scope-amendment',
+  'automation-armor-sets-l2-scope-amendment',
+  'automation-armor-sets-l2-scope-amendment-after-items',
   'automation-biomes-scheduler-activation',
   'automation-crawler-v2-scheduler-activation',
   'automation-crawler-v2-scheduler-reactivation',
@@ -477,6 +480,15 @@ export const CANONICAL_OPERATION_DATA_PATHS = Object.freeze({
   'automation-shimmer-l2-reauthorization': Object.freeze([
     'reports/authorization/canonical/automation-shimmer-l2-reauthorization.input.json',
   ]),
+  'automation-items-l2-scope-amendment': Object.freeze([
+    'reports/authorization/canonical/automation-items-l2-scope-amendment.input.json',
+  ]),
+  'automation-armor-sets-l2-scope-amendment': Object.freeze([
+    'reports/authorization/canonical/automation-armor-sets-l2-scope-amendment.input.json',
+  ]),
+  'automation-armor-sets-l2-scope-amendment-after-items': Object.freeze([
+    'reports/authorization/canonical/automation-armor-sets-l2-scope-amendment-after-items.input.json',
+  ]),
   'automation-biomes-scheduler-activation': Object.freeze([
     'reports/authorization/canonical/automation-biomes-scheduler-activation.input.json',
   ]),
@@ -679,6 +691,9 @@ export const CANONICAL_OPERATION_ENTRYPOINTS = Object.freeze({
   'automation-audio-l2-reauthorization': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-bosses-l2-reauthorization': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-shimmer-l2-reauthorization': 'pipelines/automation/run-automation-policy-decision.mjs',
+  'automation-items-l2-scope-amendment': 'pipelines/automation/register-l2-policy-scope-amendment.mjs',
+  'automation-armor-sets-l2-scope-amendment': 'pipelines/automation/register-l2-policy-scope-amendment.mjs',
+  'automation-armor-sets-l2-scope-amendment-after-items': 'pipelines/automation/register-l2-policy-scope-amendment.mjs',
   'automation-biomes-scheduler-activation': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-crawler-v2-scheduler-activation': 'pipelines/automation/run-automation-policy-decision.mjs',
   'automation-crawler-v2-scheduler-reactivation': 'pipelines/automation/run-automation-policy-decision.mjs',

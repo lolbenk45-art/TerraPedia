@@ -130,6 +130,7 @@ terraria:
       fixture-namespace-prefix: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE:}
       fixture-legacy-namespace-prefix: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE:}
       fixture-root: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ROOT:}
+      formal-catch-up-admission-path: ${TERRARIA_CRAWLER_QUEUE_V2_FORMAL_CATCH_UP_ADMISSION_PATH:${TERRAPEDIA_CRAWLER_QUEUE_V2_FORMAL_CATCH_UP_ADMISSION_PATH:reports/runtime/local-formal-catch-up/current/domain-admission.json}}
       # @Scheduled fixedDelayString accepts ISO-8601 Duration text, unlike the
       # relaxed Spring Boot Duration binder used by CrawlerQueueV2Properties.
       reconcile-interval: PT5S

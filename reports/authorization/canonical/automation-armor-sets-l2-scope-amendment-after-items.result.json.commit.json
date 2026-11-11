@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "status": "committed",
+  "result": {
+    "schemaVersion": 1,
+    "operationId": "automation-armor-sets-l2-scope-amendment-after-items",
+    "domainId": "armor_sets",
+    "status": "registered",
+    "authoritative": true,
+    "policyVersion": 3,
+    "policyHash": "sha256:af9a6b8af51c84cd1f477647a80c524089c36d904eebe73d882fdb1cdcbe3402",
+    "policySetHash": "sha256:10cee3eb6062090dbbe7bdacb715c264286d8512e1a0c360f24c96f358ecfde3",
+    "amendmentHash": "sha256:f5b60e5377fb11fd8b77901f2348564b3b71a1418682d65621dc25ae3634ade7",
+    "actor": "admin",
+    "reason": "User-authorized append-only Armor Sets formal canonical owner/policy scope amendment after Items H8 advancement for local Desktop/PC 1.4.5.8 catch-up; no deletes, no scheduler activation, no business data writes in this operation.",
+    "authorizationReference": "user://conversation/2026-10-25/local-formal-catch-up/items-armor-scope",
+    "decisionIdentity": "automation-armor-sets-l2-scope-amendment-20261025-admin-01",
+    "packetHash": "sha256:5fd42aa71f70f422b3a7e2c5e3c8142e24d215f1d80db228c92573b959b776cd",
+    "createsBusinessDataWrites": false,
+    "completedAt": "2026-10-25T11:16:40.185Z"
+  }
+}

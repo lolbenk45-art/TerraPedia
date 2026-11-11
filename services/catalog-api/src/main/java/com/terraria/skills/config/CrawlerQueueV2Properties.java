@@ -42,6 +42,7 @@ public class CrawlerQueueV2Properties {
     private String fixtureNamespacePrefix;
     private String fixtureLegacyNamespacePrefix;
     private String fixtureRoot;
+    private String formalCatchUpAdmissionPath = "reports/runtime/local-formal-catch-up/current/domain-admission.json";
 
     /**
      * Returns the only Redis namespace a fixture-enabled runtime may use.
@@ -93,6 +94,12 @@ public class CrawlerQueueV2Properties {
             throw new IllegalStateException("fixture legacy namespace 必须包含 :test: 并以冒号结尾");
         }
         return normalized;
+    }
+
+    public String resolveFormalCatchUpAdmissionPath() {
+        return formalCatchUpAdmissionPath == null || formalCatchUpAdmissionPath.isBlank()
+            ? "reports/runtime/local-formal-catch-up/current/domain-admission.json"
+            : formalCatchUpAdmissionPath.trim();
     }
 
     private boolean blank(String value) {

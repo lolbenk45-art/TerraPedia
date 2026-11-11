@@ -275,6 +275,77 @@ class CrawlerAutomationPolicyServiceImplTest {
     }
 
     @Test
+    void actionBoundCanaryDoesNotRequireUnrelatedDomainsPromotionDecision() {
+        String otherHash = sha('o');
+        when(policyMapper.findPolicyState("items"))
+            .thenReturn(new PolicyState("items", 2, ITEMS_L2_POLICY_HASH, "L2", "ACTIVE"));
+        when(policyMapper.findPolicyState("npcs"))
+            .thenReturn(new PolicyState("npcs", 2, otherHash, "L2", "ACTIVE"));
+        when(policyMapper.findPolicyState("crawler_v2_scheduler"))
+            .thenReturn(new PolicyState("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH, "L1", "ACTIVE"));
+        when(policyMapper.findCurrentPolicyRows()).thenReturn(List.of(
+            new PolicyRow("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH),
+            new PolicyRow("items", 2, ITEMS_L2_POLICY_HASH),
+            new PolicyRow("npcs", 2, otherHash)
+        ));
+        when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "items"))
+            .thenReturn(new ActivationDecisionRecord(
+                "L2_PROMOTION", "items", 2, ITEMS_L2_POLICY_HASH, ITEMS_L2_POLICY_SET_HASH, 3,
+                "owner", "promoted", "decision://items", "items-promotion", sha('p'),
+                LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1), true
+            ));
+        when(activationDecisionMapper.findLatestActivationDecision("SCHEDULER_ACTIVATION", "crawler_v2_scheduler"))
+            .thenReturn(new ActivationDecisionRecord(
+                "SCHEDULER_ACTIVATION", "crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH,
+                sha("[{\"domainId\":\"crawler_v2_scheduler\",\"policyVersion\":1,\"policyHash\":\""
+                    + SCHEDULER_POLICY_HASH + "\"},{\"domainId\":\"items\",\"policyVersion\":2,\"policyHash\":\""
+                    + ITEMS_L2_POLICY_HASH + "\"},{\"domainId\":\"npcs\",\"policyVersion\":2,\"policyHash\":\""
+                    + otherHash + "\"}]"), 2, "owner", "scheduler", "decision://scheduler",
+                "scheduler-activation", sha('q'), LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1), true, "wiki-items-refresh"
+            ));
+
+        AutomationEligibility eligibility = service.schedulerEligibility("items", "wiki-items-refresh");
+
+        assertTrue(eligibility.eligible(), eligibility.reasonCodes().toString());
+        assertEquals(List.of(), eligibility.reasonCodes());
+    }
+
+    @Test
+    void actionBoundCanaryAcceptsFreshScopeAmendedL2PolicyWithoutReplayingOldPromotionDecision() {
+        String amendedItemsHash = sha('j');
+        String amendedPolicySetHash = sha("[{\"domainId\":\"crawler_v2_scheduler\",\"policyVersion\":1,\"policyHash\":\""
+            + SCHEDULER_POLICY_HASH + "\"},{\"domainId\":\"items\",\"policyVersion\":3,\"policyHash\":\""
+            + amendedItemsHash + "\"}]");
+        when(policyMapper.findPolicyState("items"))
+            .thenReturn(new PolicyState("items", 3, amendedItemsHash, "L2", "ACTIVE", true));
+        when(policyMapper.findPolicyState("crawler_v2_scheduler"))
+            .thenReturn(new PolicyState("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH, "L1", "ACTIVE"));
+        when(policyMapper.findCurrentPolicyRows()).thenReturn(List.of(
+            new PolicyRow("crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH),
+            new PolicyRow("items", 3, amendedItemsHash)
+        ));
+        when(activationDecisionMapper.findLatestActivationDecision("SCHEDULER_ACTIVATION", "crawler_v2_scheduler"))
+            .thenReturn(new ActivationDecisionRecord(
+                "SCHEDULER_ACTIVATION", "crawler_v2_scheduler", 1, SCHEDULER_POLICY_HASH,
+                amendedPolicySetHash, 2, "owner", "scheduler", "decision://scheduler",
+                "scheduler-activation", sha('q'), LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1), true, "wiki-items-refresh"
+            ));
+        when(activationDecisionMapper.findLatestActivationDecision("L2_PROMOTION", "items"))
+            .thenReturn(new ActivationDecisionRecord(
+                "L2_PROMOTION", "items", 2, ITEMS_L2_POLICY_HASH, ITEMS_L2_POLICY_SET_HASH, 3,
+                "owner", "old promotion", "decision://old", "old-promotion", sha('p'),
+                LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1), false
+            ));
+
+        AutomationEligibility eligibility = service.schedulerEligibility("items", "wiki-items-refresh");
+
+        assertTrue(eligibility.eligible(), eligibility.reasonCodes().toString());
+        assertEquals(List.of(), eligibility.reasonCodes());
+    }
+
+    @Test
     void schedulerRejectsMissingOrMismatchedCanaryScope() {
         when(policyMapper.findPolicyState("items"))
             .thenReturn(new PolicyState("items", 2, ITEMS_L2_POLICY_HASH, "L2", "ACTIVE"));

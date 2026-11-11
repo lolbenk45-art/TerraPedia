@@ -144,7 +144,8 @@ class CrawlerAttemptSupervisorTest {
         assertEquals(sourceManifest, binding.sourceManifest());
         assertEquals(acceptanceManifest, binding.acceptanceManifest());
         assertTrue(command.contains("--source-mode=local"));
-        assertTrue(command.contains("--manifest-path=.local/tmp/eight-domain-production-readiness/20261017/source-manifests/items.json"));
+        assertTrue(command.contains("--manifest-path=.local/tmp/eight-domain-production-readiness/20261017/acceptance-manifests/items.json"));
+        assertTrue(command.contains("--source-manifest-path=.local/tmp/eight-domain-production-readiness/20261017/source-manifests/items.json"));
         assertFalse(command.contains("--manifest-path=data/generated/wiki-source-manifest.latest.json"));
         assertThrows(SecurityException.class, () -> CrawlerAttemptSupervisor.bindIsolatedSourceCommand(
             List.of("node", "pipelines/automation/run-base-domain-automatic-operation.mjs", "--manifest-path=a", "--manifest-path=b"), binding, repoRoot
@@ -155,6 +156,35 @@ class CrawlerAttemptSupervisorTest {
         assertThrows(SecurityException.class, () -> CrawlerAttemptSupervisor.bindIsolatedSourceCommand(
             List.of("node", "pipelines/monitor/crawler-queue-v2-fixture.mjs"), binding, repoRoot
         ));
+    }
+
+    @Test
+    void isolatedSourceBindingAcceptsArmorSetsBaseRunner() throws Exception {
+        String domain = "armor_sets";
+        Path sourceState = repoRoot.resolve(".local/tmp/eight-domain-production-readiness/20261017/source-state/armor_sets.json");
+        Path sourceManifest = repoRoot.resolve(".local/tmp/eight-domain-production-readiness/20261017/source-manifests/armor_sets.json");
+        Path acceptanceManifest = repoRoot.resolve(".local/tmp/eight-domain-production-readiness/20261017/acceptance-manifests/armor_sets.json");
+        for (Path file : List.of(sourceState, sourceManifest, acceptanceManifest)) {
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, "{}\n");
+            Files.setPosixFilePermissions(file, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+        }
+        Map<String, String> environment = Map.of(
+            "TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_ACCEPTANCE", "true",
+            "TERRAPEDIA_EIGHT_DOMAIN_DOMAIN", domain,
+            "TERRAPEDIA_EIGHT_DOMAIN_RUN_ID", "e8pr-armor_sets-20261017-v1",
+            "TERRAPEDIA_EIGHT_DOMAIN_SOURCE_PROBE_MODE", "frozen-run-manifest",
+            "TERRAPEDIA_CRAWLER_SOURCE_MODE", "local",
+            "TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH", sourceState.toString(),
+            "TERRAPEDIA_EIGHT_DOMAIN_SOURCE_MANIFEST_PATH", sourceManifest.toString(),
+            "TERRAPEDIA_EIGHT_DOMAIN_ISOLATED_MANIFEST_PATH", acceptanceManifest.toString()
+        );
+        CrawlerAttemptSupervisor.IsolatedSourceBinding binding = CrawlerAttemptSupervisor.isolatedSourceBinding(environment, repoRoot);
+        List<String> command = CrawlerAttemptSupervisor.bindIsolatedSourceCommand(List.of(
+            "node", "pipelines/automation/run-base-domain-automatic-operation.mjs", "--domain=armor_sets"
+        ), binding, repoRoot);
+        assertTrue(command.contains("--manifest-path=.local/tmp/eight-domain-production-readiness/20261017/acceptance-manifests/armor_sets.json"));
+        assertTrue(command.contains("--source-manifest-path=.local/tmp/eight-domain-production-readiness/20261017/source-manifests/armor_sets.json"));
     }
 
     @Test

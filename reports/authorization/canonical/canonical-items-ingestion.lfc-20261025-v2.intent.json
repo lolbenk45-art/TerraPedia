@@ -1,0 +1,269 @@
+{
+  "schemaVersion": "items-canonical-v2-intent/v1",
+  "operationId": "automation-items-l1",
+  "domainId": "items",
+  "targetVersionContext": "1.4.5.8",
+  "executable": true,
+  "executionBlocker": null,
+  "writeTimestamp": "2026-10-25T15:10:12.072Z",
+  "source": {
+    "probeSnapshot": {
+      "path": "reports/runtime/source-probe-snapshots/2026-10-25T09-02-07.554Z/wiki.module.iteminfo.json",
+      "snapshotHash": "sha256:4ac943ba24b47f6e86b7363cdbde228de3bc7be22b5fe6e426471436133e91ec",
+      "probeStateHash": "sha256:a3f93b20dc34ca23efa1503f797e3a0f7aec3c04c2761eb4550209568d21013e",
+      "contentHash": "df8a7219d4c32501080890e1750a8bb7cb7f178db3d1e34d35453eac15a4e4a6",
+      "sourceFingerprint": "sha256:df8a7219d4c32501080890e1750a8bb7cb7f178db3d1e34d35453eac15a4e4a6",
+      "checkedAt": "2026-10-25T09:02:07.554Z",
+      "revisionId": null,
+      "revisionTimestamp": "2026-08-22T03:26:22Z",
+      "metadataOnly": false
+    },
+    "executorSnapshot": {
+      "path": ".local/tmp/items-v2-diff-probe-source.json",
+      "sha256": "sha256:6c2c482791628fa381636d0334eb9eab977c0bd567a29e997ebcc17d7c2e2a4d"
+    },
+    "sourceFingerprint": "sha256:df8a7219d4c32501080890e1750a8bb7cb7f178db3d1e34d35453eac15a4e4a6"
+  },
+  "policy": {
+    "version": 3,
+    "hash": "sha256:cfb06806d70503d3366b334ecb6896aa7d530494a08859e896a72a9aa034a564",
+    "policySetHash": "sha256:91febed0cc2117a34358f574def1bdead62658313acc97c7dc3edf3e0cc4abd4",
+    "ownedTables": [
+      {
+        "table": "items",
+        "fieldGroup": "all_columns",
+        "databaseRole": "local"
+      },
+      {
+        "table": "source_dataset_landings",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:cf8c6f1dcd42850bc89920e0de1a524a381edcb3827cd72df241ae42dfe958f1"
+      },
+      {
+        "table": "category",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:fd54b45e855e44006a692912a6b099c96b69eed2d8ec2e8e521cc81ca5ec11ab"
+      },
+      {
+        "table": "item_images",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:c43cdb19680be4bef15147f871998945c519c75f59dfb85140c164636d33ba03"
+      },
+      {
+        "table": "item_acquisition_sources",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:6289debe36fbdb8d3a319c7b0e56721b1524ab56b307ba4f8cf6390507e3e733"
+      },
+      {
+        "table": "recipes",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:195bc1fe419752be61446bbbd5ee5a8f124ebdd8b8b9d5c2ece07a5f86739f96"
+      },
+      {
+        "table": "recipe_ingredients",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:40e8ea303555f6e9dbf4b3efb06354f0b4fe5a0c701b2c9eb70f68181c0ea4e6"
+      },
+      {
+        "table": "recipe_stations",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:9d075ec012319963f1cf4854c8cba4fda11e63b2527e19574e2dbaed22b4647f"
+      },
+      {
+        "table": "item_biomes",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:4a7a03906d86cc1401f542e0c7d0e48699c9aec6e319560f2173d93a57097a94"
+      },
+      {
+        "table": "biome_resources",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "local",
+        "logicalPredicateHash": "sha256:423072595737cd8477610edab02c752cee49715aea731a06f700c4aecb9d3b90"
+      },
+      {
+        "table": "maint_items",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "maint",
+        "logicalPredicateHash": "sha256:49430c97b12ae93b3cf369c96469609edd512eef5d4979189dbc30d2614eb5f8"
+      },
+      {
+        "table": "maint_item_categories",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "maint",
+        "logicalPredicateHash": "sha256:5acf025f67980012a385116dc97a8d5734900f0f6720e2c53190cd5237d538a8"
+      },
+      {
+        "table": "maint_item_images",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "maint",
+        "logicalPredicateHash": "sha256:c589c8bf132d924496309c87ef5723490d12b0be6aac5a0d49b2334bf02a0a61"
+      },
+      {
+        "table": "maint_item_recipes",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "maint",
+        "logicalPredicateHash": "sha256:3d85103025f6145a63ceb750fade3d8063354c76f8fb14d5ca079129a2054ca1"
+      },
+      {
+        "table": "maint_item_sources",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "maint",
+        "logicalPredicateHash": "sha256:0f834305f861ff6560d7175ddb98c3ad850017471bba6a37568b31d50f62cc07"
+      },
+      {
+        "table": "maint_item_biomes",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "maint",
+        "logicalPredicateHash": "sha256:2e2cf4b7d5de75ef33a8ad9f121b4eebecf7c0c496db51286248bc83e7f4bb1f"
+      },
+      {
+        "table": "relation_items",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:6e72f5b78ac2d91cd53b69d0a399c0b87822d3b0a991bc8ebca10fc4dd8e4b37"
+      },
+      {
+        "table": "relation_item_images",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:9003de1f7e8b88b7603430f31de75aaabe43106e4add09543b4d9a1a5d06ce3c"
+      },
+      {
+        "table": "relation_item_rarities",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:90757b38d483aea1455d446b549b280a2a95305db111f0f841eb91e230f1daa5"
+      },
+      {
+        "table": "category_nodes",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:54f1c43af7df0928799f6815998807c0ea73a590d5294e834f9f31d23019e304"
+      },
+      {
+        "table": "item_category_assignments",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:c8d5cd9cc51109cb49dcca43a72a8f2b4bce6f4768daec59351eec8505c28600"
+      },
+      {
+        "table": "item_recipe_heads",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:7872d48d869523cd5368e24134020d8f863f6ac133fe778ed9a972aecc5db3ca"
+      },
+      {
+        "table": "item_recipe_ingredients",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:b278630b3277a41a461e41779f7f5a756e08e6ba431b9437272c0adc964b2488"
+      },
+      {
+        "table": "item_recipe_stations",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:158750890645f89ebe7c75720e2bcfef87546075ee43584204e6bb7e44251db8"
+      },
+      {
+        "table": "item_source_facts",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:0744960d4eb176c87316f2d4d1e27060c6154164ae520a7470ab114c274f391d"
+      },
+      {
+        "table": "item_source_details",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:73235f24d34519326a610aecfbe0fba92f662d0a829a82f1759aa4e74ee35e49"
+      },
+      {
+        "table": "item_npc_shop_relations",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:9690932d35e2ff32d94461ba5091798f6387f62e994a9d17e38fdf8cfd81d638"
+      },
+      {
+        "table": "item_npc_loot_relations",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:ecbe5b59ca01f756e3998ef9a7ced9e20f947a30e0850578f869dabc6ad65c77"
+      },
+      {
+        "table": "item_npc_relation_audits",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:127393e135fb887a9fb9f2d15fe9b576d7c8c6d4309ba629f8d0e4e103366ee6"
+      },
+      {
+        "table": "item_biome_relations",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:4ade1e96abf9c349598c641faa9622eaedaa867a0a48352e696aaee84b035ea4"
+      },
+      {
+        "table": "projection_items",
+        "fieldGroup": "canonical_owned_rows",
+        "databaseRole": "relation",
+        "logicalPredicateHash": "sha256:0712054bebc311534288ff23d592f1ae3c47b3f023babea1eea930fa1a0f16dd"
+      }
+    ]
+  },
+  "executor": {
+    "entrypoint": "pipelines/automation/run-base-domain-automatic-operation.mjs",
+    "adapter": "pipelines/automation/items-canonical-v2-db-executor.mjs",
+    "canonicalV2": true,
+    "stages": [
+      "landing",
+      "maint",
+      "relation",
+      "projection",
+      "local"
+    ],
+    "databaseRoles": [
+      "local",
+      "maint",
+      "relation"
+    ]
+  },
+  "diff": {
+    "producer": "items_canonical_v2_db_executor",
+    "rowCountEvidence": "items_canonical_v2_locked_candidate",
+    "counts": {
+      "entityBaselineCount": 24524,
+      "relationshipBaselineCount": 0,
+      "inserts": 0,
+      "updates": 192,
+      "relationshipDeletes": 0,
+      "softDisables": 0,
+      "hardDeletes": 0
+    },
+    "scopeCount": 31,
+    "scopeHash": "sha256:7a04b24210cc89640b652d6abc47ab73c425082d038985bdcfdb8fa7f7a5f95b",
+    "rowLevelEvidenceHash": "sha256:e6d629bd28a2e162a6ad8e9e9ee9f997c885461ff75c3d97b5fe943332687c2a"
+  },
+  "writePolicy": {
+    "inserts": true,
+    "updates": true,
+    "relationshipDeletes": false,
+    "softDisables": false,
+    "hardDeletes": false,
+    "retirements": false
+  },
+  "readback": {
+    "independent": true,
+    "local": true,
+    "maint": true,
+    "relation": true,
+    "projection": true,
+    "apiParity": true
+  },
+  "fullChainSha256": "sha256:4bfcf0a65c368c67d2da5395f68c7e360617d3baa19fe38798c2238b6909b157"
+}

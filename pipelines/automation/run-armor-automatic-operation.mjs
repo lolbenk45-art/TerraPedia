@@ -31,6 +31,7 @@ import {
 const ACTION_ID = 'domain-source-armor-sets';
 const OPERATION_ID = 'canonical-armor-ingestion';
 const DOMAIN = 'armor_sets';
+const DATABASE_DATETIME_TIME_ZONE = process.env.TERRAPEDIA_DB_TIME_ZONE ?? 'Asia/Shanghai';
 
 /**
  * Execute the scheduler-owned Armor source fetch and its registered canonical
@@ -59,23 +60,35 @@ export async function runArmorAutomaticOperation({
     args['progress-path'] ?? env.TERRAPEDIA_CRAWLER_PROGRESS_PATH
       ?? 'data/generated/domain-source-armor-sets-progress.latest.json',
   );
+  const sourceDispatchIdentity = sourceIdentityFromEnvironment(env);
   const startedAt = now;
   let binding;
   try {
     const bindingPath = env.TERRAPEDIA_ARMOR_AUTOMATIC_BINDING_PATH
-      ?? buildArmorAutomaticBindingPath({ sourceFingerprint: env.TERRAPEDIA_CRAWLER_SOURCE_FINGERPRINT });
+      ?? buildArmorAutomaticBindingPath(sourceDispatchIdentity);
     binding = readBindingImpl({
       repoRoot,
       relativePath: bindingPath,
       now,
       expectedAttemptId: env.TERRAPEDIA_CRAWLER_ATTEMPT_ID,
-      expectedSourceDispatchIdentity: sourceIdentityFromEnvironment(env),
+      expectedSourceDispatchIdentity: sourceDispatchIdentity,
     });
     assertBindingMatchesAttemptImpl(binding, env);
     publishProgressImpl({ repoRoot, progressPath, env,
       status: 'running', phase: 'binding-validated', actionId: ACTION_ID, startedAt });
 
-    const sourceCommand = buildSourceCommand({ repoRoot, commandRoot, progressPath });
+    const frozenProbeState = env.TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH
+      ? readFrozenSourceMonitorState({
+          identity: binding.sourceDispatchIdentity,
+          domain: DOMAIN,
+          repoRoot,
+          sourceStatePath: env.TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH,
+        })
+      : null;
+    const sourceSnapshot = frozenProbeState?.source?.snapshot?.path
+      ? { ...frozenProbeState.source.snapshot, path: frozenProbeState.source.snapshot.path }
+      : null;
+    const sourceCommand = buildSourceCommand({ repoRoot, commandRoot, progressPath, sourceSnapshot });
     const childEnv = {
       ...env,
       WORKTREE_ROOT: env.WORKTREE_ROOT ?? repoRoot,
@@ -124,11 +137,12 @@ export async function runArmorAutomaticOperation({
   }
 }
 
-export function buildSourceCommand({ repoRoot, commandRoot = repoRoot, progressPath }) {
+export function buildSourceCommand({ repoRoot, commandRoot = repoRoot, progressPath, sourceSnapshot = null }) {
   return [
     process.execPath,
     path.join(commandRoot, 'pipelines/fetch/fetch-wiki-armorsetbonuses.mjs'),
     `--progress-path=${progressPath}`,
+    ...(sourceSnapshot?.path ? [`--source-snapshot-path=${sourceSnapshot.path}`] : []),
   ];
 }
 
@@ -258,7 +272,13 @@ export async function acknowledgeArmorSourceAfterFreshActivation({
 function assertActivationMatchesBinding(actual, expected, now) {
   if (!actual || !expected) throw new Error('Armor scheduler activation is missing');
   for (const field of ['decisionIdentity', 'packetHash', 'policySetHash', 'authorizedAt', 'expiresAt']) {
-    if (actual[field] !== expected[field]) {
+    const actualValue = ['authorizedAt', 'expiresAt'].includes(field)
+      ? canonicalActivationTimestamp(actual[field], `database ${field}`)
+      : actual[field];
+    const expectedValue = ['authorizedAt', 'expiresAt'].includes(field)
+      ? canonicalActivationTimestamp(expected[field], `binding ${field}`)
+      : expected[field];
+    if (actualValue !== expectedValue) {
       throw new Error(`Armor scheduler activation ${field} drifted from binding`);
     }
   }
@@ -268,6 +288,50 @@ function assertActivationMatchesBinding(actual, expected, now) {
       || verificationTime >= Date.parse(expected.expiresAt)) {
     throw new Error('Armor scheduler activation is not currently valid');
   }
+}
+
+function canonicalActivationTimestamp(value, label) {
+  if (value instanceof Date) {
+    if (!Number.isFinite(value.getTime())) throw new Error(`Armor scheduler activation ${label} is invalid`);
+    return value.toISOString();
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`Armor scheduler activation ${label} is required`);
+  }
+  const text = value.trim();
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) {
+    const parsed = new Date(text);
+    if (!Number.isFinite(parsed.getTime())) throw new Error(`Armor scheduler activation ${label} is invalid`);
+    return parsed.toISOString();
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/.exec(text);
+  if (!match) throw new Error(`Armor scheduler activation ${label} must be an ISO timestamp or MySQL DATETIME`);
+  const [year, month, day, hour, minute, second] = match.slice(1).map(Number);
+  const wallTime = Date.UTC(year, month - 1, day, hour, minute, second);
+  const wallDate = new Date(wallTime);
+  if (wallDate.getUTCFullYear() !== year || wallDate.getUTCMonth() !== month - 1
+      || wallDate.getUTCDate() !== day || wallDate.getUTCHours() !== hour
+      || wallDate.getUTCMinutes() !== minute || wallDate.getUTCSeconds() !== second) {
+    throw new Error(`Armor scheduler activation ${label} is invalid`);
+  }
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DATABASE_DATETIME_TIME_ZONE,
+    calendar: 'iso8601',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  });
+  let utcTime = wallTime;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(utcTime))
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]));
+    const representedWallTime = Date.UTC(
+      Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+      Number(parts.hour), Number(parts.minute), Number(parts.second),
+    );
+    utcTime += wallTime - representedWallTime;
+  }
+  return new Date(utcTime).toISOString();
 }
 
 function readPrivateJson(repoRoot, relativePath, expectedHash) {

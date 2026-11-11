@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -56,7 +57,7 @@ moduleUrl.searchParams.set('formatversion', '2');
 moduleUrl.searchParams.set('format', 'json');
 
 try {
-  const payload = await fetchWikiApiJson({
+  const payload = loadSourceSnapshot(options['source-snapshot-path']) ?? await fetchWikiApiJson({
     url: moduleUrl,
     profile: 'revision',
     sourceKey: 'Module:ArmorSetBonuses'
@@ -181,6 +182,42 @@ try {
   throw error;
 } finally {
   progressHeartbeat.stop();
+}
+
+function loadSourceSnapshot(sourceSnapshotPath) {
+  if (sourceSnapshotPath == null || String(sourceSnapshotPath).trim() === '') return null;
+  const filePath = path.resolve(String(sourceSnapshotPath));
+  const stat = fs.lstatSync(filePath);
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('armor source snapshot must be an ordinary file');
+  const snapshot = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  const payload = snapshot?.payload ?? snapshot;
+  if (!payload || typeof payload !== 'object' || typeof payload.moduleContent !== 'string' || !payload.moduleContent.trim()) {
+    throw new Error('armor source snapshot is missing moduleContent');
+  }
+  if (payload.moduleTitle && payload.moduleTitle !== 'Module:ArmorSetBonuses') {
+    throw new Error('armor source snapshot title mismatch');
+  }
+  if (payload.query?.pages?.[0]?.revisions?.[0]) return payload;
+  const revisionId = Number(payload.revisionId ?? snapshot.revisionId);
+  const revisionTimestamp = payload.revisionTimestamp ?? payload.sourceRevisionTimestamp ?? snapshot.revisionTimestamp;
+  const pageId = Number(payload.pageId ?? snapshot.pageId);
+  if (!Number.isSafeInteger(revisionId) || revisionId < 1
+      || typeof revisionTimestamp !== 'string' || !Number.isFinite(Date.parse(revisionTimestamp))) {
+    throw new Error('armor source snapshot requires an exact revision ID and timestamp');
+  }
+  return {
+    query: {
+      pages: [{
+        pageid: Number.isSafeInteger(pageId) && pageId > 0 ? pageId : null,
+        title: payload.pageTitle ?? payload.moduleTitle ?? 'Module:ArmorSetBonuses',
+        revisions: [{
+          revid: revisionId,
+          timestamp: revisionTimestamp,
+          content: payload.moduleContent,
+        }],
+      }],
+    },
+  };
 }
 
 function writeProgress(progress) {

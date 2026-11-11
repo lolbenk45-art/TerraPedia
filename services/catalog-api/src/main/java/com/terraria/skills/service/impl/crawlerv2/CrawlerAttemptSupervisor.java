@@ -541,7 +541,7 @@ public class CrawlerAttemptSupervisor {
     static List<String> bindIsolatedSourceCommand(List<String> command, IsolatedSourceBinding binding, Path worktreeRoot) {
         if (binding == null) return command;
         String expectedRunner = switch (binding.domain()) {
-            case "items", "npcs", "projectiles", "buffs" -> "run-base-domain-automatic-operation.mjs";
+            case "items", "npcs", "projectiles", "armor_sets", "buffs" -> "run-base-domain-automatic-operation.mjs";
             case "audio", "bosses", "shimmer" -> "run-supplementary-domain-automatic-operation.mjs";
             default -> throw new SecurityException("isolated V2 domain has no isolated automatic runner: " + binding.domain());
         };
@@ -549,16 +549,10 @@ public class CrawlerAttemptSupervisor {
             throw new SecurityException("isolated V2 registered runner differs from the domain contract");
         }
         List<String> bound = new ArrayList<>(command);
-        String manifestArgument = "--manifest-path=" + worktreeRoot.relativize(binding.sourceManifest()).toString().replace('\\', '/');
-        int manifestIndex = -1;
-        for (int index = 0; index < bound.size(); index++) {
-            if (bound.get(index).startsWith("--manifest-path=")) {
-                if (manifestIndex >= 0) throw new SecurityException("registered isolated V2 runner has multiple source manifest arguments");
-                manifestIndex = index;
-            }
-        }
-        if (manifestIndex >= 0) bound.set(manifestIndex, manifestArgument);
-        else bound.add(manifestArgument);
+        String acceptanceArgument = "--manifest-path=" + worktreeRoot.relativize(binding.acceptanceManifest()).toString().replace('\\', '/');
+        String sourceArgument = "--source-manifest-path=" + worktreeRoot.relativize(binding.sourceManifest()).toString().replace('\\', '/');
+        bindUniqueArgument(bound, "--manifest-path=", acceptanceArgument, "acceptance manifest");
+        bindUniqueArgument(bound, "--source-manifest-path=", sourceArgument, "source manifest");
         int sourceModeIndex = -1;
         for (int index = 0; index < bound.size(); index++) {
             if (bound.get(index).startsWith("--source-mode=")) {
@@ -569,6 +563,18 @@ public class CrawlerAttemptSupervisor {
         if (sourceModeIndex >= 0) bound.set(sourceModeIndex, "--source-mode=local");
         else bound.add("--source-mode=local");
         return List.copyOf(bound);
+    }
+
+    private static void bindUniqueArgument(List<String> command, String prefix, String value, String label) {
+        int argumentIndex = -1;
+        for (int index = 0; index < command.size(); index++) {
+            if (command.get(index).startsWith(prefix)) {
+                if (argumentIndex >= 0) throw new SecurityException("isolated V2 runner has multiple " + label + " arguments");
+                argumentIndex = index;
+            }
+        }
+        if (argumentIndex >= 0) command.set(argumentIndex, value);
+        else command.add(value);
     }
 
     private CrawlerQueueV2Attempt mutateProgress(

@@ -18,6 +18,8 @@ import {
   resolveCanonicalOperationTechnicalInput,
   verifyCanonicalAuthorizationPacket,
 } from './build-canonical-cutover-authorization.mjs';
+import * as canonicalAuthorization from './build-canonical-cutover-authorization.mjs';
+import { computePolicySetHash } from './policy-set-hash.mjs';
 import {
   buildCanonicalOperationExecutionManifest,
   writeCanonicalOperationExecutionManifest,
@@ -33,10 +35,115 @@ import {
   recomputeItemImageProjectionPacketHash,
 } from '../relation/item-image-projection-contract.mjs';
 import { buildHistoricalSourceHashDisposition } from './historical-source-hash-disposition.mjs';
+import {
+  ARMOR_CANONICAL_POLICY_OWNER_SCOPES,
+  buildArmorCanonicalFenceCommit,
+  validateArmorCanonicalFenceCommit,
+} from '../relation/armor-canonical-write-fence.mjs';
+import { hashCanonicalServerFingerprint } from './automation-database-contract.mjs';
 
 const HASH = `sha256:${'a'.repeat(64)}`;
 const GENERATED_AT = '2026-07-27T15:00:00.000Z';
 const EXPIRES_AT = '2026-07-28T15:00:00.000Z';
+
+test('authorization validates the exact local Armor fence commit without widening scope', () => {
+  assert.equal(typeof canonicalAuthorization.validateArmorCanonicalFenceCommitForAuthorization, 'function');
+  const fenceCommit = buildArmorCanonicalFenceCommit({
+    runId: 'armor-auth-fence-01',
+    expiresAt: '2030-10-27T10:00:00Z',
+    generations: ARMOR_CANONICAL_POLICY_OWNER_SCOPES
+      .map((scope, index) => ({ ...scope, generation: index, schemaHash: HASH })),
+    tokenFactory: (() => { let index = 0; return () => `fence:${String(++index).padStart(64, '0')}`; })(),
+    markerFactory: (() => { let index = 0; return () => String(++index).padStart(64, '0'); })(),
+  });
+  assert.equal(validateArmorCanonicalFenceCommit(fenceCommit, { runId: 'armor-auth-fence-01' }), true);
+  assert.equal(canonicalAuthorization.validateArmorCanonicalFenceCommitForAuthorization(fenceCommit, { runId: 'armor-auth-fence-01' }), true);
+
+  const missingScope = structuredClone(fenceCommit);
+  missingScope.bindings.pop();
+  assert.throws(() => canonicalAuthorization.validateArmorCanonicalFenceCommitForAuthorization(missingScope), /identity|scope|coverage/i);
+
+  const foreignScope = structuredClone(fenceCommit);
+  foreignScope.bindings[0].table = 'foreign_table';
+  assert.throws(() => canonicalAuthorization.validateArmorCanonicalFenceCommitForAuthorization(foreignScope), /foreign|scope|marker/i);
+
+  const expiryDrift = structuredClone(fenceCommit);
+  expiryDrift.bindings[0].expiresAt = '2030-10-27T11:00:00.000Z';
+  assert.throws(() => canonicalAuthorization.validateArmorCanonicalFenceCommitForAuthorization(expiryDrift), /identity|marker/i);
+});
+
+test('Armor canonical authorization rejects a missing or null local projection before packet creation', () => {
+  let tokenIndex = 0;
+  let markerIndex = 0;
+  const fenceCommit = buildArmorCanonicalFenceCommit({
+    runId: 'armor-auth-projection-01',
+    expiresAt: EXPIRES_AT,
+    generations: ARMOR_CANONICAL_POLICY_OWNER_SCOPES.map((scope, index) => ({
+      ...scope,
+      generation: index,
+      schemaHash: HASH,
+    })),
+    tokenFactory: () => `fence:${String(++tokenIndex).padStart(64, '0')}`,
+    markerFactory: () => String(++markerIndex).padStart(64, '0'),
+  });
+  const binding = { runId: fenceCommit.runId, fenceCommit };
+  const validIntent = {
+    localProjection: {
+      schemaVersion: 'armor-canonical-local-projection/v1',
+      candidateSha256: HASH,
+    },
+  };
+
+  assert.equal(canonicalAuthorization.assertArmorCanonicalIntentFenceBinding({ intent: validIntent, binding }), true);
+  for (const intent of [{}, { localProjection: null }]) {
+    assert.throws(() => canonicalAuthorization.assertArmorCanonicalIntentFenceBinding({ intent, binding }), /local projection/i);
+  }
+});
+
+test('Armor canonical authorization request requires packet expiry to match its fence commit', () => {
+  let tokenIndex = 0;
+  let markerIndex = 0;
+  const fenceCommit = buildArmorCanonicalFenceCommit({
+    runId: 'armor-auth-expiry-01',
+    expiresAt: EXPIRES_AT,
+    generations: ARMOR_CANONICAL_POLICY_OWNER_SCOPES.map((scope, index) => ({
+      ...scope,
+      generation: index,
+      schemaHash: HASH,
+    })),
+    tokenFactory: () => `fence:${String(++tokenIndex).padStart(64, '0')}`,
+    markerFactory: () => String(++markerIndex).padStart(64, '0'),
+  });
+  const serverFingerprint = {
+    host: '127.0.0.1',
+    port: 13306,
+    serverUuid: 'armor-auth-expiry-server',
+    databases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+  };
+  const policyRows = [{ domainId: 'armor_sets', policyVersion: 1, policyHash: HASH }];
+  const input = (expiresAt) => ({
+    operationId: 'canonical-armor-ingestion',
+    targetDatabases: ['terria_v1_local', 'terria_v1_maint', 'terria_v1_relation'],
+    serverFingerprint,
+    schemaEntries: [],
+    dataEntries: [],
+    policyRows,
+    executionManifest: {
+      resultLabel: 'armor-expiry-01',
+      armorCanonicalIntent: {
+        serverFingerprint: hashCanonicalServerFingerprint(serverFingerprint),
+        policySetHash: computePolicySetHash(policyRows),
+        runId: fenceCommit.runId,
+        fenceCommit,
+      },
+    },
+    generatedAt: GENERATED_AT,
+    expiresAt,
+  });
+
+  assert.doesNotThrow(() => buildCanonicalAuthorizationRequest(input(EXPIRES_AT)));
+  assert.throws(() => buildCanonicalAuthorizationRequest(input('2026-07-28T14:00:00.000Z')), /fence.*expiry|expiry.*fence/i);
+});
 
 function technicalInput(overrides = {}) {
   return {
@@ -396,6 +503,9 @@ test('operation request builder exposes all governed IDs', () => {
     'automation-audio-l2-reauthorization',
     'automation-bosses-l2-reauthorization',
     'automation-shimmer-l2-reauthorization',
+    'automation-items-l2-scope-amendment',
+    'automation-armor-sets-l2-scope-amendment',
+    'automation-armor-sets-l2-scope-amendment-after-items',
     'automation-biomes-scheduler-activation',
     'automation-crawler-v2-scheduler-activation',
     'automation-crawler-v2-scheduler-reactivation',

@@ -1,5 +1,12 @@
 import { validateArmorCanonicalLandingMaintIntent } from './armor-canonical-landing-maint-intent.mjs';
 import { validateArmorCanonicalIntent } from './armor-canonical-intent.mjs';
+import { validateArmorCanonicalLocalProjectionCandidate } from './armor-canonical-local-projection.mjs';
+import {
+  ARMOR_CANONICAL_POLICY_OWNER_SCOPES,
+  armorCanonicalMutationGenerationScopeHash,
+  assertArmorCanonicalFenceBindingCoverage,
+  validateArmorCanonicalFenceCommit,
+} from './armor-canonical-write-fence.mjs';
 
 export const ARMOR_CANONICAL_TRANSACTION_SCHEMA = 'armor-canonical-transaction/v1';
 export const ARMOR_CANONICAL_TRANSACTION_OPERATION_ID = 'canonical-armor-ingestion';
@@ -11,6 +18,8 @@ export const ARMOR_CANONICAL_DATABASES = Object.freeze({
 });
 const TABLES = new Set([
   'local.source_dataset_landings',
+  'local.armor_sets',
+  'local.armor_set_items',
   'maint.maint_armor_sets',
   'maint.maint_armor_set_images',
   'relation.relation_armor_sets',
@@ -166,6 +175,49 @@ function planList(expected) {
   return all;
 }
 
+function localProjectionInsertPlans(expected) {
+  const local = expected.localProjection;
+  if (!local) return [];
+  const plans = [];
+  const insertedParentKeys = new Set((local.parentChanges?.inserts ?? []).map(row => text(row.source_key, 'Armor local parent source_key')));
+  for (const row of local.parentChanges?.inserts ?? []) {
+    plans.push({
+      databaseRole: 'local', table: 'armor_sets', logicalKey: text(row.source_key, 'Armor local parent source_key'),
+      primaryKeyColumn: 'id', generatedColumns: ['id', 'created_at', 'updated_at'],
+      nonGeneratedFields: row, references: [],
+    });
+  }
+  for (const candidate of local.itemChanges?.inserts ?? []) {
+    const row = candidate?.row;
+    const references = [];
+    let logicalKey;
+    if (Number.isSafeInteger(Number(row?.armor_set_id)) && Number(row.armor_set_id) > 0) {
+      logicalKey = [row.armor_set_id, row.set_variant_index, row.part_index].join('|');
+    } else {
+      const sourceKey = text(candidate?.sourceKey, 'Armor local inserted member parent source_key');
+      if (!insertedParentKeys.has(sourceKey)) throw new Error(`Armor local member insert has no declared parent insert: ${sourceKey}`);
+      logicalKey = [sourceKey, row.set_variant_index, row.part_index].join('|');
+      references.push({ column: 'armor_set_id', target: `local.armor_sets|${sourceKey}` });
+    }
+    const nonGeneratedFields = { ...row };
+    if (references.length > 0) delete nonGeneratedFields.armor_set_id;
+    plans.push({
+      databaseRole: 'local', table: 'armor_set_items',
+      logicalKey,
+      primaryKeyColumn: 'id', generatedColumns: ['id', 'created_at', 'updated_at'],
+      nonGeneratedFields, references,
+    });
+  }
+  return plans;
+}
+
+function localProjectionCommitPlanCount(expected) {
+  return (expected.localProjection?.parentChanges?.inserts?.length ?? 0)
+    + (expected.localProjection?.parentChanges?.updates?.length ?? 0)
+    + (expected.localProjection?.itemChanges?.inserts?.length ?? 0)
+    + (expected.localProjection?.itemChanges?.updates?.length ?? 0);
+}
+
 function validateEnvelope(expected, validateContracts, allowPartial) {
   plain(expected, 'Armor transaction expected intents');
   plain(expected.landingMaintIntent, 'Armor landing/maint intent');
@@ -178,7 +230,8 @@ function validateEnvelope(expected, validateContracts, allowPartial) {
     throw new Error('Armor relation insert plans are required');
   }
   if (!expected.relationIntent && !allowPartial) throw new Error('Armor relation intent is required for the full-chain executor');
-  return planList(expected);
+  if (!allowPartial) validateArmorCanonicalLocalProjectionCandidate(expected.localProjection);
+  return [...planList(expected), ...localProjectionInsertPlans(expected)];
 }
 
 function validatePacket(packet) {
@@ -189,6 +242,13 @@ function validatePacket(packet) {
   text(packet.actor, 'Armor transaction actor');
   text(packet.serverUuid, 'Armor transaction serverUuid');
   text(packet.fenceToken, 'Armor transaction fenceToken');
+  if (packet.fenceCommit?.bindings != null) {
+    validateArmorCanonicalFenceCommit(packet.fenceCommit, { runId: packet.runId, environmentId: 'local' });
+    if (packet.fenceToken !== packet.fenceCommit.bindings[0]?.fenceToken
+        || packet.authorizationExpiresAt !== packet.fenceCommit.expiresAt) {
+      throw new Error('Armor transaction top-level fence token/expiry drifted from scope bindings');
+    }
+  }
 }
 
 function logicalWhere(plan) {
@@ -199,6 +259,14 @@ function logicalWhere(plan) {
       values: ['dataset_type', 'provider', 'source_key', 'source_page'].map(column => fields[column]),
     };
   }
+  if (plan.table === 'armor_sets') return { columns: ['source_key'], values: [fields.source_key ?? plan.logicalKey] };
+  if (plan.table === 'armor_set_items') {
+    return {
+      columns: ['armor_set_id', 'set_variant_index', 'part_index'],
+      values: ['armor_set_id', 'set_variant_index', 'part_index'].map(column => fields[column]),
+    };
+  }
+  if (plan.table === 'armor_sets') return { columns: ['source_key'], values: [fields.source_key ?? plan.logicalKey] };
   const key = plan.table === 'projection_armor_sets' ? 'text_key' : 'record_key';
   return { columns: [key], values: [fields[key] ?? plan.logicalKey] };
 }
@@ -220,8 +288,11 @@ function updatePlanList(expected) {
       if (!change?.before || !change?.after || !Number.isSafeInteger(change.after.id) || change.after.id < 1) {
         throw new Error(`Armor ${role}.${table} update identity is invalid`);
       }
-      const keyColumn = table === 'projection_armor_sets' ? 'text_key' : 'record_key';
-      const logicalKey = change.after[keyColumn];
+      const keyColumns = table === 'projection_armor_sets' ? ['text_key']
+        : table === 'armor_sets' ? ['source_key']
+          : table === 'armor_set_items' ? ['armor_set_id', 'set_variant_index', 'part_index']
+            : ['record_key'];
+      const logicalKey = keyColumns.map(column => String(change.after[column] ?? '')).join('|');
       text(logicalKey, `Armor ${role}.${table} update logical key`);
       result.push({ databaseRole: role, table, logicalKey, nonGeneratedFields: change.after, before: change.before, after: change.after });
     }
@@ -235,6 +306,18 @@ function updatePlanList(expected) {
   add('relation', 'relation_armor_set_items', relation.relation_armor_set_items);
   add('relation', 'relation_armor_set_images', relation.relation_armor_set_images);
   add('relation', 'projection_armor_sets', candidate.changes?.projection_armor_sets);
+  const local = expected.localProjection ?? {};
+  for (const change of local.parentChanges?.updates ?? []) {
+    result.push({ databaseRole: 'local', table: 'armor_sets', logicalKey: change.after.source_key, ...change });
+  }
+  for (const change of local.itemChanges?.updates ?? []) {
+    result.push({
+      databaseRole: 'local', table: 'armor_set_items',
+      logicalKey: [change.after.armor_set_id, change.after.set_variant_index, change.after.part_index].join('|'),
+      nonGeneratedFields: change.after,
+      ...change,
+    });
+  }
   return result;
 }
 
@@ -250,6 +333,11 @@ function demotionList(expected) {
 
 function existingReferenceIds(expected) {
   const result = new Map();
+  for (const row of expected.localProjection?.expectedRows?.armor_sets ?? []) {
+    if (Number.isSafeInteger(Number(row?.id)) && Number(row.id) > 0 && typeof row.source_key === 'string') {
+      result.set(`local.armor_sets|${row.source_key}`, Number(row.id));
+    }
+  }
   const rows = expected.relationIntent?.candidateSnapshot?.relationCandidate?.expectedRows ?? {};
   for (const table of ['relation_armor_sets', 'relation_armor_set_items', 'relation_armor_set_images']) {
     for (const row of rows[table] ?? []) {
@@ -266,15 +354,137 @@ async function query(connection, sql, params = []) {
   return connection.query(sql, params);
 }
 
+export async function captureArmorCanonicalFenceCommit({
+  connection,
+  runId,
+  expiresAt,
+  environmentId = 'local',
+  ownerScopes = ARMOR_CANONICAL_POLICY_OWNER_SCOPES,
+  databaseName = ARMOR_CANONICAL_DATABASES.local,
+  tokenFactory,
+  markerFactory,
+} = {}) {
+  if (!connection || typeof connection.query !== 'function') throw new Error('Armor fence capture connection is required');
+  const database = quote(databaseName, 'Armor fence database');
+  const generations = [];
+  for (const scope of ownerScopes) {
+    const mutationGenerationScopeHash = armorCanonicalMutationGenerationScopeHash(scope);
+    const [generationRows] = await query(connection,
+      `SELECT generation, schema_hash FROM ${database}.crawler_automation_mutation_generation`
+        + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND scope_key_hash = ?',
+      [environmentId, scope.databaseRole, scope.table, mutationGenerationScopeHash]);
+    if (generationRows?.length > 1) throw new Error(`Armor mutation generation scope is duplicated: ${scope.databaseRole}.${scope.table}`);
+    const generation = generationRows?.length === 1 ? Number(generationRows[0].generation) : 0;
+    const schemaHash = generationRows?.length === 1 ? generationRows[0].schema_hash : hashJson({
+      schemaVersion: 1, databaseRole: scope.databaseRole, table: scope.table,
+    });
+    if (!Number.isSafeInteger(generation) || generation < 0 || !HASH.test(schemaHash ?? '')) {
+      throw new Error(`Armor mutation generation baseline is invalid: ${scope.databaseRole}.${scope.table}`);
+    }
+    const [fenceRows] = await query(connection,
+      `SELECT latest_run_id, fence_token, expires_at, (expires_at > CURRENT_TIMESTAMP) AS active FROM ${database}.crawler_automation_write_fence`
+        + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND field_group = ? AND logical_predicate_hash = ?',
+      [environmentId, scope.databaseRole, scope.table, scope.fieldGroup, scope.logicalPredicateHash]);
+    if (fenceRows?.length > 1 || fenceRows?.some(row => Number(row.active) === 1)) {
+      throw new Error(`Armor owner scope already has an active writer: ${scope.databaseRole}.${scope.table}`);
+    }
+    generations.push({ ...scope, generation, schemaHash });
+  }
+  return buildArmorCanonicalFenceCommit({
+    runId, expiresAt, environmentId, ownerScopes, generations, tokenFactory, markerFactory,
+  });
+}
+
 async function lockRuntime(connection, packet, databases) {
   const [servers] = await query(connection, 'SELECT @@server_uuid AS serverUuid, @@port AS serverPort, DATABASE() AS databaseName');
   if (servers?.length !== 1 || servers[0].serverUuid !== packet.serverUuid) throw new Error('Armor transaction server identity drifted');
   const [owners] = await query(connection, `SELECT username, status FROM ${quote(databases.local, 'database')}.crawler_automation_owner WHERE singleton_key = 1 FOR UPDATE`);
   if (owners?.length !== 1 || owners[0].username !== packet.actor || owners[0].status !== 'ACTIVE') throw new Error('Armor transaction Owner is not active');
+  if (Array.isArray(packet.fenceCommit?.bindings)) {
+    if (packet.fenceCommit.schemaVersion !== 'armor-canonical-write-fence-commit/v1'
+        || packet.fenceCommit.runId !== packet.runId || packet.fenceCommit.environmentId !== 'local'
+        || packet.fenceCommit.expiresAt !== packet.authorizationExpiresAt
+        || Date.parse(packet.fenceCommit.expiresAt) <= Date.now()
+        || packet.fenceCommit.bindings.length !== ARMOR_CANONICAL_POLICY_OWNER_SCOPES.length
+        || packet.fenceCommit.bindings[0]?.fenceToken !== packet.fenceToken) {
+      throw new Error('Armor transaction scope fence commit identity is invalid');
+    }
+    assertArmorCanonicalFenceBindingCoverage({ ownerScopes: ARMOR_CANONICAL_POLICY_OWNER_SCOPES, writeFences: packet.fenceCommit.bindings });
+    if (packet.authorizationExpiresAt != null && Date.parse(packet.authorizationExpiresAt) <= Date.now()) {
+      throw new Error('Armor transaction authorization expired before owner-scope fence validation');
+    }
+    for (const binding of packet.fenceCommit.bindings) {
+      const key = `${binding.databaseRole}.${binding.table}|${binding.fieldGroup}|${binding.logicalPredicateHash}`;
+      if (binding.runId !== packet.runId || binding.environmentId !== 'local'
+          || Number(binding.committedGeneration) !== Number(binding.beforeGeneration) + 1) {
+        throw new Error(`Armor transaction scope fence binding identity drifted: ${key}`);
+      }
+      const [fences] = await query(connection,
+        `SELECT environment_id, database_role, physical_table, field_group, logical_predicate_hash, latest_run_id, fence_token, before_generation, committed_generation, commit_marker, expires_at, (expires_at > CURRENT_TIMESTAMP) AS active`
+          + ` FROM ${quote(databases.local, 'database')}.crawler_automation_write_fence WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND field_group = ? AND logical_predicate_hash = ? FOR UPDATE`,
+        [binding.environmentId, binding.databaseRole, binding.table, binding.fieldGroup, binding.logicalPredicateHash]);
+      const row = fences?.length === 1 ? fences[0] : null;
+      if (fences?.length > 1) throw new Error(`Armor transaction owner-scope fence identity is duplicated: ${key}`);
+      if (row && Number(row.active) === 1) {
+        throw new Error(`Armor transaction owner-scope fence is held by an active writer: ${key}`);
+      }
+      const [generationRows] = await query(connection,
+        `SELECT generation, last_writer_run_id, schema_hash FROM ${quote(databases.local, 'database')}.crawler_automation_mutation_generation`
+          + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND scope_key_hash = ? FOR UPDATE',
+        [binding.environmentId, binding.databaseRole, binding.table, binding.mutationGenerationScopeHash]);
+      if (generationRows?.length > 1 || generationRows?.length === 1
+          && (Number(generationRows[0].generation) !== Number(binding.beforeGeneration)
+            || generationRows[0].schema_hash !== binding.generationSchemaHash)
+          || generationRows?.length === 0 && Number(binding.beforeGeneration) !== 0) {
+        throw new Error(`Armor transaction mutation generation drifted: ${key}`);
+      }
+    }
+    return;
+  }
   const [fences] = await query(connection, `SELECT latest_run_id, fence_token, (expires_at > CURRENT_TIMESTAMP) AS active FROM ${quote(databases.local, 'database')}.crawler_automation_write_fence FOR UPDATE`);
   const active = (fences ?? []).filter(row => Number(row.active) === 1);
   if (active.length !== 1 || active[0].latest_run_id !== packet.runId || active[0].fence_token !== packet.fenceToken) {
     throw new Error('Armor transaction ownership fence is missing, foreign or expired');
+  }
+}
+
+async function reserveArmorScopeFences(connection, packet, databases) {
+  if (!Array.isArray(packet.fenceCommit?.bindings)) return;
+  for (const binding of packet.fenceCommit.bindings) {
+    await query(connection,
+      `INSERT IGNORE INTO ${quote(databases.local, 'database')}.crawler_automation_mutation_generation`
+        + ' (environment_id, database_role, physical_table, scope_key_hash, generation, schema_hash)'
+        + ' VALUES (?, ?, ?, ?, 0, ?)',
+      [binding.environmentId, binding.databaseRole, binding.table, binding.mutationGenerationScopeHash, binding.generationSchemaHash]);
+    const [generationRows] = await query(connection,
+      `SELECT generation, schema_hash FROM ${quote(databases.local, 'database')}.crawler_automation_mutation_generation`
+        + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND scope_key_hash = ? FOR UPDATE',
+      [binding.environmentId, binding.databaseRole, binding.table, binding.mutationGenerationScopeHash]);
+    if (generationRows?.length !== 1 || Number(generationRows[0].generation) !== Number(binding.beforeGeneration)
+        || generationRows[0].schema_hash !== binding.generationSchemaHash) {
+      throw new Error(`Armor transaction mutation generation changed while reserving scope: ${binding.databaseRole}.${binding.table}`);
+    }
+    const [result] = await query(connection,
+      `INSERT INTO ${quote(databases.local, 'database')}.crawler_automation_write_fence`
+        + ' (environment_id, database_role, physical_table, field_group, logical_predicate_hash, latest_run_id, fence_token, before_generation, expires_at, version)'
+        + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
+        + ' ON DUPLICATE KEY UPDATE latest_run_id = VALUES(latest_run_id), fence_token = VALUES(fence_token),'
+        + ' before_generation = VALUES(before_generation), committed_generation = NULL, commit_marker = NULL,'
+        + ' expires_at = VALUES(expires_at), version = version + 1',
+      [binding.environmentId, binding.databaseRole, binding.table, binding.fieldGroup, binding.logicalPredicateHash,
+        packet.runId, binding.fenceToken, binding.beforeGeneration, mysqlTimestamp(binding.expiresAt)]);
+    if (![0, 1, 2].includes(Number(result?.affectedRows))) {
+      throw new Error(`Armor transaction owner-scope fence reservation was not exact: ${binding.databaseRole}.${binding.table}`);
+    }
+    const [rows] = await query(connection,
+      `SELECT latest_run_id, fence_token, before_generation, expires_at, (expires_at > CURRENT_TIMESTAMP) AS active`
+        + ` FROM ${quote(databases.local, 'database')}.crawler_automation_write_fence`
+        + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND field_group = ? AND logical_predicate_hash = ? FOR UPDATE',
+      [binding.environmentId, binding.databaseRole, binding.table, binding.fieldGroup, binding.logicalPredicateHash]);
+    if (rows?.length !== 1 || rows[0].latest_run_id !== packet.runId || rows[0].fence_token !== binding.fenceToken
+        || Number(rows[0].before_generation) !== Number(binding.beforeGeneration) || Number(rows[0].active) !== 1) {
+      throw new Error(`Armor transaction owner-scope fence reservation readback failed: ${binding.databaseRole}.${binding.table}`);
+    }
   }
 }
 
@@ -288,7 +498,11 @@ async function lockLandingCollationIdentities(connection, expected, databases) {
 }
 
 function insertOrder(plan) {
-  return { local: 0, maint: 1, relation: plan.table === 'projection_armor_sets' ? 3 : 2 }[plan.databaseRole];
+  if (plan.databaseRole === 'local') {
+    return { source_dataset_landings: 0, armor_sets: 1, armor_set_items: 2 }[plan.table] ?? 1;
+  }
+  if (plan.databaseRole === 'maint') return 3;
+  return plan.table === 'projection_armor_sets' ? 5 : 4;
 }
 
 function resolveReference(reference, receipts, existingIds) {
@@ -372,6 +586,10 @@ export async function executeArmorCanonicalTransaction({
   validatePacket(packet);
   const insertPlans = validateEnvelope(expected, validateContracts, allowPartial).sort((left, right) => insertOrder(left) - insertOrder(right));
   if (!allowPartial && !packet.fenceCommit) throw new Error('Armor transaction fence commit marker is required for the full-chain executor');
+  if ((!allowPartial || localProjectionCommitPlanCount(expected) > 0)
+      && !Array.isArray(packet.fenceCommit?.bindings)) {
+    throw new Error('Armor canonical full-chain requires complete owner-scope fence bindings');
+  }
   if (expected.relationIntent && expected.relationIntent.writeTimestamp
       && expected.relationIntent.writeTimestamp !== expected.landingMaintIntent.writeTimestamp) {
     throw new Error('Armor transaction writeTimestamp drifted between intent layers');
@@ -397,8 +615,26 @@ export async function executeArmorCanonicalTransaction({
       `SELECT * FROM ${quote(databases.local, 'database')}.source_dataset_landings WHERE dataset_type IN (?, ?) ORDER BY id FOR UPDATE`,
       ['armor_sets_raw', 'armor_set_images_raw']);
     lockedRows.set('local.source_dataset_landings|partition:armor', structuredClone(landingRows ?? []));
+    for (const table of ['armor_sets', 'armor_set_items']) {
+      const [rows] = await query(connection,
+        `SELECT * FROM ${quote(databases.local, 'database')}.${quote(table, 'table')} ORDER BY id FOR UPDATE`);
+      lockedRows.set(`local.${table}`, structuredClone(rows ?? []));
+    }
     await lockLandingCollationIdentities(connection, expected, databases);
-    for (const plan of [...insertPlans, ...updatePlanList(expected)]) {
+    const updatePlans = updatePlanList(expected);
+    for (const plan of [...insertPlans, ...updatePlans]) {
+      if (plan.databaseRole === 'local' && plan.table === 'armor_set_items'
+          && plan.references?.some(reference => reference.column === 'armor_set_id')) {
+        const parentReference = plan.references.find(reference => reference.column === 'armor_set_id');
+        if (!insertPlans.some(parentPlan => planIdentity(parentPlan) === parentReference.target
+            && parentPlan.databaseRole === 'local' && parentPlan.table === 'armor_sets')) {
+          throw new Error(`Armor local member parent insert reference is not declared: ${parentReference.target}`);
+        }
+        // The full armor_set_items baseline and its owner-scope fence are
+        // already locked. Its generated parent ID does not exist until the
+        // parent insert plan materializes earlier in this same transaction.
+        continue;
+      }
       const lock = identityQuery(plan, databases);
       const [rows] = await query(connection, lock.sql, lock.params);
       lockedRows.set(planIdentity(plan), structuredClone(rows ?? []));
@@ -410,11 +646,13 @@ export async function executeArmorCanonicalTransaction({
     }
     const locked = await deriveLocked({ connection, packet, existingIds: new Map(existingIds), lockedRows: new Map(lockedRows) });
     if (!locked?.landingMaintIntent || locked.landingMaintIntent.intentSha256 !== expected.landingMaintIntent.intentSha256
-      || expected.relationIntent && locked.relationIntent?.intentSha256 !== expected.relationIntent.intentSha256) {
+      || expected.relationIntent && locked.relationIntent?.intentSha256 !== expected.relationIntent.intentSha256
+      || expected.localProjection?.candidateSha256 !== locked.localProjection?.candidateSha256) {
       throw new Error('Armor transaction locked rederivation drifted from packet intent');
     }
     await journal.prepared({ packet, expected, locked });
     journalPrepared = true;
+    await reserveArmorScopeFences(connection, packet, databases);
     for (const demotion of demotionList(expected)) {
       const [result] = await query(connection, `UPDATE ${quote(databases.local, 'database')}.source_dataset_landings SET is_current = 0, updated_at = ? WHERE id = ?`, [mysqlTimestamp(writeTimestamp), demotion.id]);
       if (result?.affectedRows !== 1) throw new Error(`Armor landing demotion affectedRows is not one: ${demotion.id}`);
@@ -424,7 +662,7 @@ export async function executeArmorCanonicalTransaction({
       receipts.set(planIdentity(plan), receipt);
     }
     for (const [identity, receipt] of receipts) existingIds.set(identity, receipt.insertId);
-    for (const change of updatePlanList(expected)) {
+    for (const change of updatePlans) {
       await applyUpdate(connection, change, writeTimestamp, strictReadback, databases);
     }
     const verifiedIdMap = Object.fromEntries([...receipts].map(([identity, receipt]) => [identity, receipt.insertId]));
@@ -432,10 +670,38 @@ export async function executeArmorCanonicalTransaction({
       const generation = Number(packet.fenceCommit.generation);
       const marker = text(packet.fenceCommit.marker, 'Armor transaction fence commit marker');
       if (!Number.isSafeInteger(generation) || generation < 1) throw new Error('Armor transaction fence commit generation is invalid');
-      const [fenceResult] = await query(connection,
-        `UPDATE ${quote(databases.local, 'database')}.crawler_automation_write_fence SET committed_generation = ?, commit_marker = ? WHERE fence_token = ? AND latest_run_id = ?`,
-        [generation, marker, packet.fenceToken, packet.runId]);
-      if (fenceResult?.affectedRows !== 1) throw new Error('Armor transaction fence commit was not exact');
+      if (Array.isArray(packet.fenceCommit.bindings)) {
+        if (packet.fenceCommit.bindings.length === 0) throw new Error('Armor transaction scope fence bindings are empty');
+        const seen = new Set();
+        for (const binding of packet.fenceCommit.bindings) {
+          const key = `${binding.databaseRole}.${binding.table}|${binding.fieldGroup}|${binding.logicalPredicateHash}`;
+          if (seen.has(key) || !TABLES.has(`${binding.databaseRole}.${binding.table}`)
+              || binding.runId !== packet.runId || binding.environmentId !== 'local'
+              || Number(binding.committedGeneration) !== Number(binding.beforeGeneration) + 1) {
+            throw new Error('Armor transaction scope fence binding is duplicate or outside scope');
+          }
+          seen.add(key);
+          const [fenceResult] = await query(connection,
+            `UPDATE ${quote(databases.local, 'database')}.crawler_automation_mutation_generation SET generation = ?, last_writer_run_id = ?`
+              + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND scope_key_hash = ? AND generation = ?',
+            [binding.committedGeneration, packet.runId, binding.environmentId, binding.databaseRole, binding.table,
+              binding.mutationGenerationScopeHash, binding.beforeGeneration]);
+          if (fenceResult?.affectedRows !== 1) throw new Error(`Armor transaction mutation generation commit was not exact: ${key}`);
+          const [committedFence] = await query(connection,
+            `UPDATE ${quote(databases.local, 'database')}.crawler_automation_write_fence SET committed_generation = ?, commit_marker = ?`
+              + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND field_group = ?'
+              + ' AND logical_predicate_hash = ? AND fence_token = ? AND latest_run_id = ? AND before_generation = ? AND expires_at > CURRENT_TIMESTAMP',
+            [binding.committedGeneration, binding.commitMarker, binding.environmentId, binding.databaseRole,
+              binding.table, binding.fieldGroup, binding.logicalPredicateHash, binding.fenceToken, packet.runId,
+              binding.beforeGeneration]);
+          if (committedFence?.affectedRows !== 1) throw new Error(`Armor transaction owner-scope fence commit was not exact: ${key}`);
+        }
+      } else {
+        const [fenceResult] = await query(connection,
+          `UPDATE ${quote(databases.local, 'database')}.crawler_automation_write_fence SET committed_generation = ?, commit_marker = ? WHERE fence_token = ? AND latest_run_id = ?`,
+          [generation, marker, packet.fenceToken, packet.runId]);
+        if (fenceResult?.affectedRows !== 1) throw new Error('Armor transaction fence commit was not exact');
+      }
     } else if (!allowPartial) {
       throw new Error('Armor transaction fence commit marker is required for the full-chain executor');
     }

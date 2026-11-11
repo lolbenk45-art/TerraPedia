@@ -6559,7 +6559,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void checksTheConfiguredCanaryScopeForEverySchedulerEligibilityDomain() throws Exception {
+    void checksOnlyTheConfiguredCanaryScopeForSchedulerEligibility() throws Exception {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
@@ -6587,7 +6587,7 @@ class CrawlerMonitorServiceImplTest {
         List<String> reasons = (List<String>) gate.invoke(service, "wiki-items-refresh");
 
         assertEquals(List.of(), reasons);
-        verify(policyService, times(8)).schedulerEligibility(anyString(), eq("wiki-items-refresh"));
+        verify(policyService, times(1)).schedulerEligibility(eq("items"), eq("wiki-items-refresh"));
         verify(policyService, never()).schedulerEligibility(anyString(), isNull());
     }
 
@@ -7073,9 +7073,27 @@ class CrawlerMonitorServiceImplTest {
         writeJson(statePath, state);
         String sourceFingerprint = testSourceFingerprint("wiki.module.armorsetbonuses");
         String sourceContentIdentity = testSourceFingerprint(new ObjectMapper().writeValueAsString(readJson(statePath)));
-        Path bindingPath = repoRoot.resolve(
-            "reports/authorization/canonical/automatic-armor/" + sourceFingerprint.substring("sha256:".length()) + ".binding.json"
-        );
+        Path bindingRoot = repoRoot.resolve("reports/authorization/canonical/automatic-armor");
+        Path staleBindingPath = bindingRoot.resolve(sourceFingerprint.substring("sha256:".length()) + ".binding.json");
+        Map<String, Object> staleBinding = new java.util.LinkedHashMap<>();
+        staleBinding.put("schemaVersion", "armor-automatic-dispatch-binding/v1");
+        staleBinding.put("actionId", "domain-source-armor-sets");
+        staleBinding.put("operationId", "canonical-armor-ingestion");
+        staleBinding.put("attemptId", "attempt-old-armor");
+        staleBinding.put("sourceDispatchIdentity", Map.of(
+            "sourceFingerprint", sourceFingerprint,
+            "sourceRunIdentity", "2026-07-13T00:58:00Z",
+            "sourceContentIdentity", testSourceFingerprint("older-source-state")
+        ));
+        staleBinding.put("expiresAt", "2026-07-13T01:30:00Z");
+        staleBinding.put("activation", Map.of("expiresAt", "2026-07-13T01:30:00Z"));
+        staleBinding.put("consumedAt", null);
+        writeJson(staleBindingPath, staleBinding);
+        Files.setPosixFilePermissions(staleBindingPath, Set.of(
+            PosixFilePermission.OWNER_READ,
+            PosixFilePermission.OWNER_WRITE
+        ));
+        Path bindingPath = armorAutomaticBindingPath(repoRoot, sourceFingerprint, checkedAt, sourceContentIdentity);
         Map<String, Object> binding = new java.util.LinkedHashMap<>();
         binding.put("schemaVersion", "armor-automatic-dispatch-binding/v1");
         binding.put("actionId", "domain-source-armor-sets");
@@ -10890,6 +10908,20 @@ class CrawlerMonitorServiceImplTest {
 
     private static String testSourceFingerprint(String value) {
         return "sha256:" + testContentHash(value);
+    }
+
+    private static Path armorAutomaticBindingPath(
+        Path repoRoot,
+        String sourceFingerprint,
+        String sourceRunIdentity,
+        String sourceContentIdentity
+    ) {
+        String sourceHex = sourceFingerprint.substring("sha256:".length());
+        String dispatchIdentityHash = testSourceFingerprint(sourceRunIdentity + "\n" + sourceContentIdentity)
+            .substring("sha256:".length());
+        return repoRoot.resolve("reports/authorization/canonical/automatic-armor")
+            .resolve(sourceHex)
+            .resolve(dispatchIdentityHash + ".binding.json");
     }
 
     private String sourceCheckTimestamp(CrawlerMonitorServiceImpl.LaunchRequest request) {

@@ -13,6 +13,10 @@ import { runBossImport } from '../import/import-wiki-bosses-to-db.mjs';
 import { runIndependentEntityImport } from '../import/import-independent-entities-to-db.mjs';
 import { runBaseItemsImport } from '../import/import-standardized-to-db.mjs';
 import {
+  buildItemsCanonicalV2Plan,
+  executeItemsCanonicalV2DatabaseImport,
+} from './items-canonical-v2-db-executor.mjs';
+import {
   applyBundleChanges as applyShimmerBundleChanges,
   assertShimmerImportScopeMatchesPreview,
   buildShimmerImportPreview,
@@ -24,6 +28,7 @@ import {
   buildShimmerPartitionBundle,
   SHIMMER_PARTITION_SCOPES,
 } from './shimmer-partition-contract.mjs';
+import { FORMAL_DATABASES } from './automation-database-contract.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import {
   assertRepositoryOrdinaryFile,
@@ -103,7 +108,7 @@ export async function executeSupplementaryL1Operation({
     throw new Error('manual L1 bundle cannot use an automatic authorization context');
   }
   if (bundle.executionMode === 'ACTIVATION_GATED_AUTO') {
-    assertAutomaticScopeCanEnterTransaction(bundle.ownedTables);
+    assertAutomaticScopeCanEnterTransaction(bundle.ownedTables, bundle);
   }
   assertShimmerImporterWriteScope(bundle);
   requireAdapter(adapter);
@@ -136,7 +141,7 @@ export async function executeSupplementaryL1Operation({
       });
     }
     await adapter.persistRunChain(bundle, authorizationContext, automaticGate);
-    importSummary = await adapter.applyFrozenImport(bundle.importPlan, bundle);
+    importSummary = await adapter.applyFrozenImport(bundle.importPlan, bundle, automaticGate);
     assertImportSummaryHealthy(importSummary);
     await adapter.advanceMutationGenerations(bundle);
     if (bundle.reconciliationInput) {
@@ -262,7 +267,8 @@ export async function executeSupplementaryL1Operation({
  * partitions, while rejecting every other scoped claim before a transaction
  * or persistence side effect begins.
  */
-function assertAutomaticScopeCanEnterTransaction(ownedTables) {
+function assertAutomaticScopeCanEnterTransaction(ownedTables, bundle = null) {
+  if (bundle?.domainId === 'items' && bundle.importPlan?.canonicalV2 === true) return;
   for (const scope of ownedTables ?? []) {
     if (scope?.fieldGroup === 'all_columns' && scope?.logicalPredicateHash == null) continue;
     const definition = getVerifiedSharedNpcsScopeDefinition(scope);
@@ -1103,7 +1109,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
     assertUnusedAutomaticReconciliationInputs(root, parsedBundle);
   }
   const bundleFileHash = sha256Bytes(bundleBytes);
-  const state = { applyId: null, approvalId: null };
+  const state = { applyId: null, approvalId: null, itemsCanonicalV2Plan: null };
   return {
     repoRoot: root,
     bundlePath: frozenBundlePath,
@@ -1138,6 +1144,17 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       return current;
     },
     async buildAutomaticL2Diff({ bundle, current, executionTime }) {
+      if (bundle.domainId === 'items' && bundle.importPlan?.canonicalV2 === true) {
+        state.itemsCanonicalV2Plan = await buildItemsCanonicalV2Plan({
+          connection,
+          bundle,
+          repoRoot: root,
+          ownedTables: bundle.ownedTables,
+          current,
+          executionTime,
+        });
+        return state.itemsCanonicalV2Plan.diff;
+      }
       return buildAutomaticL2DiffImpl({
         repoRoot: root,
         connection,
@@ -1270,12 +1287,30 @@ export function createMysqlSupplementaryL1Adapter(connection, {
         );
       }
     },
-    applyFrozenImport: (_plan, bundle) => {
+    applyFrozenImport: (_plan, bundle, automaticGate = null) => {
       if (bundle.importPlan?.automaticAttemptIdentity != null) {
         assertBoundAutomaticProgress(root, frozenBundlePath, frozenProgressPath, bundle);
         assertUnusedAutomaticReconciliationInputs(root, bundle);
       }
-      return applyFrozenDomainImport({ connection, bundle, repoRoot: root });
+      let itemsCanonicalV2Plan = null;
+      if (bundle.domainId === 'items' && bundle.importPlan?.canonicalV2 === true) {
+        if (!state.itemsCanonicalV2Plan || !automaticGate) {
+          throw new Error('Items V2 locked diff plan must be retained through automatic apply');
+        }
+        const gateIdentity = hashJson({
+          counts: automaticGate.counts,
+          scopes: automaticGate.scopes,
+          rowLevelEvidence: automaticGate.rowLevelEvidence,
+        });
+        const planIdentity = hashJson({
+          counts: state.itemsCanonicalV2Plan.diff.counts,
+          scopes: state.itemsCanonicalV2Plan.diff.scopes,
+          rowLevelEvidence: state.itemsCanonicalV2Plan.diff.rowLevelEvidence,
+        });
+        if (gateIdentity !== planIdentity) throw new Error('Items V2 locked diff plan drifted before apply');
+        itemsCanonicalV2Plan = state.itemsCanonicalV2Plan;
+      }
+      return applyFrozenDomainImport({ connection, bundle, repoRoot: root }, { itemsCanonicalV2Plan });
     },
     async advanceMutationGenerations(bundle) {
       for (const generation of bundle.baseline.generations) {
@@ -1407,10 +1442,10 @@ export function createMysqlSupplementaryL1Adapter(connection, {
           expiresAt: fence.expiresAt ?? null,
         });
 
-        const [rows] = await connection.query(
-          `SELECT * FROM \`${expected.table}\` ORDER BY \`id\` FOR UPDATE`,
-        );
-        tableRows[expected.table] = stableValue(rows ?? []);
+        tableRows[expected.table] = stableValue(await readOwnedScopeRows(connection, expected, {
+          lock: true,
+          domainId: bundle.domainId,
+        }));
       }
 
       const [attemptRows] = await connection.query(
@@ -1561,8 +1596,10 @@ export async function readCurrentSupplementaryContext(connection, {
   }
   const tables = {};
   for (const scope of ownedTables) {
-    const [rows] = await connection.query(`SELECT * FROM \`${scope.table}\` ORDER BY \`id\`${suffix}`);
-    tables[scope.table] = rows ?? [];
+    tables[scope.table] = await readOwnedScopeRows(connection, scope, {
+      lock,
+      domainId: bundle.domainId,
+    });
   }
   const dependencyTables = await readCurrentDependencyTables(connection, {
     domainId: bundle.domainId,
@@ -1609,6 +1646,46 @@ export async function readCurrentSupplementaryContext(connection, {
     activationAuthorizedAt: activation?.activationAuthorizedAt ?? null,
     activationExpiresAt: activation?.activationExpiresAt ?? null,
   };
+}
+
+const SOURCE_DATASET_LANDING_OWNER_PREDICATES = Object.freeze({
+  items: Object.freeze({
+    logicalPredicateHash: 'sha256:cf8c6f1dcd42850bc89920e0de1a524a381edcb3827cd72df241ae42dfe958f1',
+    where: '`dataset_type` = ? AND `provider` = ? AND `source_key` = ? AND `source_page` = ?',
+    params: Object.freeze(['items_raw', 'terraria.wiki.gg', 'wiki.module.iteminfo', 'Module:Iteminfo/data']),
+  }),
+  armor_sets: Object.freeze({
+    logicalPredicateHash: 'sha256:999a98a657ffb93635aba470b4eeaf475b72c9dbcb37f1e8621e92ea246c5042',
+    where: '`dataset_type` IN (?, ?, ?, ?) AND `provider` = ?',
+    params: Object.freeze([
+      'armor_attributes_raw', 'armor_item_effects_raw', 'armor_set_images_raw', 'armor_sets_raw',
+      'terraria.wiki.gg',
+    ]),
+  }),
+});
+const OWNED_TABLE_ORDER_COLUMNS = Object.freeze({
+  'relation.item_npc_relation_audits': Object.freeze(['audit_key']),
+});
+
+export async function readOwnedScopeRows(connection, scope, { lock = false, domainId = null } = {}) {
+  const databaseName = FORMAL_DATABASES[scope?.databaseRole];
+  if (!databaseName) throw new Error(`unknown database role for owned table snapshot: ${scope?.databaseRole ?? '<empty>'}`);
+  const table = requireText(scope?.table, 'owned table snapshot table');
+  let ownerPredicate = null;
+  if (table === 'source_dataset_landings' && scope?.fieldGroup === 'canonical_owned_rows') {
+    const domainPredicate = SOURCE_DATASET_LANDING_OWNER_PREDICATES[domainId];
+    if (!domainPredicate || domainPredicate.logicalPredicateHash !== scope.logicalPredicateHash) {
+      throw new Error('source dataset landing snapshot requires a registered domain owner predicate');
+    }
+    ownerPredicate = domainPredicate;
+  }
+  const orderColumns = OWNED_TABLE_ORDER_COLUMNS[`${scope.databaseRole}.${table}`] ?? ['id'];
+  const orderBy = orderColumns.map((column) => quoteIdentifier(column)).join(', ');
+  const sql = `SELECT * FROM ${quoteIdentifier(databaseName)}.${quoteIdentifier(table)}`
+    + (ownerPredicate == null ? '' : ` WHERE ${ownerPredicate.where}`)
+    + ` ORDER BY ${orderBy}${lock ? ' FOR UPDATE' : ''}`;
+  const [rows] = await connection.query(sql, ownerPredicate?.params);
+  return rows ?? [];
 }
 
 async function readCurrentDependencyTables(connection, { domainId, repoRoot, suffix }) {
@@ -1709,7 +1786,7 @@ async function compensateCommittedSupplementaryOperation(connection, bundle, sta
     await verifyCommittedSupplementaryOperation(connection, bundle, { lock: true });
     const restoredTables = [];
     for (const scope of [...bundle.ownedTables].reverse()) {
-      await restoreTableSnapshot(connection, scope.table, state.baselineTables[scope.table]);
+      await restoreTableSnapshot(connection, scope, state.baselineTables[scope.table]);
       restoredTables.push(scope.table);
     }
     for (const expected of bundle.baseline.generations) {
@@ -1919,11 +1996,14 @@ async function markCompensationFailed(connection, bundle) {
   }
 }
 
-async function restoreTableSnapshot(connection, table, baselineRows) {
+async function restoreTableSnapshot(connection, scope, baselineRows) {
+  const databaseName = FORMAL_DATABASES[scope?.databaseRole];
+  if (!databaseName) throw new Error(`unknown database role for automatic compensation: ${scope?.databaseRole ?? '<empty>'}`);
+  const table = requireText(scope?.table, 'automatic compensation table');
   if (!Array.isArray(baselineRows)) {
     throw new Error(`automatic compensation baseline is missing for ${table}`);
   }
-  const quotedTable = quoteIdentifier(table);
+  const quotedTable = `${quoteIdentifier(databaseName)}.${quoteIdentifier(table)}`;
   const [currentRows] = await connection.query(`SELECT * FROM ${quotedTable} ORDER BY \`id\` FOR UPDATE`);
   const baselineById = new Map(baselineRows.map((row) => [String(row?.id), row]));
   for (const row of currentRows ?? []) {
@@ -2052,12 +2132,16 @@ export async function applyFrozenDomainImport({ connection, bundle, repoRoot }, 
   runIndependentEntityImportImpl = runIndependentEntityImport,
   runAudioAssetImportImpl = runAudioAssetImport,
   runBossImportImpl = runBossImport,
+  itemsCanonicalV2Plan = null,
 } = {}) {
   assertShimmerImporterWriteScope(bundle);
   const sourcePath = path.resolve(repoRoot, bundle.source.path);
   const sourceBytes = fs.readFileSync(sourcePath);
   if (sha256Bytes(sourceBytes) !== bundle.source.sha256) throw new Error('frozen source hash drifted before apply');
   const sourcePayload = JSON.parse(sourceBytes.toString('utf8'));
+  if (bundle.domainId === 'items' && bundle.importPlan?.canonicalV2 === true) {
+    return executeItemsCanonicalV2DatabaseImport({ connection, bundle, repoRoot, executionPlan: itemsCanonicalV2Plan });
+  }
   const dependencyTables = bundle?.baseline?.dependencyTables
     && typeof bundle.baseline.dependencyTables === 'object'
     && !Array.isArray(bundle.baseline.dependencyTables)
@@ -2796,8 +2880,18 @@ function resolveCurrentOwnedTables({ bundle, policy, policyJson }) {
     policyJson.ownedTables,
     'policyJson',
   );
-  assertSupplementaryOwnedTables(bundle.domainId, policyScopes);
-  assertSupplementaryOwnedTables(bundle.domainId, requested);
+  const canonicalV2 = bundle.domainId === 'items' && bundle.importPlan?.canonicalV2 === true;
+  assertSupplementaryOwnedTables(bundle.domainId, policyScopes, { canonicalV2 });
+  // The legacy static config intentionally names only the local Items entity;
+  // canonical V2 resolves the authoritative three-database scope from the
+  // current L2 policy row after the policy lock.
+  const legacyItemsPlaceholder = canonicalV2
+    && requested.length === 1
+    && requested[0]?.databaseRole === 'local'
+    && requested[0]?.table === 'items';
+  if (!legacyItemsPlaceholder) {
+    assertSupplementaryOwnedTables(bundle.domainId, requested, { canonicalV2 });
+  }
   const requestedHasScopeMetadata = requested.every((scope) => scope?.fieldGroup != null);
   if (requestedHasScopeMetadata) {
     const requestedScopes = normalizeAutomaticOwnedTableSequence(requested, 'bundle');
@@ -2806,7 +2900,7 @@ function resolveCurrentOwnedTables({ bundle, policy, policyJson }) {
     }
   } else if (requested.some((scope) => scope?.fieldGroup != null)) {
     throw new Error('automatic current bundle owned table scopes must declare field groups together');
-  } else {
+  } else if (!legacyItemsPlaceholder) {
     const requestedPhysicalScopes = requested.map((scope) => `${scope?.databaseRole}:${scope?.table}`);
     const policyPhysicalScopes = policyScopes.map((scope) => `${scope.databaseRole}:${scope.table}`);
     if (JSON.stringify(requestedPhysicalScopes) !== JSON.stringify(policyPhysicalScopes)) {

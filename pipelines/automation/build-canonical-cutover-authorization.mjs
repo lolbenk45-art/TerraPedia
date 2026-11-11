@@ -130,6 +130,7 @@ export function buildCanonicalAuthorizationRequest(input = {}) {
   const expiresAt = requireTimestamp(input.expiresAt, 'expiresAt');
   assertBoundedExpiry(generatedAt, expiresAt);
   const technical = deriveTechnicalIdentity(input);
+  assertArmorCanonicalFenceExpiry(technical.executionManifest, expiresAt);
   const payload = {
     schemaVersion: 1,
     requestKind: 'canonical_cutover_authorization',
@@ -263,7 +264,16 @@ export function verifyCanonicalAuthorizationPacket(packet) {
   if (Date.parse(packet.authorizedAt) >= Date.parse(packet.expiresAt)) {
     throw new Error('authorized packet is expired');
   }
+  assertArmorCanonicalFenceExpiry(packet.executionManifest, packet.expiresAt);
   return true;
+}
+
+function assertArmorCanonicalFenceExpiry(executionManifest, packetExpiresAt) {
+  const fenceCommit = executionManifest?.armorCanonicalIntent?.fenceCommit;
+  if (!Array.isArray(fenceCommit?.bindings)) return;
+  if (fenceCommit.expiresAt !== packetExpiresAt) {
+    throw new Error('Armor canonical fence expiry must match canonical authorization packet expiry');
+  }
 }
 
 export function buildCanonicalAuthorizationRequestForOperation({
@@ -2036,15 +2046,36 @@ function readArmorCanonicalIntentDataEntries(repoRoot, executionManifest) {
   let intent;
   try { intent = JSON.parse(entry.bytes.toString('utf8')); }
   catch { throw new Error('Armor canonical full-chain intent must be valid JSON'); }
-  if (intent.schemaVersion !== 'armor-canonical-full-chain-intent/v1'
+  if (intent.schemaVersion !== 'armor-canonical-full-chain-intent/v2'
       || intent.operationId !== ARMOR_CANONICAL_OPERATION_ID
       || intent.executable !== false
       || intent.executionBlocker !== 'registered-full-chain-executor-required'
       || !HASH_PATTERN.test(intent.fullChainSha256 ?? '')) {
     throw new Error('Armor canonical full-chain intent identity is invalid');
   }
+  assertArmorCanonicalIntentFenceBinding({ intent, binding });
   if (intent.fullChainSha256 !== binding.fullChainSha256) throw new Error('Armor canonical full-chain hash drifted from binding');
   return [entry];
+}
+
+export function assertArmorCanonicalIntentFenceBinding({ intent, binding } = {}) {
+  const localProjection = intent?.localProjection;
+  if (!localProjection || typeof localProjection !== 'object' || Array.isArray(localProjection)
+      || localProjection.schemaVersion !== 'armor-canonical-local-projection/v1'
+      || !HASH_PATTERN.test(localProjection.candidateSha256 ?? '')) {
+    throw new Error('Armor canonical full-chain intent requires a valid local projection');
+  }
+  const fenceCommit = binding?.fenceCommit;
+  if (fenceCommit?.schemaVersion !== 'armor-canonical-write-fence-commit/v1'
+      || fenceCommit.runId !== binding?.runId || fenceCommit.environmentId !== 'local'
+      || !Array.isArray(fenceCommit.bindings)) {
+    throw new Error('Armor local canonical intent requires a complete owner-scope fence commit');
+  }
+  validateArmorCanonicalFenceCommitForAuthorization(fenceCommit, {
+    runId: binding.runId,
+    environmentId: 'local',
+  });
+  return true;
 }
 
 function readNpcCrawlerEntries(repoRoot) {
@@ -2144,6 +2175,106 @@ function assertBoundedExpiry(generatedAt, expiresAt) {
 
 function hashJson(value) {
   return `sha256:${createHash('sha256').update(JSON.stringify(stableValue(value)), 'utf8').digest('hex')}`;
+}
+
+const ARMOR_CANONICAL_ALL_COLUMNS_SCOPE_HASH = hashJson({ kind: 'all' });
+const ARMOR_CANONICAL_AUTHORIZATION_FENCE_SCOPES = Object.freeze([
+  { databaseRole: 'local', table: 'armor_set_items', fieldGroup: 'all_columns', logicalPredicateHash: ARMOR_CANONICAL_ALL_COLUMNS_SCOPE_HASH },
+  { databaseRole: 'local', table: 'armor_sets', fieldGroup: 'all_columns', logicalPredicateHash: ARMOR_CANONICAL_ALL_COLUMNS_SCOPE_HASH },
+  { databaseRole: 'local', table: 'source_dataset_landings', fieldGroup: 'canonical_owned_rows', logicalPredicateHash: 'sha256:999a98a657ffb93635aba470b4eeaf475b72c9dbcb37f1e8621e92ea246c5042' },
+  { databaseRole: 'maint', table: 'maint_armor_sets', fieldGroup: 'canonical_owned_rows', logicalPredicateHash: 'sha256:b3d912b4105553d8bf41a5ec7d3f32a55ba90633c9d1885e3b3a64f92211ed67' },
+  { databaseRole: 'maint', table: 'maint_armor_set_images', fieldGroup: 'canonical_owned_rows', logicalPredicateHash: 'sha256:9d34bade9b33f6a0c099601fad4efcb1ed3a92a3214e9adbc0350cb762e6aebf' },
+  { databaseRole: 'relation', table: 'relation_armor_sets', fieldGroup: 'canonical_owned_rows', logicalPredicateHash: 'sha256:a408f4b8a082f1ccf1d48f68bb2e608cdbd8d2c012216afa08bb7716f307f13b' },
+  { databaseRole: 'relation', table: 'relation_armor_set_items', fieldGroup: 'canonical_owned_rows', logicalPredicateHash: 'sha256:47e7e0492095b9e78ae08602c850202df7783cdd1ddeb1af5ba1632e39adb3d0' },
+  { databaseRole: 'relation', table: 'relation_armor_set_images', fieldGroup: 'canonical_owned_rows', logicalPredicateHash: 'sha256:8679f0163d99cacbbb191784dd422e1eb109f92c51ce748fc96a28573bf1b8f5' },
+  { databaseRole: 'relation', table: 'projection_armor_sets', fieldGroup: 'canonical_owned_rows', logicalPredicateHash: 'sha256:699b25cf13beaafbcf9396c60142cb7ba012f92684c2ccb84544a49173ca2032' },
+].map((scope) => Object.freeze(scope)));
+
+function armorCanonicalAuthorizationFenceScopeKey(scope) {
+  return [scope.databaseRole, scope.table, scope.fieldGroup, scope.logicalPredicateHash].join('\0');
+}
+
+/** Validate the authorization-bound fence without bundling the transaction helper globally. */
+export function validateArmorCanonicalFenceCommitForAuthorization(value, {
+  runId = null,
+  environmentId = 'local',
+} = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+      || value.schemaVersion !== 'armor-canonical-write-fence-commit/v1'
+      || value.environmentId !== environmentId
+      || typeof value.runId !== 'string' || !value.runId.trim()
+      || (runId != null && value.runId !== runId)
+      || !Number.isFinite(Date.parse(value.expiresAt ?? ''))
+      || value.generation !== 1
+      || !Array.isArray(value.bindings)
+      || value.bindings.length !== ARMOR_CANONICAL_AUTHORIZATION_FENCE_SCOPES.length) {
+    throw new Error('Armor canonical all-scope fence commit identity is invalid');
+  }
+
+  const expected = new Set(ARMOR_CANONICAL_AUTHORIZATION_FENCE_SCOPES.map(armorCanonicalAuthorizationFenceScopeKey));
+  const seen = new Set();
+  const tokens = new Set();
+  const markers = new Set();
+  for (const binding of value.bindings) {
+    const scope = {
+      databaseRole: binding?.databaseRole,
+      table: binding?.table,
+      fieldGroup: binding?.fieldGroup ?? 'all_columns',
+      logicalPredicateHash: binding?.logicalPredicateHash ?? ARMOR_CANONICAL_ALL_COLUMNS_SCOPE_HASH,
+    };
+    if (Object.values(scope).some((field) => (
+      typeof field !== 'string' || field.trim() === '' || field !== field.trim()
+    ))) {
+      throw new Error('Armor canonical fence binding scope is invalid');
+    }
+    const key = armorCanonicalAuthorizationFenceScopeKey(scope);
+    if (!expected.has(key) || seen.has(key)) throw new Error(`Armor canonical fence binding is foreign or duplicate: ${key}`);
+    seen.add(key);
+
+    const fenceToken = binding.fenceToken;
+    const commitMarker = binding.commitMarker;
+    if (typeof fenceToken !== 'string' || !/^fence:[a-f0-9]{64}$/.test(fenceToken)
+        || typeof commitMarker !== 'string' || !/^[a-f0-9]{64}$/.test(commitMarker)
+        || tokens.has(fenceToken) || markers.has(commitMarker)) {
+      throw new Error(`Armor canonical fence token or marker is invalid: ${key}`);
+    }
+    tokens.add(fenceToken);
+    markers.add(commitMarker);
+
+    const generationScopeHash = hashJson({
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      fieldGroup: scope.fieldGroup,
+      logicalPredicateHash: scope.logicalPredicateHash,
+    });
+    const mutationScope = {
+      databaseRole: scope.databaseRole,
+      table: scope.table,
+      fieldGroup: scope.fieldGroup,
+      ...(scope.logicalPredicateHash === ARMOR_CANONICAL_ALL_COLUMNS_SCOPE_HASH
+        ? { logicalPredicate: { kind: 'all' } }
+        : { logicalPredicateHash: scope.logicalPredicateHash }),
+    };
+    if (binding.generationScopeHash !== generationScopeHash
+        || !HASH_PATTERN.test(binding.generationSchemaHash ?? '')
+        || binding.mutationGenerationScopeHash !== hashJson(mutationScope)) {
+      throw new Error(`Armor canonical fence scope hash is invalid: ${key}`);
+    }
+    if (!Number.isSafeInteger(Number(binding.beforeGeneration)) || Number(binding.beforeGeneration) < 0
+        || Number(binding.committedGeneration) !== Number(binding.beforeGeneration) + 1) {
+      throw new Error(`Armor canonical fence generation is invalid: ${key}`);
+    }
+    if (binding.environmentId !== value.environmentId || binding.runId !== value.runId
+        || binding.expiresAt !== value.expiresAt) {
+      throw new Error('Armor canonical fence binding identity drifted');
+    }
+  }
+  if (seen.size !== expected.size
+      || typeof value.marker !== 'string'
+      || value.marker !== hashJson(value.bindings).slice('sha256:'.length)) {
+    throw new Error('Armor canonical fence commit marker or scope coverage drifted');
+  }
+  return true;
 }
 
 function stableValue(value) {

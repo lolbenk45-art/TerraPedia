@@ -101,6 +101,9 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
   const reuseCurrentSourceSnapshot = options.reuseCurrentSourceSnapshot == null
     ? null
     : normalizeReusableCurrentSourceSnapshot(options.reuseCurrentSourceSnapshot, domainId);
+  const boundSourceSnapshot = options.sourceSnapshotReference == null
+    ? null
+    : normalizeBoundSourceSnapshot(options.sourceSnapshotReference, domainId);
   const sourceDispatchIdentity = options.sourceDispatchIdentity ?? null;
   const sourceStatePath = options.sourceStatePath ?? null;
   const readSourceMonitorState = dependencies.readSourceMonitorState
@@ -143,7 +146,9 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       });
     }
     progress({ status: 'running', message: `starting ${domainId} source refresh`, current: 0, total: 3 });
-    const firstSnapshot = reuseCurrentSourceSnapshot ?? (probeSource ? await probeSource({ domainId }) : null);
+    const firstSnapshot = reuseCurrentSourceSnapshot
+      ?? boundSourceSnapshot
+      ?? (probeSource ? await probeSource({ domainId }) : null);
     const sourceResult = await runSource({ domainId, config, repoRoot, progressPath });
     const sourcePayload = requireObject(sourceResult?.sourcePayload, 'sourcePayload');
     let sourceAcknowledged = false;
@@ -152,6 +157,9 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
     if (reuseCurrentSourceSnapshot) {
       stableSourceSnapshot = reuseCurrentSourceSnapshot;
       sourceAcknowledgementReason = 'local_source_reused';
+    } else if (boundSourceSnapshot) {
+      stableSourceSnapshot = boundSourceSnapshot;
+      sourceAcknowledgementReason = 'source_snapshot_bound';
     } else if (firstSnapshot) {
       try {
         const secondSnapshot = await probeSource({ domainId });
@@ -271,6 +279,7 @@ export async function runSupplementaryDomainL1PreviewCli({
   now = new Date().toISOString(),
   sourceDispatchIdentity = sourceDispatchIdentityFromEnvironment(env),
   sourceStatePath = env.TERRAPEDIA_CRAWLER_SOURCE_STATE_PATH,
+  sourceSnapshotReference = null,
 } = {}) {
   const args = parseArgs(argv);
   const domainId = requireDomain(args.domain);
@@ -285,6 +294,15 @@ export async function runSupplementaryDomainL1PreviewCli({
         manifestPath: args['manifest-path'],
       })
     : null;
+  const boundSourceSnapshotReference = sourceSnapshotReference
+    ?? (sourceDispatchIdentity == null
+      ? null
+      : readFrozenSourceMonitorState({
+          identity: sourceDispatchIdentity,
+          domain: domainId,
+          repoRoot: root,
+          sourceStatePath,
+        }).source.snapshot);
   const connection = await (mysqlModule ?? loadMysqlModule()).createConnection(connectionOptions(env));
   try {
     return await prepareSupplementaryDomainL1Preview({
@@ -300,6 +318,7 @@ export async function runSupplementaryDomainL1PreviewCli({
       reuseCurrentSourceSnapshot,
       sourceDispatchIdentity,
       sourceStatePath,
+      sourceSnapshotReference: boundSourceSnapshotReference,
     }, {
       runSource: (input) => runDomainSource(input, {
         env,
@@ -331,6 +350,7 @@ export async function runSupplementaryDomainL1PreviewCli({
       },
       buildImportPlan: ({ sourcePayload, sourceResult }) => buildDomainImportPlan(domainId, sourcePayload, sourceResult),
       probeSource: reuseCurrentSourceSnapshot
+        || boundSourceSnapshot
         ? null
         : ({ domainId: probeDomainId }) => probeSupplementarySource({ domainId: probeDomainId }),
       acknowledgeSource: acknowledgeWikiProbeSnapshot,
@@ -410,6 +430,27 @@ function normalizeReusableCurrentSourceSnapshot(snapshot, domainId) {
     ...definition,
     contentHash: String(snapshot.contentHash).trim(),
     checkedAt: requireTimestamp(snapshot.checkedAt),
+  });
+}
+
+function normalizeBoundSourceSnapshot(snapshot, domainId) {
+  const definition = SUPPLEMENTARY_SOURCE_DEFINITIONS[domainId];
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    throw new Error(`bound ${domainId} source snapshot reference is invalid`);
+  }
+  const contentHash = String(snapshot.contentHash ?? '').replace(/^sha256:/, '').trim();
+  if (snapshot.sourceKey !== definition.sourceKey
+      || snapshot.locator !== definition.locator
+      || snapshot.entityFamily !== definition.entityFamily
+      || snapshot.sourceKind !== definition.sourceKind
+      || !/^[a-f0-9]{64}$/.test(contentHash)
+      || !Number.isFinite(Date.parse(String(snapshot.checkedAt ?? '')))) {
+    throw new Error(`bound ${domainId} source snapshot reference is invalid`);
+  }
+  return Object.freeze({
+    ...definition,
+    contentHash,
+    checkedAt: String(snapshot.checkedAt),
   });
 }
 

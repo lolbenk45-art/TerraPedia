@@ -9,9 +9,13 @@ import {
   validateArmorCanonicalLandingMaintIntent,
 } from './armor-canonical-landing-maint-intent.mjs';
 import { inspectArmorCanonicalLandingLineage } from './armor-canonical-landing-lineage.mjs';
+import {
+  buildArmorCanonicalLocalProjectionCandidate,
+  validateArmorCanonicalLocalProjectionCandidate,
+} from './armor-canonical-local-projection.mjs';
 
-export const ARMOR_CANONICAL_FULL_CHAIN_SCHEMA = 'armor-canonical-full-chain-intent/v1';
-export const ARMOR_CANONICAL_RECOVERY_INTENT_SCHEMA = 'armor-canonical-recovery-intent/v1';
+export const ARMOR_CANONICAL_FULL_CHAIN_SCHEMA = 'armor-canonical-full-chain-intent/v2';
+export const ARMOR_CANONICAL_RECOVERY_INTENT_SCHEMA = 'armor-canonical-recovery-intent/v2';
 export const ARMOR_CANONICAL_FULL_CHAIN_OPERATION_ID = ARMOR_CANONICAL_INTENT_OPERATION_ID;
 
 const HASH = /^sha256:[0-9a-f]{64}$/;
@@ -221,14 +225,44 @@ function buildRecoveryIntent({ landingMaintIntent, relationIntent, projectionCan
     landingMaintIntentSha256: landingMaintIntent.intentSha256,
     relationIntentSha256: relationIntent.intentSha256,
     candidateSha256: projectionCandidate.candidateSha256,
+    localProjectionSha256: projectionCandidate.localProjectionSha256,
     partialPolicy: projectionCandidate.partialPolicy ?? null,
     dependencyGraph,
   };
   return Object.freeze({ ...body, intentSha256: hash(body) });
 }
 
+function armorSetSourceRecords(landingMaintIntent) {
+  const transition = landingMaintIntent.snapshots?.landingTransition;
+  if (!transition || !Array.isArray(transition.inserts) || !Array.isArray(transition.unchanged)) {
+    throw new Error('Armor local projection requires the frozen landing transition');
+  }
+  const rows = [...transition.inserts, ...transition.unchanged].filter(row => row.dataset_type === 'armor_sets_raw');
+  if (rows.length !== 1) throw new Error('Armor local projection requires exactly one current ArmorSetBonuses landing');
+  const row = rows[0];
+  let payload;
+  try { payload = typeof row.payload_json === 'string' ? JSON.parse(row.payload_json) : row.payload_json; }
+  catch { throw new Error('Armor local projection source payload JSON is malformed'); }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) || hash(payload).slice('sha256:'.length) !== row.content_hash
+      || !Array.isArray(payload.armorSets) || payload.armorSets.length === 0) {
+    throw new Error('Armor local projection source payload is not bound to the landing hash');
+  }
+  return payload.armorSets;
+}
+
+function validateLocalProjectionSourceBindings({ landingMaintIntent, projectionCandidate, localProjection }) {
+  same(localProjection.inputSnapshots.sourceArmorSets, armorSetSourceRecords(landingMaintIntent), 'Armor local source records');
+  same(localProjection.inputSnapshots.projectionArmorSets, projectionCandidate.expectedRows?.projection_armor_sets,
+    'Armor local projection rows');
+  same(localProjection.inputSnapshots.maintItems, projectionCandidate.inputSnapshots?.relationInput?.maintItems,
+    'Armor local Maint Item identities');
+  same(localProjection.inputSnapshots.localItems, projectionCandidate.inputSnapshots?.consumerRows?.items,
+    'Armor local Item dependency rows');
+}
+
 export function buildArmorCanonicalFullChainIntent({
-  landingMaintIntent, projectionCandidate, writeTimestamp,
+  landingMaintIntent, projectionCandidate, currentLocalArmorSets, currentLocalArmorSetItems,
+  localItems, writeTimestamp,
 } = {}) {
   validateArmorCanonicalLandingMaintIntent(landingMaintIntent);
   plain(projectionCandidate, 'Armor projection candidate');
@@ -249,6 +283,33 @@ export function buildArmorCanonicalFullChainIntent({
     writeTimestamp,
     upstreamReferenceDeclarations: [...new Set(upstreamReferenceDeclarations)].sort(),
   });
+  const localProjection = buildArmorCanonicalLocalProjectionCandidate({
+    sourceArmorSets: armorSetSourceRecords(landingMaintIntent),
+    projectionArmorSets: projectionCandidate.expectedRows?.projection_armor_sets,
+    maintItems: projectionCandidate.inputSnapshots?.relationInput?.maintItems,
+    localItems: localItems ?? projectionCandidate.inputSnapshots?.consumerRows?.items,
+    currentArmorSets: currentLocalArmorSets,
+    currentArmorSetItems: currentLocalArmorSetItems,
+  });
+  validateArmorCanonicalLocalProjectionCandidate(localProjection);
+  validateLocalProjectionSourceBindings({ landingMaintIntent, projectionCandidate, localProjection });
+  for (const edge of localProjection.identityEdges) {
+    const parent = localProjection.expectedRows.armor_sets.find(row => row.source_key === edge.armorSetSourceKey);
+    const member = localProjection.itemChanges.inserts.find(candidate => (
+      candidate.sourceKey === edge.armorSetSourceKey
+      && Number(candidate.row.set_variant_index) === edge.setVariantIndex
+      && Number(candidate.row.part_index) === edge.partIndex
+    ))?.row ?? localProjection.expectedRows.armor_set_items.find(row => (
+      parent?.id != null && Number(row.armor_set_id) === Number(parent.id)
+      && Number(row.set_variant_index) === edge.setVariantIndex
+      && Number(row.part_index) === edge.partIndex
+    ));
+    if (!parent || !member || Number(member.source_item_id) !== edge.sourceItemId
+        || member.item_internal_name !== edge.itemInternalName || Number(member.item_id) !== edge.localItemId
+        || (parent.id != null && member.armor_set_id != null && Number(member.armor_set_id) !== Number(parent.id))) {
+      throw new Error('Armor local source-to-Item identity edge drifted from projected member rows');
+    }
+  }
   const dependencyGraph = {
     landingToMaint: landingMaintIntent.insertPlans.flatMap(plan => plan.references.map(reference => ({
       source: planIdentity(plan), column: reference.column, target: reference.target,
@@ -263,7 +324,11 @@ export function buildArmorCanonicalFullChainIntent({
       .filter(reference => reference.target.startsWith('relation.relation_armor_sets|'))
       .map(reference => ({ source: planIdentity(plan), column: reference.column, target: reference.target }))),
   };
-  const recoveryIntent = buildRecoveryIntent({ landingMaintIntent, relationIntent, projectionCandidate, dependencyGraph, writeTimestamp });
+  const recoveryIntent = buildRecoveryIntent({
+    landingMaintIntent, relationIntent,
+    projectionCandidate: { ...projectionCandidate, localProjectionSha256: localProjection.candidateSha256 },
+    dependencyGraph, writeTimestamp,
+  });
   const body = {
     schemaVersion: ARMOR_CANONICAL_FULL_CHAIN_SCHEMA,
     operationId: ARMOR_CANONICAL_FULL_CHAIN_OPERATION_ID,
@@ -273,6 +338,7 @@ export function buildArmorCanonicalFullChainIntent({
     partialPolicy: projectionCandidate.partialPolicy ?? null,
     landingMaintIntent,
     relationIntent,
+    localProjection,
     recoveryIntent,
     dependencyGraph,
   };
@@ -287,6 +353,12 @@ export function validateArmorCanonicalFullChainIntent(value) {
   text(value.writeTimestamp, 'Armor full-chain writeTimestamp');
   validateArmorCanonicalLandingMaintIntent(value.landingMaintIntent);
   validateArmorCanonicalIntent(value.relationIntent);
+  validateArmorCanonicalLocalProjectionCandidate(value.localProjection);
+  validateLocalProjectionSourceBindings({
+    landingMaintIntent: value.landingMaintIntent,
+    projectionCandidate: value.relationIntent.candidateSnapshot,
+    localProjection: value.localProjection,
+  });
   if (value.landingMaintIntent.writeTimestamp !== value.writeTimestamp
       || value.relationIntent.writeTimestamp !== value.writeTimestamp
       || value.recoveryIntent?.writeTimestamp !== value.writeTimestamp) throw new Error('Armor full-chain timestamp binding drifted');
@@ -319,7 +391,8 @@ export function validateArmorCanonicalFullChainIntent(value) {
   same(value.dependencyGraph, expectedGraph, 'Armor full-chain dependency graph');
   same(value.recoveryIntent.dependencyGraph, value.dependencyGraph, 'Armor recovery dependency graph');
   if (value.recoveryIntent.landingMaintIntentSha256 !== value.landingMaintIntent.intentSha256
-      || value.recoveryIntent.relationIntentSha256 !== value.relationIntent.intentSha256) {
+      || value.recoveryIntent.relationIntentSha256 !== value.relationIntent.intentSha256
+      || value.recoveryIntent.localProjectionSha256 !== value.localProjection.candidateSha256) {
     throw new Error('Armor recovery intent bindings drifted from full-chain intents');
   }
   const { fullChainSha256: _ignored, ...body } = value;

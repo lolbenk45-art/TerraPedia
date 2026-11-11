@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "l2-policy-scope-amendment-proposal",
+  "proposalOnly": true,
+  "operationId": "automation-armor-sets-l2-scope-amendment",
+  "domainId": "armor_sets",
+  "generatedAt": "2026-10-25T10:50:00.000Z",
+  "authorizationReference": "user://conversation/2026-10-25/local-formal-catch-up/items-armor-scope",
+  "currentPolicy": {
+    "domainId": "armor_sets",
+    "policyVersion": 2,
+    "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policyJson": {
+      "level": "L2",
+      "ownedTables": [
+        {
+          "table": "armor_set_items",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        },
+        {
+          "table": "armor_sets",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        }
+      ],
+      "anomalyAction": "CIRCUIT_OPEN",
+      "schemaVersion": 1,
+      "ratioInsertCap": 0.1,
+      "ratioUpdateCap": 0.1,
+      "ratioDisableCap": 0.005,
+      "requireSnapshot": true,
+      "absoluteInsertCap": 500,
+      "absoluteUpdateCap": 500,
+      "absoluteDisableCap": 20,
+      "ratioRelationshipDeleteCap": 0.05,
+      "sourceFreshnessMaxAgeMinutes": 60,
+      "absoluteRelationshipDeleteCap": 200
+    }
+  },
+  "currentPolicyRows": [
+    {
+      "domainId": "armor_sets",
+      "policyVersion": 2,
+      "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8"
+    },
+    {
+      "domainId": "audio",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596"
+    },
+    {
+      "domainId": "biomes",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+    },
+    {
+      "domainId": "bosses",
+      "policyVersion": 2,
+      "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38"
+    },
+    {
+      "domainId": "buffs",
+      "policyVersion": 2,
+      "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d"
+    },
+    {
+      "domainId": "crawler_v2_scheduler",
+      "policyVersion": 1,
+      "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479"
+    },
+    {
+      "domainId": "items",
+      "policyVersion": 2,
+      "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a"
+    },
+    {
+      "domainId": "npcs",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53"
+    },
+    {
+      "domainId": "projectiles",
+      "policyVersion": 2,
+      "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b"
+    },
+    {
+      "domainId": "shimmer",
+      "policyVersion": 3,
+      "policyHash": "sha256:c3f05e6343a50901a9672a9fd6cb23e660c1e043641e3baf442456970f11f821"
+    }
+  ],
+  "currentPolicySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "serverFingerprint": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+    "databases": [
+      "terria_v1_local",
+      "terria_v1_maint",
+      "terria_v1_relation"
+    ]
+  },
+  "serverFingerprintHash": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "targetPolicy": {
+    "policyVersion": 3,
+    "level": "L2",
+    "policyHash": "sha256:af9a6b8af51c84cd1f477647a80c524089c36d904eebe73d882fdb1cdcbe3402",
+    "policyJson": {
+      "level": "L2",
+      "ownedTables": [
+        {
+          "table": "armor_set_items",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        },
+        {
+          "table": "armor_sets",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        },
+        {
+          "databaseRole": "local",
+          "table": "source_dataset_landings",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:999a98a657ffb93635aba470b4eeaf475b72c9dbcb37f1e8621e92ea246c5042"
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_armor_sets",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:b3d912b4105553d8bf41a5ec7d3f32a55ba90633c9d1885e3b3a64f92211ed67"
+        },
+        {
+          "databaseRole": "maint",
+          "table": "maint_armor_set_images",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:9d34bade9b33f6a0c099601fad4efcb1ed3a92a3214e9adbc0350cb762e6aebf"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_armor_sets",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:a408f4b8a082f1ccf1d48f68bb2e608cdbd8d2c012216afa08bb7716f307f13b"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_armor_set_items",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:47e7e0492095b9e78ae08602c850202df7783cdd1ddeb1af5ba1632e39adb3d0"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "relation_armor_set_images",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:8679f0163d99cacbbb191784dd422e1eb109f92c51ce748fc96a28573bf1b8f5"
+        },
+        {
+          "databaseRole": "relation",
+          "table": "projection_armor_sets",
+          "fieldGroup": "canonical_owned_rows",
+          "logicalPredicateHash": "sha256:699b25cf13beaafbcf9396c60142cb7ba012f92684c2ccb84544a49173ca2032"
+        }
+      ],
+      "anomalyAction": "CIRCUIT_OPEN",
+      "schemaVersion": 1,
+      "ratioInsertCap": 0.1,
+      "ratioUpdateCap": 0.1,
+      "ratioDisableCap": 0,
+      "requireSnapshot": true,
+      "absoluteInsertCap": 500,
+      "absoluteUpdateCap": 500,
+      "absoluteDisableCap": 0,
+      "ratioRelationshipDeleteCap": 0,
+      "sourceFreshnessMaxAgeMinutes": 60,
+      "absoluteRelationshipDeleteCap": 0
+    }
+  },
+  "targetPolicyRows": [
+    {
+      "domainId": "armor_sets",
+      "policyVersion": 3,
+      "policyHash": "sha256:af9a6b8af51c84cd1f477647a80c524089c36d904eebe73d882fdb1cdcbe3402"
+    },
+    {
+      "domainId": "audio",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596"
+    },
+    {
+      "domainId": "biomes",
+      "policyVersion": 1,
+      "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+    },
+    {
+      "domainId": "bosses",
+      "policyVersion": 2,
+      "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38"
+    },
+    {
+      "domainId": "buffs",
+      "policyVersion": 2,
+      "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d"
+    },
+    {
+      "domainId": "crawler_v2_scheduler",
+      "policyVersion": 1,
+      "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479"
+    },
+    {
+      "domainId": "items",
+      "policyVersion": 2,
+      "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a"
+    },
+    {
+      "domainId": "npcs",
+      "policyVersion": 2,
+      "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53"
+    },
+    {
+      "domainId": "projectiles",
+      "policyVersion": 2,
+      "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b"
+    },
+    {
+      "domainId": "shimmer",
+      "policyVersion": 3,
+      "policyHash": "sha256:c3f05e6343a50901a9672a9fd6cb23e660c1e043641e3baf442456970f11f821"
+    }
+  ],
+  "targetPolicySetHash": "sha256:4b04ff4f88e223eaf2427741a237fc98920dcd2339bdf3d35b943eba8d3c6733",
+  "sourceIdentity": {
+    "schemaVersion": 1,
+    "sourceSnapshotHash": "sha256:770919865b0286ed8e97a5b1629595ac52350d9a6b91d35448ad956b8f317afb",
+    "dependencyEvidenceHash": "sha256:a692faad0d770a428ed0d22760e4e09e64613ec6a7083af898f652e2ab634432",
+    "formalReadbackHash": "sha256:26f889c5e11c2e8e6813a28aadb7cd9b9e040a7707e7736163c20c574a7cf395",
+    "consumerReadbackHash": "sha256:b071510e7dd96d160a75dee55ec3a0ebc8e07ecacd64ea224cd6967f2aa9fac5"
+  },
+  "predecessorL1Evidence": {
+    "policyVersion": 1,
+    "policyHash": "sha256:ecf35935ed3681939f9d0b4fab8760a6cd802cccb8647f73a486e25de42c3871",
+    "policySetHash": "sha256:1857df8faf480c658a884c20dfc259afc7b848a38b221b68be264f2e532b0629",
+    "runs": [
+      {
+        "runId": "armor_sets_l1_20260829_serial01",
+        "bundleFileSha256": "sha256:31c7f09ad19a36c5e9f117d8008d1a0187ac95eb3077606183378bc71f3c5ff8",
+        "reconciliationSha256": "sha256:9f80dadcca5b8211db837cc4671b438c7c1fd82a8957945cc227df277e55d585",
+        "fullReconciliation": true
+      },
+      {
+        "runId": "armor_sets_l1_20260829_serial02",
+        "bundleFileSha256": "sha256:48adf420bf80eb4cd7c00754506352fdfbd6555e44f190657690f0027bfc8a51",
+        "reconciliationSha256": "sha256:da0371353b7182dc5c4a27a5ffabc6496fdb63047d3910cc5ffe24b9cfe2eb0c",
+        "fullReconciliation": true
+      },
+      {
+        "runId": "armor_sets_l1_20260829_serial03",
+        "bundleFileSha256": "sha256:545c9c8af853123cbf9e604b0f342d9b22d9c8eddc8f28ea796012ff9ecf2f55",
+        "reconciliationSha256": "sha256:3f3ec93149aa7ad5e573ccf06b4cba9c4a26133d4f4969029ad1b07b7036ce8e",
+        "fullReconciliation": true
+      }
+    ]
+  },
+  "allowedMutation": "append_policy_version_and_advance_current_pointer_only",
+  "amendmentHash": "sha256:8cae355c08127bd9e4bf9cbbfa730d289b03a0663d65571b27f0d923bcc960c9"
+}
