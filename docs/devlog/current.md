@@ -1,69 +1,25 @@
 # Current Devlog
 
-Last updated: 2026-07-17 05:04 CST by Codex
+Last updated: 2026-11-11 18:06 CST by Codex
 
-## Open Work
+Active branch: `fix/admin-p0-batch`
+Active focus: 用户已停止全部现有任务；仅保留分支快照与交接，不继续实施。
 
-- No shared open work is recorded on `main`. The local merge of
-  `fix/crawler-queue-v2-runtime` is validated and awaiting its merge commit.
+## Open work
 
-## Active Focus
+- 无活动业务任务。用户停止决策覆盖历史计划中的自动继续指令。
 
-- Create the validated local V2 merge commit, then leave real force-crawl and
-  database apply as explicit operator-authorized actions.
+## Current state
 
-## Current State
+- 复工入口：`docs/handoffs/2026-11-11-workspace-stop.md`。
+- 本次停止条目：`docs/devlog/entries/2026-11-11-workspace-stop.md`，status `closed`，原因为 intentionally stopped。
+- 旧索引：`docs/devlog/archive/2026-11-11/fix--admin-p0-batch-current-before-stop.md`；历史阻塞、授权和测试结果未被当作当前有效结论。
+- GitHub 推送和本地归档最终结果查看 main 分支的清理总交接，不在此预先宣称完成。
 
-- Public category child navigation is closed at `4a744dc`: six parent routes
-  expose 34 image-backed child categories with verified scope, count, and
-  fail-closed behavior.
-- V2 crawler operation workflow is integrated from `3234cc0` pending the local
-  merge commit. It adds the backend-owned 19-operation catalog, truthful
-  attempt plan/result evidence, lease renewal, exact controls, and compact ID
-  presentation. Fresh branch gates passed admin 311/311 plus typecheck/build,
-  crawler/workflow 61/61, and focused V2 backend 527 with zero failures/errors.
-- The local merge initially regressed the main notification source by treating
-  missing legacy `domain.state` as V2 idle. The fallback was removed; merged
-  gates now pass admin 345/345 plus typecheck/build, focused V2 backend 538/538,
-  and backend test compilation.
+## Next agent start point
 
-## Next Agent Should Start Here
+- 等待新的用户任务；如需复工，先阅读本分支交接，重新确认运行态与授权并创建 active entry。
 
-- After the merge is committed and its targeted gates pass, start new work from
-  a new devlog entry. Do not run real crawler force/apply actions, Redis reset,
-  or database writes without explicit operation-level authorization.
+## Current risks
 
-## Current Risks
-
-- Broad Maven/full quality-gate baseline failures are outside the V2 scope.
-- Real force-crawl, formal apply, live Redis expiry races, and adversarial HTTP
-  preview-path acceptance remain manual/runtime concerns.
-- Public category totals and representative images depend on current local
-  data; their route and fail-closed contracts remain the acceptance boundary.
-
-## Recently Closed
-
-- `docs/devlog/entries/2026-07-17-v2-main-merge-integration.md`
-  - branch: `main`
-  - status: `closed`
-  - commit: pending in final response
-
-- `docs/devlog/entries/2026-07-16-crawler-monitor-operation-semantics.md`
-  - branch: `fix/crawler-queue-v2-runtime`
-  - status: `closed`
-  - commit: `3234cc0`
-
-- `docs/devlog/entries/2026-07-14-crawler-monitor-registered-idle-domains.md`
-  - branch: `fix/crawler-queue-v2-runtime`
-  - status: `closed`
-  - commit: `3234cc0`
-
-- `docs/devlog/entries/2026-07-16-public-category-navigation.md`
-  - branch: `codex/continue-dev-20260715`
-  - status: `closed`
-  - commit: `4a744dc`
-
-- `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
-  - branch: `fix/crawler-queue-v2-runtime`
-  - status: `closed`
-  - commit: `0bad80d`
+- 现有未完成功能和历史问题保持原状；本次没有生产验收或数据库业务写入。
