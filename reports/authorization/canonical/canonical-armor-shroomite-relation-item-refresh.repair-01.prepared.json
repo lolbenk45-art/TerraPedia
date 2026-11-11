@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "armor-shroomite-relation-item-refresh-execution/v1",
+  "operationId": "canonical-armor-shroomite-relation-item-refresh",
+  "proposalSha256": "sha256:1505f314a91056cee2702ad39a33c4d8e43e2b2994ee9481f1cb7d7cc48d4a75",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "targetItemSourceIds": [
+    1546,
+    1547,
+    1548,
+    1549,
+    1550
+  ],
+  "status": "PREPARED",
+  "authorization": {
+    "decisionIdentity": "canonical-armor-shroomite-relation-item-refresh-admin-20261007-repair-01-9058f199",
+    "packetHash": "sha256:32140eb5e40095c8f558d706ef7db6038735b931df9dd6d9bbd9567e986aa656"
+  }
+}

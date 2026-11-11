@@ -1,0 +1,1953 @@
+{
+  "schemaVersion": "armor-secondary-projection-execution/v1",
+  "operationId": "canonical-armor-secondary-projection",
+  "proposalSha256": "sha256:8e40fac7c1730e4288723d03ccf81d15a0dff1c753b6472c65816aa30ae1a133",
+  "sourceSha256": "sha256:fcced73dd3a175380895daafd1b4f1bb8f2beb942ccae635d8362943656829ce",
+  "beforeSha256": "sha256:36d72489568c91a370021ac7d0d551bb59e6392a3df9f19dc3e80f402efa8d87",
+  "afterSha256": "sha256:6afa0d66dab3156672de58d38191093e68d000f8e00f2748bfdd82aef779a602",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "insertBindings": [
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "03977d7bd7b7108fc844f5095d3835d7021787849a6a480850f6d825d6dd0274",
+      "id": 2005,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2005,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "051d3865a9b6fd4f8428ad4a2f0b7d30a4b58934dea1159b5c11d8ea3f2cad2f",
+      "id": 2007,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2007,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "07c7aaf822231163d87fbf79ad2888a6437bf1dc4caa89ce0a8ba47750a9ee95",
+      "id": 2013,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2013,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "0a1459aaf87b8ba62ec773ff16ba0850aaf1d322cd28098045fb917bf5c53b01",
+      "id": 2021,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2021,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "0a67ccbe775a1258932e55f18659c22734c3f36ca0d68553fe0d50f9f49f8269",
+      "id": 2022,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2022,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "0dba165b0002e60957ed78a1b87a44efceca6c70bb6557193dde2dfbd7e5feaa",
+      "id": 2027,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2027,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "0ecc1b72b2d834d9d71c75cf64fcdd699a333ade14e0ad3d6a63a35dbe3ed931",
+      "id": 2031,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2031,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "1030bb4c95e620fb1239ba07a46619faab5b4338223091787614e6e9e38e2efd",
+      "id": 2035,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2035,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "117ace214aed753b6db7a71a6022b3da5343a55e77b325f420a092b6794b155d",
+      "id": 2037,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2037,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "148f8685873bf427dbaa54629c8ac9859770cb01913859dc0b0f92ea7f829eef",
+      "id": 2045,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2045,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "153946f42cde7e67268e78363acfb04d5173de07bf6e1407be530360fd03c589",
+      "id": 2048,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2048,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "15cd8b6b49c37557f41253750804f4854e9cca0a50cb8accb015e3312a363ffc",
+      "id": 2050,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2050,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "162975dd99ca82d0af0458634b048e64705629a616e61e8c8027d8e5445e02c0",
+      "id": 2051,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2051,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "16ace7ededbbc64060870f472561b0fe2a459f0338102b49176fd2fd4c15d2de",
+      "id": 2054,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2054,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "198bc276bb9eb598cb11f013b6369deebc7a5fc4e694c46df3d2401a65057716",
+      "id": 2059,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2059,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "19b0384e03c4f775685e9468cb690504ff205c466d28e931cb9d153072ee2bd9",
+      "id": 2061,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2061,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "1ae7148a2eed6677f0444308b0946c83064847843f3b60656eb414c706adf620",
+      "id": 2063,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2063,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "1bbbc4404429f90beb18de28817e68639494cd5c7b5b7b11686e0e663ef376c6",
+      "id": 2066,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2066,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "1bf4fd515dde7105b7bf745843f0b286cc6e9e88447475c2e0f52b9c53857c32",
+      "id": 2068,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2068,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "1df117167cc8d764ba40dd3cebe51936d86be61e7b6f7ef3bb673bce4f1ba6d4",
+      "id": 2074,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2074,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "21a8c901449a253006dcdd1ca147e4a508e53ae186f2ec5f5c356f9e18a84212",
+      "id": 2081,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2081,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "22123d019effa805c478de8e94431e44730d9dee4887008b94f5682fe6c00efe",
+      "id": 2082,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2082,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "22c4c8dc8e47fe6b53bdcf04707091edd4ff78b11e6c5d1c3cd441022c33564d",
+      "id": 2086,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2086,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "25b0e7606e9d8ab67b8428f4f7bbd48dfd4ee7352db6ba08ed5dc9db78688fab",
+      "id": 2092,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2092,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "25bb136f81cd4c5853752ad173ea7d3fef112820e624c4a68f78dd9b015aba07",
+      "id": 2093,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2093,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "268266f39dd4c186a684361f40b6d848ce4a81b9290bd7acb5f6de1c18d04b28",
+      "id": 2095,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2095,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "26845dd8d71fad24b0aead87391df0cd21be7cf9684531690dfcc9e52a4f0c04",
+      "id": 2096,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2096,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "27bbf6ef82737ba20d991d09e2a0148fc5f6cb8cb746c0a9af13a8c7b503a19e",
+      "id": 2100,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2100,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "28347faf4d9be50f0ac753dde54853f7bc54cc1d376c9d35fcff27baa8495bfc",
+      "id": 2101,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2101,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "2d346e877396e6052ebb10304b494a2a169c763470d4039379dbf1fe402e1b85",
+      "id": 2113,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2113,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "2d63cf9dcdbca8ba24934a2b9b57864933d1b970497df52f28bf0b2ece825784",
+      "id": 2115,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2115,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "2ddf21a3f98556abd53324af7c01b3fca0f4975b351fe449562180070baefaa6",
+      "id": 2117,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2117,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "2ef2902ccf0243e4c09e6e8b8e38c3038401d68fdbff67fd2765017bcff97d0d",
+      "id": 2119,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2119,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "30ada56bf5523ec0be744357dd9325752b40f92b02105c2aee41529ac470e9a6",
+      "id": 2120,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2120,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "30bce0e11262b042ca5407f573b345e638cfefeb0f15f0daeb09869339bec8d2",
+      "id": 2121,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2121,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "316838b8098520d2c25fbb2954627378c39d3e3626cb978d5ed032199e8cf292",
+      "id": 2123,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2123,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "32a4ed0e163aff5f41ad3824785ddf6af1fefbf0cacf78f3fb7aac12a9d40b82",
+      "id": 2126,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2126,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "33a5bb4ebb0368ee22483abad6fa681e157a62df39985cb336bf5c476cf847b3",
+      "id": 2128,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2128,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "38bfb0c7e1baee4ddb2c62d0b374e99b6c68ed5b3f9ad9ebe2f1e58ec8981a3f",
+      "id": 2136,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2136,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "38cacb6a66230ad1ab38af9d01f5edce075d70272bef7b0a2eb1bc355a6c5e17",
+      "id": 2137,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2137,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "398cf207a7553769f684d3812003b1e1000bbc7a35b798fbf2d9ad74c553f5ef",
+      "id": 2141,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2141,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "39d75f7b8dc66fbc81e0032c73257abcb5e039134185dc262ee28c5e8ee28c0d",
+      "id": 2142,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2142,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "3c32c0ec3204da30da005d205a048f589e2bd906520d33016c49de121d96ac69",
+      "id": 2146,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2146,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "3d63e4efe532f74b71fc7e6ffe0f91a672d708b10b539dd4b0ea06082e858b88",
+      "id": 2149,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2149,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "3d87d0a9757ae392e289ebb32dac3622156dc88423073ecbcc702529c5348058",
+      "id": 2150,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2150,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "3fe3ac6e9188dc0422370c89fc857fe09e235bf4e9bf1158bc532afbe7ef9005",
+      "id": 2154,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2154,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "406535fb3bdb916a09e962a0a0feaf023d1f7b199c8c8eb3cc3a1401541d088e",
+      "id": 2156,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2156,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "42c00ffb1412244fe58fd0080ede1142ae17c3529719b541cda345188030719b",
+      "id": 2162,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2162,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "43302fb9ec02149263abc55fd0c5d4f704c8d0a3468ae552cccbfbc6fc3e0869",
+      "id": 2163,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2163,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "43f77575997efd9d98df66eb622f638fbea8a65c5e7c4d60ca6ed5d1a94c70fa",
+      "id": 2165,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2165,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "44b7a9b5bc52c54b9666eedca8a6c65bdfb6c2cdd00bcd02699569f3b9b3578c",
+      "id": 2167,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2167,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "4913d18e180c89c7eed538c1aef8e4eceec3767e945dcaab9aa4a27996bf7377",
+      "id": 2177,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2177,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "494e5a9681251abc9eb487ff5476d461d8e1a8d84d50f6c94de4408b7bebb139",
+      "id": 2178,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2178,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "49d15f4ffe9cb6edc09f98384d264e62dd4eafa53c8ffd9c25e9b2837b0cbf94",
+      "id": 2181,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2181,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "49fa76e62b8fd9120dd8e3955ff71b4c7a133e8b19bb386daee85bf5e9f64ff0",
+      "id": 2182,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2182,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "4a3e05f3fefd72aaed092c750c23e8da599409e5757e2ec26bd3861a97fb355d",
+      "id": 2183,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2183,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "4ab3146b0be02322f6fe5f3d74b79861c245611e4aeababdd0a99ea0bfdee6c8",
+      "id": 2184,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2184,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "4b4d1198f3c3de122c839afd59fbf16a6a667500fc27d390bb5a4492a6972d94",
+      "id": 2187,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2187,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "4d9cdaa4593a32ef8e77fa410f97141deb2bfb0c96f86e4664fe8beac454f756",
+      "id": 2190,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2190,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "4f776d5188f43839f2de80243ccd5207e18f56188b4fb2c968c5b85f9925f292",
+      "id": 2197,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2197,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "53a9788738351f6e116a731d3c5f5f1fb798683112cac13cdf2d4cd762673dff",
+      "id": 2206,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2206,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5640e10824d0662845cb552ae4a0656a5d9422b07a8298cb428c1fc10d6faee4",
+      "id": 2211,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2211,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "580c5ec933f0b75ebcef92290736796036d4fbe40cb133e1e25a6651340216a0",
+      "id": 2217,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2217,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "582549100cf2f99cf89a004956b10ba24efa505b213b9df489d6a2dd676f65ef",
+      "id": 2218,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2218,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5970441a48ae38f8cb9223b0e889afd7d85facd85fb27dd67f2efc12d81a9ddd",
+      "id": 2224,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2224,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5a2ac68cfc3e0ab292b2c0f796d1a7b83602dc875beea8cf78c90f84d926c0f9",
+      "id": 2226,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2226,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5af198a17a1c26a6350b64cfa1510c716b51f19ac2d5e5bedbb3fb8aa9b7065c",
+      "id": 2228,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2228,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5cd3d9c27bc3eb8ff1ab82dab5a8495587a01eae9067d597703f323f62b8494d",
+      "id": 2231,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2231,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5d51e04614b6fc045b7f148e2d322e6362e2a8bf630a5e461e65ed348be538aa",
+      "id": 2234,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2234,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5d626182eef7c11fcc1ca5e26d9c73c0142156589e3afd6f7d50dca83fc08502",
+      "id": 2235,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2235,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5d72162cd383567e1d29a2c6c04ddd21ddd615590af36597a1aa10540ba7495f",
+      "id": 2236,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2236,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "5de018e92beaa1e53d9975cb25a3fa476289216ef9efd3d0c2ec5a0fc9c20103",
+      "id": 2237,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2237,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "60ca8145a9799eeb4105f3d8e5ae5b84ec72ddf31dc7ca4ae9afc0c7df319c7f",
+      "id": 2243,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2243,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "617cc78a925fc453740a32cf38cac18121fe481e6ef00dc995600e7406b5d2d0",
+      "id": 2245,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2245,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6243e6044c2f031d55030949ad9f6b0968e53ddb42697f8f9a253a5de3c819f7",
+      "id": 2248,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2248,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "631a99c220aa170be827a048ceb5df7b8fcd05f3f3b0c4dea623ab8160bd8398",
+      "id": 2252,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2252,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "647d14995730b308b3f8b827d251ac6f1a1b33de0c7655ebed439c537c32d521",
+      "id": 2257,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2257,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "65daa568e27dab54e4699ff6f73dca733d400f597020e6114d46c6a65beb3aec",
+      "id": 2263,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2263,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "66bf09ac418ad5162a0214910642b09ba05b67b75ab6dfb4ac896e94c6689c5b",
+      "id": 2264,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2264,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6815587d00ee6c2aca95146c62d1ce10a54ae8af60961143272d32e1b46141f9",
+      "id": 2267,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2267,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6884f81b5dd366cff97e8f6de5984715d01c8d3fe5be51c2bbd6a0f88ccbcba0",
+      "id": 2270,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2270,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "68faf9cdeda8bee543d032a44e69a3a3b83ab7db3b408e177b3351b7c09eb10d",
+      "id": 2271,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2271,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6c4ba56bc2c43e9700b411c50d2f2082c2085e6298761bbfb9b56b153e6c9fdd",
+      "id": 2280,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2280,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6d119886c3d03b7a986cbac2258aaeee034b4d40d5870cb73377e663bdf9676f",
+      "id": 2282,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2282,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6d2564b188cdc44d39c8c7e92d3bec44f3010404143f7219c984e7407dfcec48",
+      "id": 2283,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2283,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6e7547a997678236dc956e79084fd44fbb8c7df8dcbdb126081a87702a6e1fd5",
+      "id": 2287,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2287,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6f3816bfb22f65dce614cb2510ab23686b77ab8f2243e231fcb83195367d42c1",
+      "id": 2290,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2290,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "6f7143e1a7775c854e392c7b32bbb4dd3cad06f0f657acd4969e78ccb8ec23d2",
+      "id": 2292,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2292,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "70105b53707e567c930e1907a7347e0bc4c00ad72c4609ac636eeb62ba9d28d2",
+      "id": 2294,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2294,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "71c7a880b82bbcdac860b69775eb43470519b9939c27701fd5570d7f7ab2a7f4",
+      "id": 2302,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2302,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "7346e80cc1cec419dd383f22c348ea2f57f7d55dd6ea984265b8aac069274d71",
+      "id": 2304,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2304,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "7783f7b5b1710e63e1754b7c43030b118e505d84ef6ca8a3ac0f6346f7c7c664",
+      "id": 2310,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2310,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "783e9b2c585ee19b19677aa43e08eb998ec8811612f80ef3c070299b51214567",
+      "id": 2313,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2313,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "79578f8992b98f79a7ae6591aa95542f09b71e401e5622d3217d7bc8bc286720",
+      "id": 2317,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2317,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "7a7d21b52776a9da6f561dc8ad5d3af4523897ef0f4d06adff2856f1eadfbc96",
+      "id": 2320,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2320,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "80c4c0a36bf0b26171ca205204a30bb838a1b4e376547e3b5de4a75c753a8d58",
+      "id": 2335,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2335,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "829d3221a6738702fd9fdcf7c7f0340a6553e83351baf64e0eb264219704beee",
+      "id": 2336,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2336,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "8353f3be8bcca2a6b8a8a9cc712597b34506dc14f438bda01b0a331d1f68c947",
+      "id": 2337,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2337,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "8356752d4186616b712cf385a2d144d121e4810448c19e8ff23fd6842741f16c",
+      "id": 2338,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2338,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "838414b6da46a71edfa933c8ffed7a82462d36ad952d13d998e7b889dfef02de",
+      "id": 2340,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2340,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "838ba16edfa639d8d3fb9925b075ff98fd39caaa3bae424bfd22eccb32ecff60",
+      "id": 2341,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2341,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "83fd6c537400c4f9ed307a5a3c9e6e8ba8b7cb57807186c490c0b75b08413334",
+      "id": 2342,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2342,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "84079006e5513ad92c5549ef0a7a869e2259cca1ca99680d5c5d5fe96465a455",
+      "id": 2343,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2343,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "85ca939355115a2efc99fb7153c71a7ca1fbcc820a352efff65d10eaa529719f",
+      "id": 2347,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2347,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "86332d6c791bef0d25fcd745a7fb839324e9ea5c397c831008460de9767e0b39",
+      "id": 2348,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2348,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "88f345dc2d4845973de6abb854980b6db46a0c73a1ee28e580ed6c5d23a56c3f",
+      "id": 2358,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2358,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "89b950ca6efcf8380df96a499343ee0bf512b5c9fc098a4410dc4bbd86145272",
+      "id": 2361,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2361,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "8a331c2312b31b40650fda05faad8e4bf0d19541ef30fa8a7af72b21ad7e0e67",
+      "id": 2362,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2362,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "8b36de29503b3f42d0acdcde5ceeb48d21b23c46451a1f8303e4e5170e6f7f81",
+      "id": 2364,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2364,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "8ea4b63b5e07e8d971087567260383bfeceaea3a8c97de1c4059eff67943dfc0",
+      "id": 2372,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2372,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "8ed7e27f6992e6c04a58347ab3dbed67cdea735b5140a71650f8f1cf22291a95",
+      "id": 2374,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2374,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "90ba9a70eba785a595a69c1f28624a0c72c4f068bc0aa70c62ce9f7013708053",
+      "id": 2377,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2377,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "90fa6827881101dfdc446bb219cbfb1a1171be008a00c60e346aaf38da06270a",
+      "id": 2378,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2378,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "928aef7aecf1bbae6d94d402bf2023c1bd79ec8980de879e0ff1b2c82a97a7c2",
+      "id": 2383,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2383,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "941a3b08bc34aba5ff3db80d8e68dd2c1fb00298c9bc628c2926a6331cc0ef65",
+      "id": 2386,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2386,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "94f44e07eae3fccc44864ca90f31f3a9e866355c7c6acdf8bb63ba2e4a9126c2",
+      "id": 2389,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2389,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "968d7a992ebd294bc5f1d9d8b662b995fe33f108f56104ed5646e26d7362d057",
+      "id": 2393,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2393,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "96c8bb7c085a7ee6a42c43556c2914e52f01c5c2ad11b98a251beee9739d4b2d",
+      "id": 2395,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2395,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "96ea597f24decf8a47becd0aec06bf0c4fd16125c53f3c321197054e14095473",
+      "id": 2396,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2396,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "97a5ee46131fb2840ee95755e04dac098d9be2cc32d168ceb8723bdcb40a6b5c",
+      "id": 2399,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2399,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "99a2a93916f27734d9b5b76e754801de9c86929be94d240d678f1703f69333f5",
+      "id": 2403,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2403,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "99ae7ca19c254af0232c28a70de5529316815bdd247ad0947dc0ac4e49e638b6",
+      "id": 2404,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2404,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "99d644a18c6257ee5439dcbd5ade40538ff8659295236ba4175c5565943651a9",
+      "id": 2406,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2406,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "9a3eff0961654cc85c6c2e544a19e9d14a2418a03438230b5bc215795f8e4d2c",
+      "id": 2407,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2407,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "9ab94b1b128f1226e4e2a33ddec6b3ab1b6dcd23c8a6e5edd1522a0039a7112c",
+      "id": 2409,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2409,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "9e00a47f34f4cdb34d94bff6b806bdb29526113ac4959653a50f5681a4bc2aef",
+      "id": 2418,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2418,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "9ecd06d5f25830cbc362013a7625d5cf50bb3bd898218733090e1f7630041e51",
+      "id": 2420,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2420,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a030d5ed947a7e86d468fc7366299eb952597783c6836deb922c73efa4607a61",
+      "id": 2423,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2423,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a196bd16b8d4c212377062637260c90a017bfbd607d972210e6783abffa58b7a",
+      "id": 2427,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2427,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a2a26880ce13fd57584db5ea42a5b172643540446e468d06259102120789f78e",
+      "id": 2430,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2430,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a3eee8fad22df3c182411fa6de89dab0ca28184e9e3d6d99d3c7a78a7cdbe307",
+      "id": 2433,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2433,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a45bbf4641d1e1af2b15f922910ad4d7ddd662dc0cf7d6f8dd81e8ba579d9fc1",
+      "id": 2436,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2436,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a68db57552e75e98202d22b1399585da785bccace920bcd8575e27d6b5565e0a",
+      "id": 2439,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2439,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a751d9477af9aee2a127490830e0c80e044d9007f9b2f8ba24bf05d580e3d9ab",
+      "id": 2441,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2441,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a7858c1d5db1df70e2c9e88951084c6d14de70748411eed8e46b8ad8f1fbc550",
+      "id": 2442,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2442,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a84b84b9c6e7bd9cd61c2f31cfe0544996eed903274e6f0deb676f54badd7ee3",
+      "id": 2444,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2444,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a863f294664c4ad1eb3f1a541ecbfb3ef9e5b85e4014663037a07c908c75d059",
+      "id": 2447,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2447,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a8e78d473dee427481e1e7fc017d42424117bf7bbc12af69f091250928645da3",
+      "id": 2449,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2449,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a97439f53e98a71e59902e7176acacc23b6fb4088243eeb03c33d4c45724ff26",
+      "id": 2451,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2451,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "a97f01a17b6996674989c65b6fec7fa48b263a9501fafd2fe6e48e119e84cde8",
+      "id": 2452,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2452,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "ac7d915a14bb78fff8b5211da49f2c8a1c3c06579fde4c5fde43f3cf11e98d16",
+      "id": 2461,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2461,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "ad1c30baa22e4287398f60dad228c136a667a4fc6e8162072d4b74d40c18d122",
+      "id": 2463,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2463,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "afa521e2232e3fcaf384abf34df49b63cbf129502a0a01cf4aa2f068daefa0d9",
+      "id": 2469,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2469,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b0decab8ba65fb590c6b45b80312cec79de1a37747b7c1283b0be4e0ebc8cee7",
+      "id": 2472,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2472,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b1569269c9d7e9bff7d8099086776c28ec8a47a06bd9237d9763e4da3ef19382",
+      "id": 2474,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2474,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b2672d0dc515c198c6324e76e281a4b64a5f17038f1166596abe99d43c8e1963",
+      "id": 2478,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2478,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b51960dd9804a29df299644f9cba78d8f71e39d0c8b65834878f9ce4af08d1cf",
+      "id": 2484,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2484,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b62f75700c98bbcb5ab19207d18fc15287f45ffe7321a2d56aedbd87e38cc30e",
+      "id": 2487,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2487,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b662216692fb0248ce11a1be69484b76bb2ac1e0c508b3dd16e03cbbe8f0353d",
+      "id": 2488,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2488,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b6d7628a6ffd9f31ef31849d008285e7b174560f043df168b9c998fff44cad82",
+      "id": 2489,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2489,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b808d73902463197f8efb262ee0ddd81c1f98e90f8c702e2769e53c947a17690",
+      "id": 2492,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2492,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b928a0f9ea5e8e8f1ac7f664f194d5aa7a13c35436c333c6dd04f8ce2a332cb5",
+      "id": 2496,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2496,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "b9c6d0028e4e918cad927ca8cfc6e934180a6ec971d63f5f91a16e42b3db1d03",
+      "id": 2497,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2497,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "be8d5f33ff5556870b23f5a993dad83d3349f1c90a52ec62d4f12908b102b9d0",
+      "id": 2507,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2507,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "bec8e1d2af89764897384d0109b699460c76540721d4afb0e611c444093b5873",
+      "id": 2508,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2508,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c18989ade44eb91be82040b973c173f7379b74588558f21401a24499a28dea5f",
+      "id": 2517,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2517,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c1a792f412240a80da0af498fb7cd6153c4f71631fb03bc2f511e5f745752b32",
+      "id": 2518,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2518,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c1ceb4ee3b71eeeef52039344ec5fe81c1ca523a4be8c4ff822c5b4943f43393",
+      "id": 2519,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2519,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c2c6db7d77cf0eb0e5939dfe7859f7661883b431f9e2e7627624e12333079409",
+      "id": 2523,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2523,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c3a0d0fd68cf3d5362a27e539222af59c1da5c3fc3180379e344f5c85c08822b",
+      "id": 2524,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2524,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c5100f9e876fb72e718c6c855666a3f99705dee46bdac7f82993c2ea66519ad6",
+      "id": 2529,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2529,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c772e1515f138c2f9988354f8b21c007e9cd3168841dc7c3e535f90d70515eac",
+      "id": 2537,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2537,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c858f89b647d6dadf0033b5e12ff88142d1cbde199a9e2e70f4f6f7a2a2d8bb3",
+      "id": 2539,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2539,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "c92586df558d5b9dc045b671235be46c4d7b1e723b87abe3945b3b56e88d5f8e",
+      "id": 2542,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2542,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "cb02aba113b61e881dbed86a6814c26dd54902b11a8193f441463dee723edefd",
+      "id": 2547,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2547,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "cb5cca5093ba756b518d249b17cfbbc745b6814b0cb7000d6bf2a6448e7eebee",
+      "id": 2548,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2548,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "ccba0172c66c8617a159c458143ff8149a05a817d4de396d3999b29748c259d6",
+      "id": 2550,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2550,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "cd2da07f8a700eed3d4811131e3c7fcc1109cf94308a3741e12bc62b3d8019fb",
+      "id": 2551,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2551,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "cf40262b9103f9ac227a3c752004643045af6ffc7a3fe5da4a54900e88031ec7",
+      "id": 2557,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2557,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "cf9009cfd936ea7b63d18fe07795dd945f6138c536db9b9003689ec0b244566d",
+      "id": 2559,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2559,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d16b42f0050d9842602879e9ec2aa3e1a26280d3077b9fb67dc135438b01a689",
+      "id": 2565,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2565,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d172af70fe25aaad416f19d1fd6b4078bb422e580af68f6d5461e4ed51808add",
+      "id": 2566,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2566,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d21c68d7cfd1a0cdbac3b2be5398dffb5abf032718014144c09f098c78cc99e5",
+      "id": 2569,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2569,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d25924ba72b8738088fde0b1d4b1b6551bdd056f4d4c7df67bc00ef29dd2d359",
+      "id": 2570,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2570,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d39154efb84a2f5ef97fe0ecbec16c415b6b2ab64483e3299ba8146bd2db9819",
+      "id": 2577,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2577,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d46e512d33405430069ef0678fd3114e560ce210c655780916223e4af301efa8",
+      "id": 2580,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2580,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d4c7789a84cf33c21c1fd2176db94fae5ef39efc55fc11f20fddb12a8ea218c3",
+      "id": 2581,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2581,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d5c58a75f2477036baabc71159d303ff9e8d1de2f79c31e63cae90f29ec924fa",
+      "id": 2584,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2584,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d9a8ba354705830da157630a328b15601c3f0483122491dc7f73085843a3b4d8",
+      "id": 2594,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2594,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "d9cee09294878e30476bd005a9e2cacbecef17a6b5dd84a620091143d3dcd911",
+      "id": 2596,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2596,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "dc417862ae697173f91140f58fc2221f57c1c3ec65742e4a35bb43d5a7330820",
+      "id": 2599,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2599,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "dc9a20a9957a7318b173410c0a69a97a2912e2ed566d33ae539bc7aac9283457",
+      "id": 2601,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2601,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "dd5b9fa7b88e9e8ac519a242198037fe91666027833f24938f80a81153dddeca",
+      "id": 2603,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2603,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "de8e945fcf6bacfdeda466c1d024b37da0c3116893422ae747fa1a1380f28c58",
+      "id": 2609,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2609,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "e1f339f4bf4b02bcf6d9fcfe45ab3e70d7a4c22cb1c3ab594bb7ce795010d689",
+      "id": 2616,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2616,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "e4cd4359bbbbfc452dbf5e9f41397f465fa9e08dec13448949a3ee75d9b7c743",
+      "id": 2622,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2622,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "e50a2a2991f6c9157a60f77ea90b547991459a3062c2346f3d5bc310f7681efe",
+      "id": 2623,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2623,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "e6210c4b4a1f9f947d00e74765bed67e16615b21ce078f2fc96c2e7450986f19",
+      "id": 2627,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2627,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "e6ac2d0be27a32f4b95bb9dc1082af6bb1888a0b4aec7c8d9877a1c5b9a96395",
+      "id": 2631,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2631,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "e806b4cfc2662fe27090c3992240e2ee83597e47e7a907fd39ef5c096fdd5243",
+      "id": 2634,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2634,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "e8b3160eaa38fff86afce331fd0123c08705a2985631168c662904646ca81f64",
+      "id": 2636,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2636,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "eb1ad120cf892a96e659b4153fb1e66b28c04673aa80ae956a1d0b90255aff45",
+      "id": 2642,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2642,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "ee978b105e7137a330e07541d0941840192150cbbc3579a3c09cec37db326882",
+      "id": 2650,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2650,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "eecf58bf5a7ff6e62016ae0247b51e4985ffe60ba85b1f0b9fa8ab6bd8bb0218",
+      "id": 2651,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2651,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "efd33d1ebb7d26a208cbfc0861817245beb81572e1f3bc14c6b726b551bd26f0",
+      "id": 2653,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2653,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f05d42ff0766536fc08ec7901735d55f676da937fed5a50a3711d06bd608c125",
+      "id": 2656,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2656,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f0819d340109c0b351c8b5da717d83b2ee05ea4e58620f5d2ed6c9899ae51bf1",
+      "id": 2657,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2657,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f1d798d9906b269ed1fe558b04440526a959aaa31029242e79fed538d0c9525b",
+      "id": 2661,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2661,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f2cbea04645bcf87f8cf9e0ca613e1f409a1a8164f75713167282d77ebf089ff",
+      "id": 2663,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2663,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f5f0239f4b4d324a37d6402ccbb079bdc8b11affee98aadc3cf386455fd87a49",
+      "id": 2665,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2665,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f5f8dd5dc5b8067651ea74518c982ec78f259dd3088ac7be1bee3bda3e711769",
+      "id": 2666,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2666,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f5fd428c87b8eb0d7f377f53a7b26d47e062f8de74070e2940eae13aa1b63da0",
+      "id": 2667,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2667,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f61207cf685caac1540ba33d06a28a63354826d5e21c1d54610a18f7096d14b6",
+      "id": 2668,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2668,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "f74a5ecc97a0721e7b973991737ac47b5c8c3b7e92ace727e84aafbbf505f0fa",
+      "id": 2671,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2671,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "fcab400f6c52c7dd79c7725525d82a8cc85026365ee801999d71dcd47776cc69",
+      "id": 2682,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2682,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "fd7e765a33c58bdff532aa8b46c324054284764a6d1a3ae26ac0160b5b27b6bf",
+      "id": 2684,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2684,
+      "mode": "existing-relation-id"
+    },
+    {
+      "table": "projection_equipment_effect_attributes",
+      "relationRecordKey": "ff36e22560301dbb9b6d5e4daad65a6d54d7292c2457cf1dba6095a910289de7",
+      "id": 2689,
+      "sourceTable": "relation_equipment_effect_attributes",
+      "sourceId": 2689,
+      "mode": "existing-relation-id"
+    }
+  ],
+  "selectedMemberIds": [
+    37,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    88,
+    89,
+    90,
+    91,
+    92,
+    100,
+    101,
+    102,
+    123,
+    124,
+    125,
+    151,
+    152,
+    153,
+    205,
+    228,
+    229,
+    230,
+    231,
+    232,
+    233,
+    238,
+    256,
+    257,
+    258,
+    268,
+    371,
+    372,
+    373,
+    374,
+    375,
+    376,
+    377,
+    378,
+    379,
+    380,
+    400,
+    401,
+    402,
+    403,
+    404,
+    410,
+    411,
+    551,
+    552,
+    553,
+    558,
+    559,
+    684,
+    685,
+    686,
+    687,
+    688,
+    689,
+    690,
+    691,
+    692,
+    693,
+    694,
+    695,
+    696,
+    697,
+    698,
+    727,
+    728,
+    729,
+    730,
+    731,
+    732,
+    733,
+    734,
+    735,
+    736,
+    737,
+    738,
+    792,
+    793,
+    794,
+    803,
+    804,
+    805,
+    867,
+    879,
+    894,
+    895,
+    896,
+    924,
+    925,
+    926,
+    954,
+    955,
+    956,
+    957,
+    958,
+    959,
+    960,
+    961,
+    962,
+    978,
+    979,
+    980,
+    1001,
+    1002,
+    1003,
+    1004,
+    1005,
+    1135,
+    1136,
+    1159,
+    1160,
+    1161,
+    1205,
+    1206,
+    1207,
+    1208,
+    1209,
+    1210,
+    1211,
+    1212,
+    1213,
+    1214,
+    1215,
+    1216,
+    1217,
+    1218,
+    1219,
+    1282,
+    1283,
+    1284,
+    1285,
+    1286,
+    1287,
+    1316,
+    1317,
+    1318,
+    1503,
+    1504,
+    1505,
+    1546,
+    1547,
+    1548,
+    1549,
+    1550,
+    1731,
+    1732,
+    1733,
+    1832,
+    1833,
+    1834,
+    2189,
+    2199,
+    2200,
+    2201,
+    2202,
+    2275,
+    2277,
+    2279,
+    2361,
+    2362,
+    2363,
+    2367,
+    2368,
+    2369,
+    2370,
+    2371,
+    2372,
+    2509,
+    2510,
+    2511,
+    2512,
+    2513,
+    2514,
+    2757,
+    2758,
+    2759,
+    2760,
+    2761,
+    2762,
+    2763,
+    2764,
+    2765,
+    3109,
+    3187,
+    3188,
+    3189,
+    3266,
+    3267,
+    3268,
+    3374,
+    3375,
+    3376,
+    3381,
+    3382,
+    3770,
+    3776,
+    3777,
+    3778,
+    3797,
+    3798,
+    3800,
+    3801,
+    3802,
+    3803,
+    3804,
+    3805,
+    3806,
+    3807,
+    3808,
+    3871,
+    3872,
+    3873,
+    3874,
+    3875,
+    3876,
+    3877,
+    3878,
+    4008,
+    4256,
+    4873,
+    4896,
+    4897,
+    4898,
+    4899,
+    4900,
+    4901,
+    4982,
+    4983,
+    4984,
+    5001,
+    5068,
+    5279,
+    5280,
+    5281,
+    5524,
+    5588,
+    5589,
+    5590,
+    5591,
+    5592,
+    5593
+  ],
+  "coverage": {
+    "totalMembers": 255,
+    "selectedMembers": 249,
+    "excludedMemberIds": [
+      3383,
+      3799,
+      3879,
+      3880,
+      3881,
+      3882
+    ],
+    "complete": false
+  },
+  "status": "COMMITTED",
+  "affectedRows": 207,
+  "dispatchPermitConsumed": true,
+  "terminalRowsSha256": "sha256:6afa0d66dab3156672de58d38191093e68d000f8e00f2748bfdd82aef779a602",
+  "acceptance": "bounded-projection-repair-only",
+  "authorization": {
+    "packetHash": "sha256:599c265e362ed59080799c3b97f21e256e11bf0690f16058904d732931b563d1",
+    "decisionIdentity": "解决blocker问题-secondary-projection-20261007-08",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+    "actor": "admin",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-10-07T15:05:57.025Z"
+}

@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "明确授权 Armor 64-set image cache 上传 12 个已留存图片对象；不包含数据库写入或 relation/projection publication。",
+  "authorizationReference": "admin-self-approval://armor-image-cache/20261005-02/request-19e21c9a",
+  "decisionIdentity": "armor-image-cache-admin-20261005-121000-b0a1c9a2",
+  "authorizedAt": "2026-10-05T12:10:00.431Z"
+}

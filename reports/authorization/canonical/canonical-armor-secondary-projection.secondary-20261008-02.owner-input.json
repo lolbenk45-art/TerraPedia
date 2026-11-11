@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor secondary projection 的完整 owner scope；写入当前 proposal 的 25 条 verified effect projection inserts 和 6 条 owned effect projection updates，覆盖 238 个 set members 与 Shroomite 显式 owners 1546-1550；任何 unresolved source effect、foreign row 或未绑定 owner 保持 quarantine/untouched；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-secondary-projection-source-effect-20261008-02",
+  "authorizedAt": "2026-10-07T22:36:00.000Z"
+}

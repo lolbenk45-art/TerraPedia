@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "重试 Shroomite Iteminfo revision 1023241 的 1546-1550 lineage 写入，retry-01 已回滚且禁止重放。",
+  "authorizationReference": "armor-item-lineage-refresh-retry-03-20261006-admin-01",
+  "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-03-bcb935b7",
+  "authorizedAt": "2026-10-06T12:50:56.000Z"
+}

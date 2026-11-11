@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "armor-typed-effect-recovery-owner/v1",
+  "operationId": "canonical-armor-typed-effect-publication",
+  "ownerIdentity": "admin",
+  "ownerRole": "Armor data owner",
+  "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-03",
+  "proposalSha256": "sha256:a91ed7718848e319c15682f56e38bcbc52b98b4249178c192c0c8eb6dcb5d911",
+  "sourceFingerprint": {
+    "pageRevisionId": 1027106,
+    "iteminfoRevisionId": 1023241,
+    "armorSetsRevisionId": 964993
+  },
+  "reconciliationPath": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.reconciliation.json",
+  "allowedStatuses": [
+    "ROLLBACK_CONFIRMED",
+    "COMMITTED_READBACK_REQUIRED",
+    "EXPECTED_STATE_PRESENT",
+    "RECONCILIATION_REQUIRED"
+  ],
+  "databaseWrites": false,
+  "permitReplayAllowed": false,
+  "reviewedAt": "2026-10-07T23:03:24.943Z",
+  "rationale": "Recovery is read-only, permit replay is forbidden, and any prepared outcome must be reconciled against the exact three-row proposal.",
+  "bindingSha256": "sha256:c7909b316fd7af900c324e1b88119b32002f548336faaa3e9d85835e789fef55"
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "armor-shroomite-relation-item-refresh-execution/v1",
+  "operationId": "canonical-armor-shroomite-relation-item-refresh",
+  "proposalSha256": "sha256:1505f314a91056cee2702ad39a33c4d8e43e2b2994ee9481f1cb7d7cc48d4a75",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "targetItemSourceIds": [
+    1546,
+    1547,
+    1548,
+    1549,
+    1550
+  ],
+  "status": "COMMITTED",
+  "affectedRows": 5,
+  "receipts": [
+    {
+      "table": "relation_items",
+      "id": 1546,
+      "sourceId": 1546,
+      "recordKey": "f54363d96ad36ac2648ced5d0336abde2dded453c7138526b62bb045ff29e500"
+    },
+    {
+      "table": "relation_items",
+      "id": 1547,
+      "sourceId": 1547,
+      "recordKey": "7fd8d750d8e70caeb86ee81539cb1ff7a03656bd2ad3ea59b06d8365d0598668"
+    },
+    {
+      "table": "relation_items",
+      "id": 1548,
+      "sourceId": 1548,
+      "recordKey": "5d68d26d253a1c9ac9b591c105d3a9aef6df35363c9f045cf3011cfb87231d56"
+    },
+    {
+      "table": "relation_items",
+      "id": 1549,
+      "sourceId": 1549,
+      "recordKey": "1c602f69b79b63ce022ccd21ad7ecaa4a3f26474e36eff0bcff9b39ee8b90209"
+    },
+    {
+      "table": "relation_items",
+      "id": 1550,
+      "sourceId": 1550,
+      "recordKey": "0ac84fe3540bc6d7f7dc8174731c4d2016dad1095d9cea695aca0f876678e48f"
+    }
+  ],
+  "dispatchPermitConsumed": true,
+  "authorization": {
+    "decisionIdentity": "canonical-armor-shroomite-relation-item-refresh-admin-20261007-repair-02-a8d3f9cf",
+    "packetHash": "sha256:42740617d6e031e96b1b86b36895f1b3967f15dcc785582d9b1b95af4c516cb9"
+  }
+}

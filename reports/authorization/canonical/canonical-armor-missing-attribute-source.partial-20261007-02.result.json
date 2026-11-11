@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "armor-missing-attribute-source-execution/v1",
+  "operationId": "canonical-armor-missing-attribute-source",
+  "proposalSha256": "sha256:99ac114a4992613916154d10a67c547b8232e187ae28032d02c52a7147736202",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "sourceKey": "wiki.page.armor.attributes.missing-owners.7facab41e1572a4cf04ec3a66c73d4c495986a2e7e91a217824eebdbe5e6cdf4",
+  "status": "ROLLBACK_CONFIRMED",
+  "affectedRows": 10,
+  "receipts": [
+    {
+      "table": "currentLanding",
+      "id": 18674,
+      "key": "wiki.page.armor.attributes.missing-owners.7facab41e1572a4cf04ec3a66c73d4c495986a2e7e91a217824eebdbe5e6cdf4"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2089,
+      "key": "82d3d7a30dee06553586e25f169c2f36372e9f18b4438e4de75a0c83f62719e8"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2090,
+      "key": "334d794c4e780a520750939670401b8e28989eabbe4725f94f8bd2827098213e"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2091,
+      "key": "09f79c64e496f9d731f77aed99330d2466cf1d822017eae373ed17123b18f55d"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2092,
+      "key": "f2e6ce8825ebacf12e3ff39f7516da2b53f0d2ee9907d461a3a31849f1b84c9e"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2093,
+      "key": "65a72736001a011124b76a990980f766cac52f4ea4d84d780a8bade55afd20b5"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2094,
+      "key": "5dbda5bf5561204cc272a7ab25c7e324b783b5785e1c3099c5f8dabfb7ac6ac6"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2095,
+      "key": "a9a714bf9334f993743992bbca6fb03ba335e0de8b00c865cd727689fad2fba9"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2096,
+      "key": "08780b1bf16cb5a4e9cd0a25516f84f0f5e3247c869092c37ac33870f5fef7db"
+    },
+    {
+      "table": "currentMaintRows",
+      "id": 2097,
+      "key": "b91d4282c98d15983f42c71499d70c155ed86f2704ddc0147ca1a1e9282ef972"
+    }
+  ],
+  "dispatchPermitConsumed": true,
+  "requiresReadbackReconciliation": false,
+  "error": "Armor missing-attribute landing immutable drift",
+  "authorization": {
+    "packetHash": "sha256:791be561be8f9d3c7dae512178e13fff88f520eca9a0014c1c95498cbea576c2",
+    "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-02-99ac114a",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+    "actor": "admin",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-10-07T07:11:46.905Z"
+}

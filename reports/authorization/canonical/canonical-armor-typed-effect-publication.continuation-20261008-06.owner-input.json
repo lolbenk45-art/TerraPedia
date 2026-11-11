@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor typed-effect publication；仅写入 proposal 绑定的 Shroomite 1546、1547、1548 三条 ×1.12 typed item effects；所有 unresolved source effects 继续 quarantine/untouched；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-06",
+  "authorizedAt": "2026-10-07T23:22:00.000Z"
+}

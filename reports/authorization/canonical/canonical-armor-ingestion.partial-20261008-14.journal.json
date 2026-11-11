@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "armor-canonical-recovery-journal/v1",
+  "operationId": "canonical-armor-ingestion",
+  "state": "ROLLBACK_CONFIRMED",
+  "materializationStatus": "PENDING",
+  "runId": "armor-canonical-partial-20261008-01",
+  "decisionIdentity": "canonical-armor-ingestion-admin-partial-20261008-14-解决blocker问题",
+  "packetHash": "sha256:3afb617bc16b4b6ed0266cfb85ae6f06f585e79ad46ba46c26e3fc5a22f8a614",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "intentSha256": "sha256:1163f6ed5d019c6c69e7703624fbb541c55a116cd516f4fd0f80cb34550dfeae",
+  "writeTimestamp": "2026-10-05T13:22:00Z",
+  "concreteAfterSha256": null,
+  "verifiedIdMap": {},
+  "evidence": {
+    "preparedAt": "2026-10-07T17:32:25Z",
+    "observedState": "ROLLED_BACK"
+  },
+  "history": [
+    {
+      "state": "PREPARED",
+      "occurredAt": "2026-10-07T17:32:25Z"
+    },
+    {
+      "state": "ROLLBACK_CONFIRMED",
+      "occurredAt": "2026-10-07T17:32:26Z"
+    }
+  ],
+  "journalSha256": "sha256:43ce7eaca909e666802737dce29d4d8b46c0b15b49fdeace60f6d31d242d2c7a"
+}

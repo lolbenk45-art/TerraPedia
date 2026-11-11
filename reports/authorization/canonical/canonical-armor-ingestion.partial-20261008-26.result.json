@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_armor_ingestion_result",
+  "operationId": "canonical-armor-ingestion",
+  "status": "COMPLETED",
+  "transaction": {
+    "schemaVersion": "armor-canonical-transaction/v1",
+    "operationId": "canonical-armor-ingestion",
+    "status": "committed",
+    "receipts": [],
+    "verifiedIdMap": {}
+  },
+  "authorization": {
+    "decisionIdentity": "canonical-armor-ingestion-admin-partial-20261008-26-解决blocker问题",
+    "packetHash": "sha256:e680ae6566c3eefbb85a9884bb995b1d6704e86ce8bb6870e4d4fe15e40c8568"
+  },
+  "completedAt": "2026-10-07T22:09:08.542Z"
+}

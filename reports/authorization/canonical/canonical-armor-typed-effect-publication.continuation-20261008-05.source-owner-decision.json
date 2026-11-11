@@ -1,0 +1,2821 @@
+{
+  "schemaVersion": "armor-source-effect-owner-decision/v1",
+  "operationId": "canonical-armor-typed-effect-publication",
+  "reviewStatus": "recorded",
+  "formalAdmission": false,
+  "databaseWrites": false,
+  "applyAllowed": false,
+  "proposalSha256": "sha256:a91ed7718848e319c15682f56e38bcbc52b98b4249178c192c0c8eb6dcb5d911",
+  "sourceFingerprint": {
+    "pageRevisionId": 1027106,
+    "iteminfoRevisionId": 1023241,
+    "armorSetsRevisionId": 964993
+  },
+  "sourceEvidenceHash": "sha256:dd7b40a65e1ef0b31df5653ff45a21a2cc780efff190fd6f1ee7b99f6131913f",
+  "classificationSha256": "sha256:3aeb4c05397979a311213d8f46948f467915d048671f6e1ca3bf5808d4aa7061",
+  "actor": "admin",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-05-source-owner",
+  "reviewedAt": "2026-10-08T08:15:00.000Z",
+  "rationale": "All unresolved set-effect source lines remain explicitly quarantined under the approved partial policy; no unresolved row enters this typed item-effect write set.",
+  "entries": [
+    {
+      "textKey": "ArmorSetBonus.AshWood",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        5279,
+        5280,
+        5281
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：将熔岩的接触伤害和所造成的着火了！减益持续时间降低 50%"
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDamage",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        2199,
+        2200,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：玩家不受伤害时，每 3 秒提供不断累积的甲虫耐力增益，每级提供 15% 伤害减免，最高 45% 伤害减免"
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDamage",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2200,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "增益在受伤时降低一级"
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDamage",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2200,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：对敌怪造成近战伤害后提供不断累积的甲虫力量增益，每级提供 10% 近战伤害和近战速度，最高 30% 近战伤害和近战速度"
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDefense",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        2199,
+        2201,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：玩家不受伤害时，每 3 秒提供不断累积的甲虫耐力增益，每级提供 15% 伤害减免，最高 45% 伤害减免"
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDefense",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2201,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "增益在受伤时降低一级"
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDefense",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2201,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：对敌怪造成近战伤害后提供不断累积的甲虫力量增益，每级提供 10% 近战伤害和近战速度，最高 30% 近战伤害和近战速度"
+    },
+    {
+      "textKey": "ArmorSetBonus.Cactus",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        894,
+        895,
+        896
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：提供荆棘效果，造成 15 / 30 / 45 伤害和 10 击退"
+    },
+    {
+      "textKey": "ArmorSetBonus.Chlorophyte",
+      "sourceLineIndex": 21,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1003,
+        1004,
+        1005,
+        1002
+      ],
+      "sourcePage": "叶绿盔甲",
+      "line": "召唤一颗叶状水晶仆从悬浮于玩家上方。它周期性地发射绿色激光状能量脉冲，可立即命中目标并造成 100 基础伤害和 10 (极强击退力) 击退。"
+    },
+    {
+      "textKey": "ArmorSetBonus.ChlorophyteMelee",
+      "sourceLineIndex": 21,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1001,
+        1004,
+        1005
+      ],
+      "sourcePage": "叶绿盔甲",
+      "line": "召唤一颗叶状水晶仆从悬浮于玩家上方。它周期性地发射绿色激光状能量脉冲，可立即命中目标并造成 100 基础伤害和 10 (极强击退力) 击退。"
+    },
+    {
+      "textKey": "ArmorSetBonus.ChlorophyteSummon",
+      "sourceLineIndex": 21,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        5524,
+        1004,
+        1005
+      ],
+      "sourcePage": "叶绿盔甲",
+      "line": "召唤一颗叶状水晶仆从悬浮于玩家上方。它周期性地发射绿色激光状能量脉冲，可立即命中目标并造成 100 基础伤害和 10 (极强击退力) 击退。"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltCaster",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        371,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltCaster",
+      "sourceLineIndex": 11,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        371,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltCaster",
+      "sourceLineIndex": 18,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        371,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltMelee",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        372,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltMelee",
+      "sourceLineIndex": 11,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        372,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltMelee",
+      "sourceLineIndex": 18,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        372,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltRanged",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        373,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltRanged",
+      "sourceLineIndex": 11,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        373,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltRanged",
+      "sourceLineIndex": 18,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        373,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.Crimson",
+      "sourceLineIndex": 1,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        792,
+        793,
+        794
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：大幅提高生命再生速度"
+    },
+    {
+      "textKey": "ArmorSetBonus.Crimson",
+      "sourceLineIndex": 2,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        792,
+        793,
+        794
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：在移动时与再生生命时会发出红色粒子"
+    },
+    {
+      "textKey": "ArmorSetBonus.Forbidden",
+      "sourceLineIndex": 4,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        3776,
+        3777,
+        3778
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：双击▼ 下/▲ 上[a]可消耗 20 魔力召唤远古风暴到光标位置，持续造成 20 伤害"
+    },
+    {
+      "textKey": "ArmorSetBonus.Forbidden",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        3776,
+        3777,
+        3778
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：移动时身后有拖影效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.Frost",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        684,
+        685,
+        686
+      ],
+      "sourcePage": "寒霜盔甲",
+      "line": "近战和远程武器散发蓝光粒子，击中敌怪时施加 5–14 秒冻伤减益。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Hallowed",
+      "sourceLineIndex": 15,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        558,
+        551,
+        552,
+        4901,
+        4900,
+        553,
+        559,
+        4898,
+        4897,
+        4896
+      ],
+      "sourcePage": "神圣盔甲",
+      "line": "击中敌怪时，玩家会获得神圣防护增益，这会提供闪避下一次受到敌怪的攻击或其他伤害来源的攻击。此效果在闪避触发后有 30 秒冷却。"
+    },
+    {
+      "textKey": "ArmorSetBonus.HallowedSummoner",
+      "sourceLineIndex": 15,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        4873,
+        551,
+        552,
+        4901,
+        4900,
+        4899
+      ],
+      "sourcePage": "神圣盔甲",
+      "line": "击中敌怪时，玩家会获得神圣防护增益，这会提供闪避下一次受到敌怪的攻击或其他伤害来源的攻击。此效果在闪避触发后有 30 秒冷却。"
+    },
+    {
+      "textKey": "ArmorSetBonus.HuntressTier2",
+      "sourceLineIndex": 8,
+      "category": "behavior-trigger",
+      "occurrences": 3,
+      "owners": [
+        3803,
+        3804,
+        3805
+      ],
+      "sourcePage": "盔甲",
+      "line": "爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害"
+    },
+    {
+      "textKey": "ArmorSetBonus.HuntressTier3",
+      "sourceLineIndex": 8,
+      "category": "behavior-trigger",
+      "occurrences": 3,
+      "owners": [
+        3877,
+        3878,
+        3879
+      ],
+      "sourcePage": "盔甲",
+      "line": "爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害"
+    },
+    {
+      "textKey": "ArmorSetBonus.Jungle",
+      "sourceLineIndex": 3,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        228,
+        229,
+        230,
+        962,
+        961,
+        960
+      ],
+      "sourcePage": "盔甲",
+      "line": "每个部件都可以和远古钴盔甲的部件互换"
+    },
+    {
+      "textKey": "ArmorSetBonus.Jungle",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        228,
+        229,
+        230,
+        962,
+        961,
+        960
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：移动时有草粒子"
+    },
+    {
+      "textKey": "ArmorSetBonus.MetalTier2",
+      "sourceLineIndex": 0,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        91,
+        82,
+        78,
+        92,
+        83,
+        79,
+        955,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695
+      ],
+      "sourcePage": "金盔甲",
+      "line": "其代用矿石对应物是铂金盔甲。"
+    },
+    {
+      "textKey": "ArmorSetBonus.MetalTier2",
+      "sourceLineIndex": 1,
+      "category": "visual-behavior",
+      "occurrences": 2,
+      "owners": [
+        91,
+        82,
+        78,
+        92,
+        83,
+        79,
+        955,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695
+      ],
+      "sourcePage": "金盔甲",
+      "line": "远古金头盔在功能上与金头盔完全相同且可互换。远古金头盔有 1/100 (1%) 的几率由骷髅和孢子骷髅掉落，也可以通过将金头盔投入微光中获得。其外观基于 1.0.3 前的金头盔贴图。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Meteor",
+      "sourceLineIndex": 2,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        123,
+        124,
+        125
+      ],
+      "sourcePage": "流星盔甲",
+      "line": "太空枪、激光步枪、灰冲击枪和橙冲击枪的魔力消耗减少至 0。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Mining",
+      "sourceLineIndex": 2,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        88,
+        410,
+        411,
+        5590,
+        5589,
+        5588,
+        4008
+      ],
+      "sourcePage": "挖矿盔甲",
+      "line": "增强夜视并扩大光源半径(不会与夜猫子增益叠加)"
+    },
+    {
+      "textKey": "ArmorSetBonus.Mining",
+      "sourceLineIndex": 4,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        88,
+        410,
+        411,
+        5590,
+        5589,
+        5588,
+        4008
+      ],
+      "sourcePage": "挖矿盔甲",
+      "line": "玩家会发出微弱的光亮。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Molten",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        231,
+        232,
+        233
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：移动时有火焰粒子"
+    },
+    {
+      "textKey": "ArmorSetBonus.MonkTier2",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        3806,
+        3807,
+        3808
+      ],
+      "sourcePage": "盔甲",
+      "line": "闪电光环的攻击速度提高，且具有 1/6 (16.67%) 的固定暴击率"
+    },
+    {
+      "textKey": "ArmorSetBonus.MonkTier3",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        3880,
+        3881,
+        3882
+      ],
+      "sourcePage": "盔甲",
+      "line": "闪电光环的攻击速度和范围提高，且具有 25% 的固定暴击率"
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 7,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "在多人模式中，任何一位玩家都能拾取这些强化焰物品并能从其增益中受益，无论是否身着星云盔甲。另外，拾取一个强化焰物品时会给附近（在 43.75 图格半径内[1]）的玩家一个同样的增益。如果取得强化焰的玩家是在一个团队中，则只有同一队的其他玩家能得到此增益；否则，无组队的玩家会在获取强化焰的时候会将增益传递给附近的所有其他玩家。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 4,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "伤害强化焰"
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 7,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "生命强化焰"
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 9,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "提高生命再生速度（每秒 3），持续 8 秒钟"
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 10,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "魔力强化焰"
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 12,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "提高魔力再生速度（每秒大约 10），持续 8 秒钟"
+    },
+    {
+      "textKey": "ArmorSetBonus.Ninja",
+      "sourceLineIndex": 3,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        256,
+        257,
+        258
+      ],
+      "sourcePage": "忍者盔甲",
+      "line": "玩家移动时留下残影。"
+    },
+    {
+      "textKey": "ArmorSetBonus.ObsidianOutlaw",
+      "sourceLineIndex": 4,
+      "category": "unknown-prose",
+      "occurrences": 2,
+      "owners": [
+        3266,
+        3267,
+        3268
+      ],
+      "sourcePage": "黑曜石盔甲",
+      "line": "不同于其他鞭速度加成，它与近战速度加成乘算叠加。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Orichalcum",
+      "sourceLineIndex": 14,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1210,
+        1213,
+        1214,
+        1211,
+        1212
+      ],
+      "sourcePage": "山铜盔甲",
+      "line": "击中敌怪时，会在屏幕边缘处召唤一片花瓣并射向目标，花瓣会移动到屏幕另一端并伤害路径上的所有敌怪。花瓣造成 36 伤害[1]。花瓣移动速度非常快（123 mph[1]），可以穿过物块和液体。在召唤另一片花瓣之前有 0.33 秒 的冷却，[1]这意味着此山铜盔甲的套装奖励大约增加 100 DPS。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Palladium",
+      "sourceLineIndex": 11,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        1205,
+        1208,
+        1209,
+        1206,
+        1207
+      ],
+      "sourcePage": "钯金盔甲",
+      "line": "击中敌怪会获得持续 5 秒的快速治疗增益，提供 2 生命每秒的固定生命再生。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Palladium",
+      "sourceLineIndex": 12,
+      "category": "behavior-trigger",
+      "occurrences": 2,
+      "owners": [
+        1205,
+        1208,
+        1209,
+        1206,
+        1207
+      ],
+      "sourcePage": "钯金盔甲",
+      "line": "后续击中会刷新持续时间。即使卸下盔甲，增益效果也不会取消。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Palladium",
+      "sourceLineIndex": 13,
+      "category": "behavior-trigger",
+      "occurrences": 2,
+      "owners": [
+        1205,
+        1208,
+        1209,
+        1206,
+        1207
+      ],
+      "sourcePage": "钯金盔甲",
+      "line": "作为固定生命再生效果，它独立于常规恢复机制运作。这也使得该恢复效果可无视流血减益。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Platinum",
+      "sourceLineIndex": 0,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        696,
+        697,
+        698
+      ],
+      "sourcePage": "铂金盔甲",
+      "line": "其代用矿石对应物是金盔甲。"
+    },
+    {
+      "textKey": "ArmorSetBonus.ShadowScale",
+      "sourceLineIndex": 3,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        102,
+        101,
+        100,
+        958,
+        957,
+        956
+      ],
+      "sourcePage": "暗影盔甲",
+      "line": "玩家在移动时留下残影和暗影粒子。使火箭靴产生紫色喷焰。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Shroomite",
+      "sourceLineIndex": 12,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        1548,
+        1549,
+        1550,
+        1546,
+        1547
+      ],
+      "sourcePage": "蘑菇矿盔甲",
+      "line": "玩家在移动时会留下深蓝色拖影"
+    },
+    {
+      "textKey": "ArmorSetBonus.Shroomite",
+      "sourceLineIndex": 13,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1548,
+        1549,
+        1550,
+        1546,
+        1547
+      ],
+      "sourcePage": "蘑菇矿盔甲",
+      "line": "站定不动且不使用任何物品会让玩家快速进入隐形，这会使其变得几乎不可见，且在玩家不使用任何物品时阻止战士 AI 和飞行 AI 的敌怪向玩家发射射弹。隐形是逐渐激活的，这一过程需要 1.12 秒，在这期间玩家会获得数项线性提升至以下值的属性提升：[2]"
+    },
+    {
+      "textKey": "ArmorSetBonus.Solar",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        2763,
+        2764,
+        2765
+      ],
+      "sourcePage": "耀斑盔甲",
+      "line": "受到伤害会消耗掉一层充能，并在玩家周围释放火焰爆炸，对附近的敌怪造成伤害。当有至少一层充能时，玩家可以通过双击 ◀ 左 或 ▶ 右 按键来激活一次特殊猛冲攻击。如果猛冲击中了任何敌怪，会消耗一层充能，猛冲会对被击中的敌怪造成伤害并产生火焰爆炸（即单个敌怪会受到两次伤害）并提供 0.07 秒无敌帧。玩家每秒只能猛冲一次。套装奖励也会提供 12% 的基础伤害减免，和护盾的伤害减免乘算叠加。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Solar",
+      "sourceLineIndex": 1,
+      "category": "visual-behavior",
+      "occurrences": 4,
+      "owners": [
+        2763,
+        2764,
+        2765
+      ],
+      "sourcePage": "耀斑盔甲",
+      "line": "装备的每一件部件（哪怕被时装物品所隐藏）都会让玩家发光，每多装备一件就会更亮一分。此外，装备全套套装会同时具备移动拖影效果和脉动效果，类似于神圣盔甲。"
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreDamage",
+      "sourceLineIndex": 6,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2189,
+        1504,
+        1505
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成自动制导的球体射弹。球体造成 100% 武器伤害且能造成暴击。"
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreDamage",
+      "sourceLineIndex": 11,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        2189,
+        1504,
+        1505
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成生命偷取球体。球体会飞向玩家并恢复等同于造成伤害的 20% 的生命（例：50 魔法伤害会恢复 10 生命）。在多人模式下，会治疗（同一）团队中生命最低的玩家。"
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreHealing",
+      "sourceLineIndex": 6,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        1503,
+        1504,
+        1505
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成自动制导的球体射弹。球体造成 100% 武器伤害且能造成暴击。"
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreHealing",
+      "sourceLineIndex": 11,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1503,
+        1504,
+        1505
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成生命偷取球体。球体会飞向玩家并恢复等同于造成伤害的 20% 的生命（例：50 魔法伤害会恢复 10 生命）。在多人模式下，会治疗（同一）团队中生命最低的玩家。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Spooky",
+      "sourceLineIndex": 4,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        1832,
+        1833,
+        1834
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：轮廓有脉动效果"
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier2",
+      "sourceLineIndex": 7,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        3800,
+        3801,
+        3802
+      ],
+      "sourcePage": "侍卫盔甲",
+      "line": "弩车哨兵的射弹速度提高，且穿透提升（由 3 个提升至 6 个）。"
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier2",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 4,
+      "owners": [
+        3800,
+        3801,
+        3802
+      ],
+      "sourcePage": "侍卫盔甲",
+      "line": "受到伤害时，提供弩车恐慌！增益，持续 5 秒，可将所有玩家召唤的弩车哨兵的开火速率提高（由 3.1 秒提升至 1.43 秒）。"
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier3",
+      "sourceLineIndex": 7,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        3871,
+        3872,
+        3873
+      ],
+      "sourcePage": "英灵殿骑士盔甲",
+      "line": "弩车哨兵的射弹速度提升、开火速度提升（由 3.1 秒提升至 2.1 秒）、且穿透提升（由 3 个提升至 6 个）。"
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier3",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 4,
+      "owners": [
+        3871,
+        3872,
+        3873
+      ],
+      "sourcePage": "英灵殿骑士盔甲",
+      "line": "受到伤害时，提供弩车恐慌！增益，持续 5 秒，可将所有玩家召唤的弩车哨兵的开火速率提高（由 2.1 秒提升至 0.93 秒）[1]。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Stardust",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 6,
+      "owners": [
+        3381,
+        3382,
+        3383
+      ],
+      "sourcePage": "星尘盔甲",
+      "line": "召唤一个星尘守卫仆从悬浮于玩家身后。在有敌怪出现在距离玩家 30 图格半径内前，它会保持静止。在距离范围内，它会迅速穿过物块冲向敌怪，然后用拳头快速地攻击，每次造成 50 基础召唤伤害。当范围内没有敌怪后，星尘守卫会重新返回玩家身后。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Stardust",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 2,
+      "owners": [
+        3381,
+        3382,
+        3383
+      ],
+      "sourcePage": "星尘盔甲",
+      "line": "星尘守卫受召唤伤害奖励加成，包括来自鞭的。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Titanium",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1215,
+        1218,
+        1219,
+        1216,
+        1217
+      ],
+      "sourcePage": "钛金盔甲",
+      "line": "攻击会为玩家提供钛金屏障增益，这会生成围绕玩家旋转的钛金碎片。钛金碎片数量越多，旋转速度越快，最多同时存在 7 个钛金碎片。每个钛金碎片造成 50 伤害和 15（疯狂击退力）的击退[1]，且不会造成暴击。每个钛金碎片会在击中敌怪或经过 10 秒后消失。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Titanium",
+      "sourceLineIndex": 10,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1215,
+        1218,
+        1219,
+        1216,
+        1217
+      ],
+      "sourcePage": "钛金盔甲",
+      "line": "攻击会为玩家提供钛金屏障增益，这会生成围绕玩家旋转的钛金碎片。钛金碎片数量越多，旋转速度越快，最多同时存在 7 个钛金碎片。每个钛金碎片造成 50 伤害和 15（疯狂击退力）的击退[1]，且不会造成暴击。每个钛金碎片会在击中敌怪或经过 10 秒后消失。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Titanium",
+      "sourceLineIndex": 16,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1215,
+        1218,
+        1219,
+        1216,
+        1217
+      ],
+      "sourcePage": "钛金盔甲",
+      "line": "攻击会为玩家提供钛金屏障增益，这会生成围绕玩家旋转的钛金碎片。钛金碎片数量越多，旋转速度越快，最多同时存在 7 个钛金碎片。每个钛金碎片造成 50 伤害和 15（疯狂击退力）的击退[1]，且不会造成暴击。每个钛金碎片会在击中敌怪或经过 10 秒后消失。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Turtle",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        1316,
+        1317,
+        1318
+      ],
+      "sourcePage": "海龟盔甲",
+      "line": "在受到接触伤害时，产生强大的荆棘效果，可反弹 200% 敌怪接触伤害并造成 10（极强击退力）的击退[1]。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Turtle",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        1316,
+        1317,
+        1318
+      ],
+      "sourcePage": "海龟盔甲",
+      "line": "视觉上的海龟壳出现在玩家背后。"
+    },
+    {
+      "textKey": "ArmorSetBonus.Vortex",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        2757,
+        2758,
+        2759
+      ],
+      "sourcePage": "星旋盔甲",
+      "line": "双击 ▼ 下 键切换隐形的能力，这会使玩家变得几乎不可见，且在玩家不使用任何物品时阻止战士 AI 和飞行 AI 的敌怪向玩家发射射弹。隐形是逐渐激活的，这一过程需要 0.42 秒，在这期间玩家会获得数项线性提升至以下值的属性变化：[1]"
+    }
+  ],
+  "assignments": [
+    {
+      "textKey": "ArmorSetBonus.AshWood",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        5279,
+        5280,
+        5281
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：将熔岩的接触伤害和所造成的着火了！减益持续时间降低 50%",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        5279,
+        5280,
+        5281
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDamage",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        2199,
+        2200,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：玩家不受伤害时，每 3 秒提供不断累积的甲虫耐力增益，每级提供 15% 伤害减免，最高 45% 伤害减免",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2199,
+        2200,
+        2202
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDamage",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2200,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "增益在受伤时降低一级",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2199,
+        2200,
+        2202
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDamage",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2200,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：对敌怪造成近战伤害后提供不断累积的甲虫力量增益，每级提供 10% 近战伤害和近战速度，最高 30% 近战伤害和近战速度",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2199,
+        2200,
+        2202
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDefense",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        2199,
+        2201,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：玩家不受伤害时，每 3 秒提供不断累积的甲虫耐力增益，每级提供 15% 伤害减免，最高 45% 伤害减免",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2199,
+        2201,
+        2202
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDefense",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2201,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "增益在受伤时降低一级",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2199,
+        2201,
+        2202
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.BeetleDefense",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2199,
+        2201,
+        2202
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：对敌怪造成近战伤害后提供不断累积的甲虫力量增益，每级提供 10% 近战伤害和近战速度，最高 30% 近战伤害和近战速度",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2199,
+        2201,
+        2202
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Cactus",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        894,
+        895,
+        896
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：提供荆棘效果，造成 15 / 30 / 45 伤害和 10 击退",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        894,
+        895,
+        896
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Chlorophyte",
+      "sourceLineIndex": 21,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1002,
+        1003,
+        1004,
+        1005
+      ],
+      "sourcePage": "叶绿盔甲",
+      "line": "召唤一颗叶状水晶仆从悬浮于玩家上方。它周期性地发射绿色激光状能量脉冲，可立即命中目标并造成 100 基础伤害和 10 (极强击退力) 击退。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1002,
+        1003,
+        1004,
+        1005
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.ChlorophyteMelee",
+      "sourceLineIndex": 21,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1001,
+        1004,
+        1005
+      ],
+      "sourcePage": "叶绿盔甲",
+      "line": "召唤一颗叶状水晶仆从悬浮于玩家上方。它周期性地发射绿色激光状能量脉冲，可立即命中目标并造成 100 基础伤害和 10 (极强击退力) 击退。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1001,
+        1004,
+        1005
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.ChlorophyteSummon",
+      "sourceLineIndex": 21,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1004,
+        1005,
+        5524
+      ],
+      "sourcePage": "叶绿盔甲",
+      "line": "召唤一颗叶状水晶仆从悬浮于玩家上方。它周期性地发射绿色激光状能量脉冲，可立即命中目标并造成 100 基础伤害和 10 (极强击退力) 击退。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1004,
+        1005,
+        5524
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltCaster",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        371,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        371,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltCaster",
+      "sourceLineIndex": 11,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        371,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        371,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltCaster",
+      "sourceLineIndex": 18,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        371,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        371,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltMelee",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        372,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        372,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltMelee",
+      "sourceLineIndex": 11,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        372,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        372,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltMelee",
+      "sourceLineIndex": 18,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        372,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        372,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltRanged",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        373,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        373,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltRanged",
+      "sourceLineIndex": 11,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        373,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        373,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.CobaltRanged",
+      "sourceLineIndex": 18,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        373,
+        374,
+        375
+      ],
+      "sourcePage": "钴盔甲",
+      "line": "移动时产生残影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        373,
+        374,
+        375
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Crimson",
+      "sourceLineIndex": 1,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        792,
+        793,
+        794
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：大幅提高生命再生速度",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        792,
+        793,
+        794
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Crimson",
+      "sourceLineIndex": 2,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        792,
+        793,
+        794
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：在移动时与再生生命时会发出红色粒子",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        792,
+        793,
+        794
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Forbidden",
+      "sourceLineIndex": 4,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        3776,
+        3777,
+        3778
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装奖励：双击▼ 下/▲ 上[a]可消耗 20 魔力召唤远古风暴到光标位置，持续造成 20 伤害",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3776,
+        3777,
+        3778
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Forbidden",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        3776,
+        3777,
+        3778
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：移动时身后有拖影效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3776,
+        3777,
+        3778
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Frost",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        684,
+        685,
+        686
+      ],
+      "sourcePage": "寒霜盔甲",
+      "line": "近战和远程武器散发蓝光粒子，击中敌怪时施加 5–14 秒冻伤减益。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        684,
+        685,
+        686
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Hallowed",
+      "sourceLineIndex": 15,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        551,
+        552,
+        553,
+        558,
+        559,
+        4896,
+        4897,
+        4898,
+        4900,
+        4901
+      ],
+      "sourcePage": "神圣盔甲",
+      "line": "击中敌怪时，玩家会获得神圣防护增益，这会提供闪避下一次受到敌怪的攻击或其他伤害来源的攻击。此效果在闪避触发后有 30 秒冷却。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        551,
+        552,
+        553,
+        558,
+        559,
+        4896,
+        4897,
+        4898,
+        4900,
+        4901
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.HallowedSummoner",
+      "sourceLineIndex": 15,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        551,
+        552,
+        4873,
+        4899,
+        4900,
+        4901
+      ],
+      "sourcePage": "神圣盔甲",
+      "line": "击中敌怪时，玩家会获得神圣防护增益，这会提供闪避下一次受到敌怪的攻击或其他伤害来源的攻击。此效果在闪避触发后有 30 秒冷却。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        551,
+        552,
+        4873,
+        4899,
+        4900,
+        4901
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.HuntressTier2",
+      "sourceLineIndex": 8,
+      "category": "behavior-trigger",
+      "occurrences": 3,
+      "owners": [
+        3803,
+        3804,
+        3805
+      ],
+      "sourcePage": "盔甲",
+      "line": "爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3803,
+        3804,
+        3805
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.HuntressTier3",
+      "sourceLineIndex": 8,
+      "category": "behavior-trigger",
+      "occurrences": 3,
+      "owners": [
+        3877,
+        3878,
+        3879
+      ],
+      "sourcePage": "盔甲",
+      "line": "爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3877,
+        3878,
+        3879
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Jungle",
+      "sourceLineIndex": 3,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        228,
+        229,
+        230,
+        960,
+        961,
+        962
+      ],
+      "sourcePage": "盔甲",
+      "line": "每个部件都可以和远古钴盔甲的部件互换",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        228,
+        229,
+        230,
+        960,
+        961,
+        962
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Jungle",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        228,
+        229,
+        230,
+        960,
+        961,
+        962
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：移动时有草粒子",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        228,
+        229,
+        230,
+        960,
+        961,
+        962
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.MetalTier2",
+      "sourceLineIndex": 0,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        78,
+        79,
+        82,
+        83,
+        91,
+        92,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695,
+        955
+      ],
+      "sourcePage": "金盔甲",
+      "line": "其代用矿石对应物是铂金盔甲。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        78,
+        79,
+        82,
+        83,
+        91,
+        92,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695,
+        955
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.MetalTier2",
+      "sourceLineIndex": 1,
+      "category": "visual-behavior",
+      "occurrences": 2,
+      "owners": [
+        78,
+        79,
+        82,
+        83,
+        91,
+        92,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695,
+        955
+      ],
+      "sourcePage": "金盔甲",
+      "line": "远古金头盔在功能上与金头盔完全相同且可互换。远古金头盔有 1/100 (1%) 的几率由骷髅和孢子骷髅掉落，也可以通过将金头盔投入微光中获得。其外观基于 1.0.3 前的金头盔贴图。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        78,
+        79,
+        82,
+        83,
+        91,
+        92,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695,
+        955
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Meteor",
+      "sourceLineIndex": 2,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        123,
+        124,
+        125
+      ],
+      "sourcePage": "流星盔甲",
+      "line": "太空枪、激光步枪、灰冲击枪和橙冲击枪的魔力消耗减少至 0。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        123,
+        124,
+        125
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Mining",
+      "sourceLineIndex": 2,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        88,
+        410,
+        411,
+        4008,
+        5588,
+        5589,
+        5590
+      ],
+      "sourcePage": "挖矿盔甲",
+      "line": "增强夜视并扩大光源半径(不会与夜猫子增益叠加)",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        88,
+        410,
+        411,
+        4008,
+        5588,
+        5589,
+        5590
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Mining",
+      "sourceLineIndex": 4,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        88,
+        410,
+        411,
+        4008,
+        5588,
+        5589,
+        5590
+      ],
+      "sourcePage": "挖矿盔甲",
+      "line": "玩家会发出微弱的光亮。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        88,
+        410,
+        411,
+        4008,
+        5588,
+        5589,
+        5590
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Molten",
+      "sourceLineIndex": 5,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        231,
+        232,
+        233
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：移动时有火焰粒子",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        231,
+        232,
+        233
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.MonkTier2",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        3806,
+        3807,
+        3808
+      ],
+      "sourcePage": "盔甲",
+      "line": "闪电光环的攻击速度提高，且具有 1/6 (16.67%) 的固定暴击率",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3806,
+        3807,
+        3808
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.MonkTier3",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        3880,
+        3881,
+        3882
+      ],
+      "sourcePage": "盔甲",
+      "line": "闪电光环的攻击速度和范围提高，且具有 25% 的固定暴击率",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3880,
+        3881,
+        3882
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 7,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "在多人模式中，任何一位玩家都能拾取这些强化焰物品并能从其增益中受益，无论是否身着星云盔甲。另外，拾取一个强化焰物品时会给附近（在 43.75 图格半径内[1]）的玩家一个同样的增益。如果取得强化焰的玩家是在一个团队中，则只有同一队的其他玩家能得到此增益；否则，无组队的玩家会在获取强化焰的时候会将增益传递给附近的所有其他玩家。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 4,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "伤害强化焰",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 7,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "生命强化焰",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 9,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "提高生命再生速度（每秒 3），持续 8 秒钟",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 10,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "魔力强化焰",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Nebula",
+      "sourceLineIndex": 12,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        2760,
+        2761,
+        2762
+      ],
+      "sourcePage": "星云盔甲",
+      "line": "提高魔力再生速度（每秒大约 10），持续 8 秒钟",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Ninja",
+      "sourceLineIndex": 3,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        256,
+        257,
+        258
+      ],
+      "sourcePage": "忍者盔甲",
+      "line": "玩家移动时留下残影。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        256,
+        257,
+        258
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.ObsidianOutlaw",
+      "sourceLineIndex": 4,
+      "category": "unknown-prose",
+      "occurrences": 2,
+      "owners": [
+        3266,
+        3267,
+        3268
+      ],
+      "sourcePage": "黑曜石盔甲",
+      "line": "不同于其他鞭速度加成，它与近战速度加成乘算叠加。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3266,
+        3267,
+        3268
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Orichalcum",
+      "sourceLineIndex": 14,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1210,
+        1211,
+        1212,
+        1213,
+        1214
+      ],
+      "sourcePage": "山铜盔甲",
+      "line": "击中敌怪时，会在屏幕边缘处召唤一片花瓣并射向目标，花瓣会移动到屏幕另一端并伤害路径上的所有敌怪。花瓣造成 36 伤害[1]。花瓣移动速度非常快（123 mph[1]），可以穿过物块和液体。在召唤另一片花瓣之前有 0.33 秒 的冷却，[1]这意味着此山铜盔甲的套装奖励大约增加 100 DPS。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1210,
+        1211,
+        1212,
+        1213,
+        1214
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Palladium",
+      "sourceLineIndex": 11,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        1205,
+        1206,
+        1207,
+        1208,
+        1209
+      ],
+      "sourcePage": "钯金盔甲",
+      "line": "击中敌怪会获得持续 5 秒的快速治疗增益，提供 2 生命每秒的固定生命再生。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1205,
+        1206,
+        1207,
+        1208,
+        1209
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Palladium",
+      "sourceLineIndex": 12,
+      "category": "behavior-trigger",
+      "occurrences": 2,
+      "owners": [
+        1205,
+        1206,
+        1207,
+        1208,
+        1209
+      ],
+      "sourcePage": "钯金盔甲",
+      "line": "后续击中会刷新持续时间。即使卸下盔甲，增益效果也不会取消。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1205,
+        1206,
+        1207,
+        1208,
+        1209
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Palladium",
+      "sourceLineIndex": 13,
+      "category": "behavior-trigger",
+      "occurrences": 2,
+      "owners": [
+        1205,
+        1206,
+        1207,
+        1208,
+        1209
+      ],
+      "sourcePage": "钯金盔甲",
+      "line": "作为固定生命再生效果，它独立于常规恢复机制运作。这也使得该恢复效果可无视流血减益。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1205,
+        1206,
+        1207,
+        1208,
+        1209
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Platinum",
+      "sourceLineIndex": 0,
+      "category": "unknown-prose",
+      "occurrences": 1,
+      "owners": [
+        696,
+        697,
+        698
+      ],
+      "sourcePage": "铂金盔甲",
+      "line": "其代用矿石对应物是金盔甲。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        696,
+        697,
+        698
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.ShadowScale",
+      "sourceLineIndex": 3,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        100,
+        101,
+        102,
+        956,
+        957,
+        958
+      ],
+      "sourcePage": "暗影盔甲",
+      "line": "玩家在移动时留下残影和暗影粒子。使火箭靴产生紫色喷焰。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        100,
+        101,
+        102,
+        956,
+        957,
+        958
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Shroomite",
+      "sourceLineIndex": 12,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        1546,
+        1547,
+        1548,
+        1549,
+        1550
+      ],
+      "sourcePage": "蘑菇矿盔甲",
+      "line": "玩家在移动时会留下深蓝色拖影",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1546,
+        1547,
+        1548,
+        1549,
+        1550
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Shroomite",
+      "sourceLineIndex": 13,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1546,
+        1547,
+        1548,
+        1549,
+        1550
+      ],
+      "sourcePage": "蘑菇矿盔甲",
+      "line": "站定不动且不使用任何物品会让玩家快速进入隐形，这会使其变得几乎不可见，且在玩家不使用任何物品时阻止战士 AI 和飞行 AI 的敌怪向玩家发射射弹。隐形是逐渐激活的，这一过程需要 1.12 秒，在这期间玩家会获得数项线性提升至以下值的属性提升：[2]",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1546,
+        1547,
+        1548,
+        1549,
+        1550
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Solar",
+      "sourceLineIndex": 0,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        2763,
+        2764,
+        2765
+      ],
+      "sourcePage": "耀斑盔甲",
+      "line": "受到伤害会消耗掉一层充能，并在玩家周围释放火焰爆炸，对附近的敌怪造成伤害。当有至少一层充能时，玩家可以通过双击 ◀ 左 或 ▶ 右 按键来激活一次特殊猛冲攻击。如果猛冲击中了任何敌怪，会消耗一层充能，猛冲会对被击中的敌怪造成伤害并产生火焰爆炸（即单个敌怪会受到两次伤害）并提供 0.07 秒无敌帧。玩家每秒只能猛冲一次。套装奖励也会提供 12% 的基础伤害减免，和护盾的伤害减免乘算叠加。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2763,
+        2764,
+        2765
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Solar",
+      "sourceLineIndex": 1,
+      "category": "visual-behavior",
+      "occurrences": 4,
+      "owners": [
+        2763,
+        2764,
+        2765
+      ],
+      "sourcePage": "耀斑盔甲",
+      "line": "装备的每一件部件（哪怕被时装物品所隐藏）都会让玩家发光，每多装备一件就会更亮一分。此外，装备全套套装会同时具备移动拖影效果和脉动效果，类似于神圣盔甲。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2763,
+        2764,
+        2765
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreDamage",
+      "sourceLineIndex": 6,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        1504,
+        1505,
+        2189
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成自动制导的球体射弹。球体造成 100% 武器伤害且能造成暴击。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1504,
+        1505,
+        2189
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreDamage",
+      "sourceLineIndex": 11,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1504,
+        1505,
+        2189
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成生命偷取球体。球体会飞向玩家并恢复等同于造成伤害的 20% 的生命（例：50 魔法伤害会恢复 10 生命）。在多人模式下，会治疗（同一）团队中生命最低的玩家。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1504,
+        1505,
+        2189
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreHealing",
+      "sourceLineIndex": 6,
+      "category": "compound-numeric",
+      "occurrences": 1,
+      "owners": [
+        1503,
+        1504,
+        1505
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成自动制导的球体射弹。球体造成 100% 武器伤害且能造成暴击。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1503,
+        1504,
+        1505
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SpectreHealing",
+      "sourceLineIndex": 11,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        1503,
+        1504,
+        1505
+      ],
+      "sourcePage": "幽灵盔甲",
+      "line": "对敌怪造成魔法伤害时生成生命偷取球体。球体会飞向玩家并恢复等同于造成伤害的 20% 的生命（例：50 魔法伤害会恢复 10 生命）。在多人模式下，会治疗（同一）团队中生命最低的玩家。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1503,
+        1504,
+        1505
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Spooky",
+      "sourceLineIndex": 4,
+      "category": "visual-behavior",
+      "occurrences": 1,
+      "owners": [
+        1832,
+        1833,
+        1834
+      ],
+      "sourcePage": "盔甲",
+      "line": "套装效果：轮廓有脉动效果",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1832,
+        1833,
+        1834
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier2",
+      "sourceLineIndex": 7,
+      "category": "compound-numeric",
+      "occurrences": 2,
+      "owners": [
+        3800,
+        3801,
+        3802
+      ],
+      "sourcePage": "侍卫盔甲",
+      "line": "弩车哨兵的射弹速度提高，且穿透提升（由 3 个提升至 6 个）。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3800,
+        3801,
+        3802
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier2",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 4,
+      "owners": [
+        3800,
+        3801,
+        3802
+      ],
+      "sourcePage": "侍卫盔甲",
+      "line": "受到伤害时，提供弩车恐慌！增益，持续 5 秒，可将所有玩家召唤的弩车哨兵的开火速率提高（由 3.1 秒提升至 1.43 秒）。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3800,
+        3801,
+        3802
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier3",
+      "sourceLineIndex": 7,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        3871,
+        3872,
+        3873
+      ],
+      "sourcePage": "英灵殿骑士盔甲",
+      "line": "弩车哨兵的射弹速度提升、开火速度提升（由 3.1 秒提升至 2.1 秒）、且穿透提升（由 3 个提升至 6 个）。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3871,
+        3872,
+        3873
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.SquireTier3",
+      "sourceLineIndex": 8,
+      "category": "compound-numeric",
+      "occurrences": 4,
+      "owners": [
+        3871,
+        3872,
+        3873
+      ],
+      "sourcePage": "英灵殿骑士盔甲",
+      "line": "受到伤害时，提供弩车恐慌！增益，持续 5 秒，可将所有玩家召唤的弩车哨兵的开火速率提高（由 2.1 秒提升至 0.93 秒）[1]。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3871,
+        3872,
+        3873
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Stardust",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 6,
+      "owners": [
+        3381,
+        3382,
+        3383
+      ],
+      "sourcePage": "星尘盔甲",
+      "line": "召唤一个星尘守卫仆从悬浮于玩家身后。在有敌怪出现在距离玩家 30 图格半径内前，它会保持静止。在距离范围内，它会迅速穿过物块冲向敌怪，然后用拳头快速地攻击，每次造成 50 基础召唤伤害。当范围内没有敌怪后，星尘守卫会重新返回玩家身后。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3381,
+        3382,
+        3383
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Stardust",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 2,
+      "owners": [
+        3381,
+        3382,
+        3383
+      ],
+      "sourcePage": "星尘盔甲",
+      "line": "星尘守卫受召唤伤害奖励加成，包括来自鞭的。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        3381,
+        3382,
+        3383
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Titanium",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1215,
+        1216,
+        1217,
+        1218,
+        1219
+      ],
+      "sourcePage": "钛金盔甲",
+      "line": "攻击会为玩家提供钛金屏障增益，这会生成围绕玩家旋转的钛金碎片。钛金碎片数量越多，旋转速度越快，最多同时存在 7 个钛金碎片。每个钛金碎片造成 50 伤害和 15（疯狂击退力）的击退[1]，且不会造成暴击。每个钛金碎片会在击中敌怪或经过 10 秒后消失。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1215,
+        1216,
+        1217,
+        1218,
+        1219
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Titanium",
+      "sourceLineIndex": 10,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1215,
+        1216,
+        1217,
+        1218,
+        1219
+      ],
+      "sourcePage": "钛金盔甲",
+      "line": "攻击会为玩家提供钛金屏障增益，这会生成围绕玩家旋转的钛金碎片。钛金碎片数量越多，旋转速度越快，最多同时存在 7 个钛金碎片。每个钛金碎片造成 50 伤害和 15（疯狂击退力）的击退[1]，且不会造成暴击。每个钛金碎片会在击中敌怪或经过 10 秒后消失。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1215,
+        1216,
+        1217,
+        1218,
+        1219
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Titanium",
+      "sourceLineIndex": 16,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        1215,
+        1216,
+        1217,
+        1218,
+        1219
+      ],
+      "sourcePage": "钛金盔甲",
+      "line": "攻击会为玩家提供钛金屏障增益，这会生成围绕玩家旋转的钛金碎片。钛金碎片数量越多，旋转速度越快，最多同时存在 7 个钛金碎片。每个钛金碎片造成 50 伤害和 15（疯狂击退力）的击退[1]，且不会造成暴击。每个钛金碎片会在击中敌怪或经过 10 秒后消失。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1215,
+        1216,
+        1217,
+        1218,
+        1219
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Turtle",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 3,
+      "owners": [
+        1316,
+        1317,
+        1318
+      ],
+      "sourcePage": "海龟盔甲",
+      "line": "在受到接触伤害时，产生强大的荆棘效果，可反弹 200% 敌怪接触伤害并造成 10（极强击退力）的击退[1]。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1316,
+        1317,
+        1318
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Turtle",
+      "sourceLineIndex": 6,
+      "category": "behavior-trigger",
+      "occurrences": 1,
+      "owners": [
+        1316,
+        1317,
+        1318
+      ],
+      "sourcePage": "海龟盔甲",
+      "line": "视觉上的海龟壳出现在玩家背后。",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        1316,
+        1317,
+        1318
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    },
+    {
+      "textKey": "ArmorSetBonus.Vortex",
+      "sourceLineIndex": 5,
+      "category": "compound-numeric",
+      "occurrences": 5,
+      "owners": [
+        2757,
+        2758,
+        2759
+      ],
+      "sourcePage": "星旋盔甲",
+      "line": "双击 ▼ 下 键切换隐形的能力，这会使玩家变得几乎不可见，且在玩家不使用任何物品时阻止战士 AI 和飞行 AI 的敌怪向玩家发射射弹。隐形是逐渐激活的，这一过程需要 0.42 秒，在这期间玩家会获得数项线性提升至以下值的属性变化：[1]",
+      "ownerKind": "unresolved",
+      "ownerIds": [
+        2757,
+        2758,
+        2759
+      ],
+      "semanticStatus": "unresolved",
+      "decisionStatus": "quarantined",
+      "rationale": "Source line is not safely typed from frozen evidence; preserve it untouched in quarantine."
+    }
+  ],
+  "reviewComplete": true,
+  "executionReady": true,
+  "partialPolicy": {
+    "unresolvedSourceEffects": "quarantine",
+    "allowPartialApply": true,
+    "unresolvedRowsMustRemainUntouched": true
+  },
+  "decisionSha256": "sha256:6915db369144288da9636aee74d1be5d916016edc10cceca23187931673119eb"
+}

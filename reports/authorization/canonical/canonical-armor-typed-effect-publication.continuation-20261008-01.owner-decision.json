@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "armor-typed-effect-owner-decision/v1",
+  "operationId": "canonical-armor-typed-effect-publication",
+  "reviewStatus": "recorded",
+  "formalAdmission": false,
+  "databaseWrites": false,
+  "applyAllowed": false,
+  "proposalSha256": "sha256:a91ed7718848e319c15682f56e38bcbc52b98b4249178c192c0c8eb6dcb5d911",
+  "sourceFingerprint": {
+    "pageRevisionId": 1027106,
+    "iteminfoRevisionId": 1023241,
+    "armorSetsRevisionId": 964993
+  },
+  "actor": "admin",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-01",
+  "reviewedAt": "2026-10-07T23:00:26.233Z",
+  "rationale": "Authorize only the three independently derived Shroomite typed item effects; all other unresolved source rows stay quarantined and untouched under the partial policy.",
+  "gateDecisions": {
+    "complete-armor-coverage": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-canonical-full-chain-candidate-20261008-28.json",
+      "evidenceSha256": "sha256:95e26df6e5b3bef472ac698178deaf281c850eebe24ddb962806a623427aee1d",
+      "note": "Fresh locked Armor candidate has zero dependency blockers and preserves quarantine policy."
+    },
+    "shroomite-canonical-owner": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-shroomite-owner-lineage-20261006.json",
+      "evidenceSha256": "sha256:18298a7e34f772efaeaa348842eea0ef241d70dd0256c36e86ef62f3282865c4",
+      "note": "Frozen Shroomite membership and owner lineage evidence covers the three head variants."
+    },
+    "mining-identity-and-attributes": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-mining-identity-audit-20261001-01.json",
+      "evidenceSha256": "sha256:ad0acaef87e5fc1a6f5aa7606d64d2a6e22106767488eed5b84a1e2967371bfe",
+      "note": "Independent Armor identity/attribute audit is bound to the frozen source tuple."
+    },
+    "typed-set-effect-owner": {
+      "status": "resolved",
+      "evidencePath": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.source-owner-decision.json",
+      "evidenceSha256": "sha256:cb521d57fcfc66d87ab32bf86343a6a6f1059bce8708700363e7bee371af1180",
+      "note": "Every unresolved set-effect line is dispositioned as quarantine; no set-effect row is admitted."
+    },
+    "recovery-owner": {
+      "status": "resolved",
+      "evidencePath": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.recovery-owner.json",
+      "evidenceSha256": "sha256:5f9b0b77c3f676f1948f5bbe58d1147642d4d65bd5a8668f6d18f8716ec8f131",
+      "note": "Read-only recovery evidence forbids permit replay and binds the exact reconciliation path."
+    }
+  },
+  "reviewComplete": true,
+  "executionReady": true,
+  "decisionSha256": "sha256:4bd3e3a6334c9c03c55de7fa93f6e8cad2fa07a24175de84364d9a5ea1ee8997"
+}

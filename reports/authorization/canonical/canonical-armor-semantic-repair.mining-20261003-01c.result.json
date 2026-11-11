@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "resultKind": "canonical_armor_semantic_repair_result",
+  "operationId": "canonical-armor-semantic-repair",
+  "status": "COMPLETED",
+  "transactionCommitted": true,
+  "counts": {
+    "landingInserted": 1,
+    "maintLandingInserted": 1,
+    "maintUpserts": 3,
+    "maintRetired": 1,
+    "relationUpserts": 3,
+    "relationRetired": 1,
+    "effectsRetired": 0,
+    "effectsInserted": 0
+  },
+  "authorization": {
+    "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01c",
+    "packetHash": "sha256:dd9bbbe052c85b5429e0bb310809b1a0ffd12ab63f64e03d1d33c8c1e951de2b"
+  },
+  "completedAt": "2026-10-03T15:47:19.400Z"
+}

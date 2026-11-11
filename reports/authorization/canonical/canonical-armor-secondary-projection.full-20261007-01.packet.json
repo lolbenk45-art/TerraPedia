@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "requestKind": "canonical_cutover_authorization",
+  "authorizationStatus": "AUTHORIZED",
+  "generatedAt": "2026-10-07T15:32:21.879Z",
+  "expiresAt": "2026-10-08T15:32:21.879Z",
+  "operationId": "canonical-armor-secondary-projection",
+  "targetDatabases": [
+    "terria_v1_local",
+    "terria_v1_maint",
+    "terria_v1_relation"
+  ],
+  "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+  "schemaBundleSha256": "sha256:750f3c341e3787467adb8eda96f87a56c0409f2314b42132256ab0a6a0aae1b6",
+  "schemaBundleEntries": [],
+  "dataBundleSha256": "sha256:3ded461d75e94708e63c6fbe06b05e7a2857b915ca3b4daf6994606b45b95360",
+  "dataBundleEntries": [
+    {
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.proposal.json",
+      "sizeBytes": 20640131,
+      "contentHash": "sha256:9fc89932fd033a2e1dc1f9229f1e5ba45f974a35a1acc776fc522400ef59e9a0"
+    }
+  ],
+  "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+  "executionManifestHash": "sha256:10d08bdb2064ef404cfef896064305385ea036bece6f3f83584f5d5109f3f688",
+  "executionManifest": {
+    "artifactDate": "2026-10-07",
+    "codeBundleEntries": [
+      {
+        "contentHash": "sha256:15f07adbc3ed8db3cd1e43ec0a2819b2dce32c2ff4b6b4b76f6dcaa6b8165a98",
+        "path": "pipelines/relation/run-armor-secondary-projection.mjs"
+      },
+      {
+        "contentHash": "sha256:7255ec9cfd93763ec35da9e59d9e8bf3821ee51aeccbc436ff8c44fa2e4ff0b7",
+        "path": "pipelines/automation/authorized-operation-context.mjs"
+      },
+      {
+        "contentHash": "sha256:9677cfc8ba0bf8caf0d05792fd0d5faf5c91242726bea445caa433a72cb1055f",
+        "path": "pipelines/automation/build-canonical-cutover-authorization.mjs"
+      },
+      {
+        "contentHash": "sha256:980e09d97763f4327de54de0f4fa9dcb080db4cc5fde6fce741b99e6c003c49f",
+        "path": "pipelines/automation/canonical-operation-catalog.mjs"
+      },
+      {
+        "contentHash": "sha256:a181ab9d680299f5bfe42e979ca6f05bb2e8a909c354529d35512c6657f35ad2",
+        "path": "pipelines/automation/canonical-operation-execution-manifest.mjs"
+      },
+      {
+        "contentHash": "sha256:ec5ea017b6161ab2537dcf810fb369734278607e410659a5590f4f2264c0f681",
+        "path": "pipelines/automation/policy-set-hash.mjs"
+      },
+      {
+        "contentHash": "sha256:c3a75df1a24154ae6e1a48e3b78375ce49365211d25456d737da7b4281fad693",
+        "path": "pipelines/automation/run-authorized-canonical-operation.mjs"
+      },
+      {
+        "contentHash": "sha256:9198f7e7f2ce52be2361e1d77d95ae648c6bccae70793ff31db5e7fa0f8879a6",
+        "path": "scripts/lib/local-runtime-config.mjs"
+      },
+      {
+        "contentHash": "sha256:654b6b96f4ae1ce4f6bef8207db1ffe0e1407d07be5e6f209851b4e6d60b55f0",
+        "path": "pipelines/lib/mysql-module.mjs"
+      },
+      {
+        "contentHash": "sha256:a9e4044ea896b1e0a75daed7bf7f1291db1d90410dea9ba2b4d05fcf5f93e4e1",
+        "path": "pipelines/lib/wiki-item-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:fd760bd9ea92d2a3c894bc2fc4d1a874aa82153a35c7b22cc63edc8138d3a0d0",
+        "path": "pipelines/lib/private-repository-path.mjs"
+      },
+      {
+        "contentHash": "sha256:1af4a1b79f449900359f966d327fac95436397ab3cc6629a1af95e58e712944e",
+        "path": "pipelines/relation/run-armor-set-projection-incremental.mjs"
+      },
+      {
+        "contentHash": "sha256:a5ccd49484a5c3f81f5c4f70b5c3e5c4a0fb0344b41af59c6a34739805b7efe7",
+        "path": "pipelines/relation/armor-secondary-projection.mjs"
+      },
+      {
+        "contentHash": "sha256:fe87f2c0ab096ac99eb0d91b7c71762336dccc69f7ee5b07c4610e9204ad5884",
+        "path": "pipelines/relation/armor-secondary-projection-db.mjs"
+      },
+      {
+        "contentHash": "sha256:237d74c7679bb514ef0b994bbb0f236bdb8b1955295f0a67e2f1a9dbfce52ad8",
+        "path": "pipelines/automation/automation-database-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:db40882fef688aa110c84f974beecdbe1dd82585cc26e7e543f966458c88706d",
+        "path": "pipelines/automation/canonical-shimmer-import-input-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:f6dad857899d1f840dc92894b9f7c5c809b263e61ab6ef3d57f0a7fe9eb2c2d4",
+        "path": "pipelines/relation/item-image-projection-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:ddd9c0825c99f1cd72b276077b27dca265a603a6f0d998b8cef0d6d7b8ad41bb",
+        "path": "pipelines/npc-canonical/npc-apply-ownership-preparation.mjs"
+      },
+      {
+        "contentHash": "sha256:2f5dff30fe752140884ac9fa1594e08b478d7b7d9397bccff469c21e2229cb31",
+        "path": "pipelines/workflow/armor-image-cache.mjs"
+      },
+      {
+        "contentHash": "sha256:978979f6353ce59c1429b181b5e90dfe57bbc691ec2aa2d1d94b64f533844c74",
+        "path": "pipelines/lib/project-root.mjs"
+      },
+      {
+        "contentHash": "sha256:b19bcd0b9eb2f23b730e753e96eae9e4ce455b51a9b5ec0b480b7257e755a91d",
+        "path": "pipelines/lib/wiki-request-gate.mjs"
+      },
+      {
+        "contentHash": "sha256:cc5ec3ea555bf6404a650c314a4407c686e9fd088c3c8d2373a73bcc8cd8bba3",
+        "path": "pipelines/lib/wiki-user-agent.mjs"
+      },
+      {
+        "contentHash": "sha256:57de54a75212d1657321e418a232194d51f80bbbb59a5287bdd03314760df42d",
+        "path": "pipelines/lib/crawler-heartbeat.mjs"
+      },
+      {
+        "contentHash": "sha256:2e2b314f47f0e99f96f68fa1b544c56cb9516355640af262fb3fb68922b2e391",
+        "path": "pipelines/relation/armor-set-projection-incremental.mjs"
+      },
+      {
+        "contentHash": "sha256:1ec71a625cb31e4507cc834c06ecf9050c14c45fde4600e1e720d4b369708591",
+        "path": "pipelines/relation/managed-image-url-policy.mjs"
+      },
+      {
+        "contentHash": "sha256:8c9223c803fe715320bd48ddb7654bd670d8cd37b711be47a0c68e6146bc5bdf",
+        "path": "pipelines/maint/sync-landing-to-maint.mjs"
+      },
+      {
+        "contentHash": "sha256:5ab8d278638b73118033fcdd209dd89a4ce2517ac0f56bebb38a028b0e652185",
+        "path": "pipelines/maint/armor-item-effect-source-reader.mjs"
+      },
+      {
+        "contentHash": "sha256:b2a25756568e215868e3deb311344c7cc000a88f259c1c3d2dea663cf0e4ac99",
+        "path": "pipelines/relation/sync-maint-to-relation.mjs"
+      },
+      {
+        "contentHash": "sha256:f14b0545473e0f53e88d8612b512f32b735fb01353898d2fc7e7bf3a295e5dc5",
+        "path": "pipelines/relation/projection-sync.mjs"
+      },
+      {
+        "contentHash": "sha256:bb6eb3e66bd28d70e1c2a13150d3c7b1f7ffa4f46ddf6f6605ff92e51fefa7b9",
+        "path": "pipelines/transform/shimmer-generation-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:19dada99f8bc8a5e31af064f92073c07c037368b41129c67f28c54ab2375f3af",
+        "path": "pipelines/automation/table-ownership-matrix.mjs"
+      },
+      {
+        "contentHash": "sha256:f3c420eae97379c43554e875e31ab2c6d3f827131bcf5970265d1408c6d22fdc",
+        "path": "pipelines/lib/crawler-alerts.mjs"
+      },
+      {
+        "contentHash": "sha256:4e820dc1cc5cfc52d3490e46f375e36b352dc77478257338722aa33d6109e395",
+        "path": "pipelines/lib/flaresolverr-bridge.mjs"
+      },
+      {
+        "contentHash": "sha256:dc51cf90c38e93813ecb6a7b83c2f803bc972a591394655c5bd2c9f6fefe6751",
+        "path": "pipelines/relation/armor-set-projection-restoration.mjs"
+      },
+      {
+        "contentHash": "sha256:8d8cd765379bace20b21a636d67c00a0272e8f338248b8b7559e043707a5f886",
+        "path": "pipelines/maint/maint-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:703eaa4a0f2a24ea761c4cf23f2b812a866a74164a7fe6629f5f5e49e29460c4",
+        "path": "pipelines/maint/category-item-structured-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:11b90ff271b953e05036c1d8cfcab72314e665131ecd6179b42b7f728d53cb29",
+        "path": "pipelines/maint/page-recipe-structured-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:3e8a5593d5e1c7831e0c14f170e7b359af89810975692b5319db385724315ba2",
+        "path": "pipelines/maint/shimmer-structured-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:03d1141ce6f72bf6e2af8c0f8fdbfcb00243882be2c436335dd84ec7a0228f13",
+        "path": "pipelines/maint/item-page-statistics-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:c77290b1db5e5eca8aec12672b1fefbf552b0ecad5523b9497df5dff2208c75f",
+        "path": "pipelines/maint/zh-source-index.mjs"
+      },
+      {
+        "contentHash": "sha256:b68da11446219dde35275322b8e0e11c4f40f56b899cf989cab4a53eb06b2101",
+        "path": "pipelines/item-groups/item-group-canonical-sync.mjs"
+      },
+      {
+        "contentHash": "sha256:9a1ac7186763c5e9e773116399ac9f839cf99747bfa5a7ba37c4681b55b21f16",
+        "path": "pipelines/npc-canonical/npc-canonical-contract.mjs"
+      },
+      {
+        "contentHash": "sha256:8e8f126730a810e286c73fa0858014c0b4fb62c03236ad923c82adceaaeb4ca6",
+        "path": "pipelines/maint/armor-item-effect-maint-candidate.mjs"
+      },
+      {
+        "contentHash": "sha256:2efea1dc86a502ed1b115a0f07ab4fbf88740dabe59be0e83b1a75c5ea619719",
+        "path": "pipelines/relation/relation-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2e715633d9b4e8553eb09fe9f48c873e597b93bba2a602c7149110af260c2a57",
+        "path": "pipelines/relation/relation-trace.mjs"
+      },
+      {
+        "contentHash": "sha256:59dda823ba2543d3dfc78ce4814baf34191a9a963ef22e4b35cbb28657962424",
+        "path": "pipelines/relation/base-entity-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:ec8c6c9dfc5b34e144ff5de902e72846350b515ba3b572f0f6fb5db8fecc662b",
+        "path": "pipelines/relation/buff-entity-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:333eaa6af01cd2655450203f5bdb28743c9a6f95edcb8b8542cfd649ba90c210",
+        "path": "pipelines/relation/image-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:99d6a080328a8ac954c872c44c9570d9e11305c43038db393f611ab3fe336cf2",
+        "path": "pipelines/relation/category-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:75bdbf1e81f44a725e7742288874d45865f8ede9306702eaf8f417d80730988d",
+        "path": "pipelines/relation/recipe-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:4556429989a077793946f5b222c18d4c88052fb627e7a4e268caa18cefbde394",
+        "path": "pipelines/relation/recipe-expansion-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:7b86e70b7e1cc5d2874abed1cd10aabf4df2deb02cf4ef18138ef815af2ddeed",
+        "path": "pipelines/relation/item-source-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:d66fc36af6462d523935467440513a8269b52b8fca0ea7541f06cfbab369814a",
+        "path": "pipelines/relation/sync-buffs-to-relation.mjs"
+      },
+      {
+        "contentHash": "sha256:685f76ad3d9217e073d54e6c313b8b20e6bea367e46a9ee41b3f1c8ba6a61122",
+        "path": "pipelines/relation/secondary-relation-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:7e40f57d4fb5da360802482c5536c6f06ec2006887104f8abd2f65b6d994d6e5",
+        "path": "pipelines/relation/boss-series-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:6125b0451ef5227c9631f35e0af8db2149eb1b552ad349357d3dcf064d42e3cf",
+        "path": "pipelines/relation/npc-series-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:da680ff94c459e209ea2b281c5f10f9a6ca841989dd9fb17d043b42920be6e30",
+        "path": "pipelines/relation/item-rarity-support-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:485141078c2f1587b8d8f3536926136d33e5ba98eb773e73bdcba681e8707da5",
+        "path": "pipelines/relation/armor-set-processor.mjs"
+      },
+      {
+        "contentHash": "sha256:be02edb22a84757c643a3cc91e852806802e2aa0fc36c25163a255142b941e55",
+        "path": "pipelines/relation/equivalent-armor-attribute-rules.mjs"
+      },
+      {
+        "contentHash": "sha256:36110d6e89aa9c0dd4261ed6a695e6aa5fe6ac8ad4acb363e5cbf00915bd124f",
+        "path": "pipelines/relation/equipment-effect-parser.mjs"
+      },
+      {
+        "contentHash": "sha256:0d06416a1bf5e6af34d217636459ba3f3a2518c49c068bb164d1674e4ce944fe",
+        "path": "pipelines/relation/projection-schema.mjs"
+      },
+      {
+        "contentHash": "sha256:2afa155b24ac8d1f882a281beb9c305f04ef0d5cc9e9700ab3fb4854f13116c8",
+        "path": "pipelines/relation/relation-report.mjs"
+      },
+      {
+        "contentHash": "sha256:2ee2102f5feba92acfaaca41945f6c0952b2f5d72f04e3af144e1fb907883801",
+        "path": "pipelines/workflow/backend-refresh-runtime-state.mjs"
+      },
+      {
+        "contentHash": "sha256:2d5b9621d356c8f65d3862c8590dc793a0ae2841b672e71e383f63e89873bd57",
+        "path": "pipelines/lib/wiki-page-utils.mjs"
+      },
+      {
+        "contentHash": "sha256:190b7cede93202f233e8f7db2e8c9c85b4e0f80da77543c37ceb5776f2a61650",
+        "path": "pipelines/lib/recipe-material-reference.mjs"
+      },
+      {
+        "contentHash": "sha256:ff5b2aea26119759313f78116d4d9830a0688db3ab650a27209c8b14142df87c",
+        "path": "pipelines/audit/build-npc-bridge-retirement-report.mjs"
+      },
+      {
+        "contentHash": "sha256:f15afa118e1f1c5fa112b58175bb60ca6f1873ef1509d1f1b084fa61c5cc8493",
+        "path": "pipelines/relation/armor-shroomite-source-candidate.mjs"
+      },
+      {
+        "contentHash": "sha256:bb9b6c0b0af532a5d5f0fc502b3cdde951087079166893778751883e57602b8f",
+        "path": "pipelines/relation/source-condition-normalizer.mjs"
+      },
+      {
+        "contentHash": "sha256:d926b6a07a14240e9683ddd4bc5598d7153e8e238377e7d6b4c3d63b5f54f5d0",
+        "path": "pipelines/lib/npc-loot-source-taxonomy.mjs"
+      },
+      {
+        "contentHash": "sha256:2b70b9a5b5639ab8adb11cf1db7089d563d5d78c2dbcc978a5a72683b059360a",
+        "path": "scripts/lib/project-constants.mjs"
+      }
+    ],
+    "command": [
+      "node",
+      "pipelines/relation/run-armor-secondary-projection.mjs",
+      "--operation-id=canonical-armor-secondary-projection",
+      "--result-label=full-20261007-01",
+      "--apply=true"
+    ],
+    "databaseWrites": true,
+    "executionClass": "formal_armor_secondary_projection",
+    "inputPaths": [
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.proposal.json"
+    ],
+    "networkAccess": false,
+    "operationId": "canonical-armor-secondary-projection",
+    "outputPaths": [
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.result.json"
+    ],
+    "ownershipKeys": [
+      "relation.projection_item_armor_attributes.armor_members",
+      "relation.projection_equipment_effect_attributes.armor_member_item_cells",
+      "relation.projection_equipment_effect_attributes.armor_set_effects"
+    ],
+    "progressPaths": [],
+    "reportPaths": [],
+    "requiredOperationIds": [],
+    "resultLabel": "full-20261007-01",
+    "schemaVersion": 1
+  },
+  "requiredTechnicalFields": [
+    "serverFingerprint",
+    "schemaBundleSha256",
+    "dataBundleSha256",
+    "policySetHash",
+    "executionManifestHash"
+  ],
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor secondary projection；仅写入当前 proposal 的 488 条已验证 parsed/accepted source rows（481 条 set-owned effects、7 条 item effects）；unresolvedSourceEffects=quarantine；unresolvedRowsMustRemainUntouched=true；defenseAuthority=armor_attribute_zero；allowPartialApply=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-secondary-projection-full-20261007-01",
+  "missingTechnicalFields": [],
+  "missingOwnerFields": [],
+  "requestHash": "sha256:78315bd9a1cc62cd55511e2532b47ff2778a61cbc5de1e3e68afebdd7657b0e3",
+  "authorizedAt": "2026-10-07T15:32:21.879Z",
+  "packetHash": "sha256:26b1e7e4cc43819d5ad5b1ff5af85ca2010e29d9d7a0084bb045de0fb718bd08"
+}

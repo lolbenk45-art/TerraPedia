@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "armor-item-lineage-refresh-execution/v1",
+  "operationId": "canonical-armor-item-lineage-refresh",
+  "proposalSha256": "sha256:5463ffa5eb0f06077b485d8eb50cf2b671ebf20fc0044e60c87dbb84dc75c3df",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "targetItemSourceIds": [
+    1546,
+    1547,
+    1548,
+    1549,
+    1550
+  ],
+  "status": "COMMITTED",
+  "affectedRows": 7,
+  "receipts": [
+    {
+      "table": "localLanding",
+      "id": 12555
+    },
+    {
+      "table": "maintLanding",
+      "id": 18673
+    },
+    {
+      "table": "maintItems",
+      "id": 1546,
+      "sourceId": 1546
+    },
+    {
+      "table": "maintItems",
+      "id": 1547,
+      "sourceId": 1547
+    },
+    {
+      "table": "maintItems",
+      "id": 1548,
+      "sourceId": 1548
+    },
+    {
+      "table": "maintItems",
+      "id": 1549,
+      "sourceId": 1549
+    },
+    {
+      "table": "maintItems",
+      "id": 1550,
+      "sourceId": 1550
+    }
+  ],
+  "localLandingId": 12555,
+  "maintLandingId": 18673,
+  "dispatchPermitConsumed": true,
+  "authorization": {
+    "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-04-fc9bdc9d",
+    "packetHash": "sha256:f092ad4d8054c0d3717741dba7e35d10cb2374464e52a2d8c0161af320388404"
+  }
+}

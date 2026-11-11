@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized-agent",
+  "reason": "Reconcile corrected Mining Pants source-derived record key and retire the stale duplicate owner",
+  "authorizationReference": "user://conversation/2026-10-03/armor-mining-relation-repair-key-lineage",
+  "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01c"
+}

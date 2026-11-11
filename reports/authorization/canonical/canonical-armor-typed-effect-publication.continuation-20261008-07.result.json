@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "armor-typed-effect-publication-execution/v1",
+  "operationId": "canonical-armor-typed-effect-publication",
+  "ownership": [
+    "relation.relation_equipment_effect_attributes.item_effect_sources"
+  ],
+  "proposalSha256": "sha256:a91ed7718848e319c15682f56e38bcbc52b98b4249178c192c0c8eb6dcb5d911",
+  "sourceFingerprint": {
+    "pageRevisionId": 1027106,
+    "iteminfoRevisionId": 1023241,
+    "armorSetsRevisionId": 964993
+  },
+  "status": "COMMITTED_READBACK_REQUIRED",
+  "affectedRows": 3,
+  "dispatchPermitConsumed": true,
+  "requiresReadbackReconciliation": true,
+  "postCommitAcceptance": {
+    "schemaVersion": "armor-projection-api-acceptance/v1",
+    "operationId": "canonical-armor-typed-effect-publication",
+    "candidateSha256": null,
+    "databaseWrites": false,
+    "apiReadOnly": true,
+    "postCommit": true,
+    "status": "blocked",
+    "runtimeVerified": false,
+    "blockers": [
+      {
+        "code": "projection-equipment-effect-missing",
+        "relation_record_key": "15998a2b79202926a47032eddf311bc521ed963237617b7dafed03d0f4819e87"
+      },
+      {
+        "code": "projection-equipment-effect-missing",
+        "relation_record_key": "cdba69e5cadcbff6a50b47afbe11cc16b8c9ca5518e2b4d8b979d8434066c988"
+      },
+      {
+        "code": "projection-equipment-effect-missing",
+        "relation_record_key": "cee6ff76f0bf129f2373900b68446b00372d1a6e75dff5e646960db68fd784cc"
+      },
+      {
+        "code": "api-item-equipment-effect-api-missing",
+        "identity": "1546|armor_item_page|0|ShroomiteHeadgear"
+      },
+      {
+        "code": "api-item-equipment-effect-api-field-drift",
+        "identity": "1546|armor_attribute_cell|5|ShroomiteHeadgear",
+        "field": "conditionText"
+      },
+      {
+        "code": "api-item-equipment-effect-api-field-drift",
+        "identity": "1546|armor_attribute_cell|5|ShroomiteHeadgear",
+        "field": "sourceRevisionTimestamp"
+      },
+      {
+        "code": "api-item-equipment-effect-api-field-drift",
+        "identity": "1548|armor_attribute_cell|5|ShroomiteHelmet",
+        "field": "conditionText"
+      },
+      {
+        "code": "api-item-equipment-effect-api-field-drift",
+        "identity": "1548|armor_attribute_cell|5|ShroomiteHelmet",
+        "field": "sourceRevisionTimestamp"
+      },
+      {
+        "code": "api-item-equipment-effect-api-missing",
+        "identity": "1547|armor_item_page|0|ShroomiteMask"
+      },
+      {
+        "code": "api-item-equipment-effect-api-missing",
+        "identity": "1548|armor_item_page|0|ShroomiteHelmet"
+      },
+      {
+        "code": "api-item-equipment-effect-api-field-drift",
+        "identity": "1547|armor_attribute_cell|5|ShroomiteMask",
+        "field": "conditionText"
+      },
+      {
+        "code": "api-item-equipment-effect-api-field-drift",
+        "identity": "1547|armor_attribute_cell|5|ShroomiteMask",
+        "field": "sourceRevisionTimestamp"
+      }
+    ],
+    "projection": {
+      "armorSets": {
+        "expectedCount": 0,
+        "observedCount": 0
+      },
+      "armorAttributes": {
+        "expectedCount": 0,
+        "observedCount": 0
+      },
+      "equipmentEffects": {
+        "expectedCount": 6,
+        "observedCount": 3
+      }
+    },
+    "api": {
+      "armorAttributes": {
+        "expectedCount": 0,
+        "observedCount": 0
+      },
+      "equipmentEffects": {
+        "expectedCount": 6,
+        "observedCount": 3
+      }
+    },
+    "expectedSha256": "sha256:312aa17a1da53950c3c20d60dcfd12c93923630ad90d2c7fb323aac5fded7eed",
+    "observedSha256": "sha256:235961729ff2446e36e3904da087fbb91b2883d6d85d66bc7e824fa823875d79",
+    "ownerIds": [
+      1546,
+      1547,
+      1548
+    ]
+  },
+  "error": "Armor post-commit projection/API acceptance is not verified",
+  "proposalPath": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.proposal.json",
+  "proposalContentSha256": "sha256:5f45d96ef639eed481dcd37b846a054f9b698bff5b871c5b60a5fd6b710c7e01",
+  "authorization": {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-07",
+    "packetHash": "sha256:46d1a3e77947a94aac5b77397032119e492d5ce6af9919a6e558f9fb5d96b7eb",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-10-07T23:22:02.652Z"
+}

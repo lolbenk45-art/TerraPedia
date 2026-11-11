@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "armor-historical-tuple-repair-execution/v1",
+  "operationId": "canonical-armor-historical-tuple-repair",
+  "proposalSha256": "sha256:71ae7eac70a5a40f16fb1e9bc6cebad058bb45f7a4e9defc7833d275424a5f22",
+  "beforeSha256": "sha256:59e14d04f440e751007d647aab2163782cadd694472fd80289d6463009001d4e",
+  "afterSha256": "sha256:7f1c6e4b233e57d9073c4880dc14370dc9e08738df7015aee411721f17bffe45",
+  "scope": [
+    "ArmorSetBonus.BeetleDamage",
+    "ArmorSetBonus.BeetleDefense",
+    "ArmorSetBonus.SpectreHealing",
+    "ArmorSetBonus.SpectreDamage",
+    "ArmorSetBonus.ChlorophyteMelee",
+    "ArmorSetBonus.ChlorophyteSummon",
+    "ArmorSetBonus.CobaltCaster",
+    "ArmorSetBonus.CobaltMelee",
+    "ArmorSetBonus.CobaltRanged",
+    "ArmorSetBonus.MythrilCaster",
+    "ArmorSetBonus.MythrilMelee",
+    "ArmorSetBonus.MythrilRanged",
+    "ArmorSetBonus.AdamantiteCaster",
+    "ArmorSetBonus.AdamantiteMelee",
+    "ArmorSetBonus.AdamantiteRanged"
+  ],
+  "counts": {
+    "maintParentUpdates": 15,
+    "relationParentUpdates": 15,
+    "relationItemInserts": 45,
+    "relationItemRetirements": 30,
+    "projectionArmorSetUpdates": 15
+  },
+  "status": "PREPARED",
+  "authorization": {
+    "decisionIdentity": "canonical-armor-historical-tuple-repair-20261004-04",
+    "packetHash": "sha256:41383e486c60eac5c2b0a92cb8b4af2ed1e2523c7209f6ed416225c391916c73"
+  },
+  "recordedAt": "2026-10-03T23:46:22.700Z"
+}

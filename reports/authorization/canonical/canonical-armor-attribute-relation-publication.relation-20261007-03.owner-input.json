@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案重试 Armor relation attribute bounded lane；修复首轮 readback 类型与数据库默认值比较误报；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-relation-retry-20261007-03",
+  "authorizedAt": "2026-10-07T08:52:02.000Z"
+}

@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Retry bounded Mining 88/410/411 secondary projection after the runtime owner fence rejected the prior actor",
+  "authorizationReference": "user://conversation/2026-10-04/armor-mining-secondary-projection-owner-retry",
+  "decisionIdentity": "canonical-armor-secondary-projection-mining-20261003-01h"
+}

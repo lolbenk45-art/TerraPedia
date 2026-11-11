@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor secondary projection；仅写入当前 proposal 的 488 条已验证 parsed/accepted source rows（481 条 set-owned effects、7 条 item effects）；unresolvedSourceEffects=quarantine；unresolvedRowsMustRemainUntouched=true；defenseAuthority=armor_attribute_zero；allowPartialApply=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-secondary-projection-full-20261007-01",
+  "authorizedAt": "2026-10-07T15:32:21.879Z"
+}

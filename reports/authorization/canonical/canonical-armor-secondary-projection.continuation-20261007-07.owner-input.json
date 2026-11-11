@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor secondary projection 全量 owner lane；仅写入当前 proposal 的 12 条 attribute projection 与 9 条已验证 effect projection；unresolvedSourceEffects=quarantine；defenseAuthority=armor_attribute_zero；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true；未解析行保持不变。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-secondary-projection-continuation-20261007-07",
+  "authorizedAt": "2026-10-07T13:43:00.000Z"
+}

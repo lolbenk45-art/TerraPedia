@@ -1,0 +1,13 @@
+{
+  "operationId": "canonical-armor-historical-tuple-repair",
+  "proposalSha256": "sha256:444158a721a5c34231a8118ca5ed32b8a0652dbaded295c765f80448959dc757",
+  "status": "ROLLBACK_CONFIRMED",
+  "permitConsumed": true,
+  "error": "maintArmorSets terminal readback drifted",
+  "requiresReadbackReconciliation": false,
+  "authorization": {
+    "decisionIdentity": "canonical-armor-historical-tuple-repair-20261004-02",
+    "packetHash": "sha256:437398683347fcd4e8b3791995578f8e523434abab420f725896b0ffb4b6cdb6"
+  },
+  "recordedAt": "2026-10-03T23:37:43.160Z"
+}

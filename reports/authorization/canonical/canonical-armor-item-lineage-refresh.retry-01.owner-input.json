@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Admin-authorized bounded Shroomite Iteminfo lineage refresh; five maint_items rows and two scoped landings only; no relation/projection/API/scheduler writes.",
+  "authorizationReference": "session-20261006-shroomite-item-lineage-refresh",
+  "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-01-a217e186",
+  "authorizedAt": "2026-10-06T12:06:00.201Z"
+}

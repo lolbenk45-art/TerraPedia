@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "明确授权 Shroomite source landing 与 typed maint source persistence；不包含 relation/projection publication。",
+  "authorizationReference": "admin-approval://armor-item-effect-source/20261005-01",
+  "decisionIdentity": "armor-item-effect-source-admin-20261005-020013-552d02c2",
+  "authorizedAt": "2026-10-05T00:06:23.217Z"
+}

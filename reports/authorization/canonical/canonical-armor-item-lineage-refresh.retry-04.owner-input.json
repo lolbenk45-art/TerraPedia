@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "retry-03 在首条写入前因无效 datetime 回滚，批准使用修正后的 proposal 重试 Shroomite Iteminfo revision 1023241 的 1546-1550 lineage 写入。",
+  "authorizationReference": "armor-item-lineage-refresh-retry-04-20261006-admin-01",
+  "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-04-fc9bdc9d",
+  "authorizedAt": "2026-10-06T13:08:17.000Z"
+}

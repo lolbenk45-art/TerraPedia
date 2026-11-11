@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized-agent",
+  "reason": "Publish the corrected Mining 88/410/411 relation rows into the secondary armor projections",
+  "authorizationReference": "user://conversation/2026-10-04/armor-mining-secondary-projection-repair",
+  "decisionIdentity": "canonical-armor-secondary-projection-mining-20261003-01g"
+}

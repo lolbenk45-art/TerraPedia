@@ -1,0 +1,4228 @@
+{
+  "branch": "feat/automation-domain-armor",
+  "previousHead": "36c9299d70d535c1ab3341afd9dd444d358be01c",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.worktrees/automation-domain-armor",
+  "originalChanges": [
+    {
+      "status": " M",
+      "path": "reports/authorization/canonical/used-decisions.json",
+      "oldPath": null,
+      "size": 48996
+    },
+    {
+      "status": "??",
+      "path": "logs/terrapedia-app.2026-10-08.0.log.gz",
+      "oldPath": null,
+      "size": 23577
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 11774
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.owner-input.json",
+      "oldPath": null,
+      "size": 406
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.packet.json",
+      "oldPath": null,
+      "size": 14338
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.prepared.json",
+      "oldPath": null,
+      "size": 601
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.proposal.json",
+      "oldPath": null,
+      "size": 191387
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.request.json",
+      "oldPath": null,
+      "size": 14028
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.result.json",
+      "oldPath": null,
+      "size": 787
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 11774
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.owner-input.json",
+      "oldPath": null,
+      "size": 497
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.packet.json",
+      "oldPath": null,
+      "size": 14429
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.prepared.json",
+      "oldPath": null,
+      "size": 628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.proposal.json",
+      "oldPath": null,
+      "size": 191387
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.request.json",
+      "oldPath": null,
+      "size": 14028
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.result.json",
+      "oldPath": null,
+      "size": 685
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 6431
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-01.proposal.json",
+      "oldPath": null,
+      "size": 220043
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-01.request.json",
+      "oldPath": null,
+      "size": 8424
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 6476
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.owner-input.json",
+      "oldPath": null,
+      "size": 407
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.packet.json",
+      "oldPath": null,
+      "size": 8828
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.prepared.json",
+      "oldPath": null,
+      "size": 1409
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.proposal.json",
+      "oldPath": null,
+      "size": 298168
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.request.json",
+      "oldPath": null,
+      "size": 8471
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.result.json",
+      "oldPath": null,
+      "size": 557
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 6476
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.owner-input.json",
+      "oldPath": null,
+      "size": 407
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.packet.json",
+      "oldPath": null,
+      "size": 8828
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.prepared.json",
+      "oldPath": null,
+      "size": 1409
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.proposal.json",
+      "oldPath": null,
+      "size": 298168
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.request.json",
+      "oldPath": null,
+      "size": 8471
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.result.json",
+      "oldPath": null,
+      "size": 564
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.execution-manifest.json",
+      "oldPath": null,
+      "size": 6476
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.owner-input.json",
+      "oldPath": null,
+      "size": 407
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.packet.json",
+      "oldPath": null,
+      "size": 8828
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.prepared.json",
+      "oldPath": null,
+      "size": 1409
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.proposal.json",
+      "oldPath": null,
+      "size": 298168
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.request.json",
+      "oldPath": null,
+      "size": 8471
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.result.json",
+      "oldPath": null,
+      "size": 564
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.execution-manifest.json",
+      "oldPath": null,
+      "size": 6476
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.owner-input.json",
+      "oldPath": null,
+      "size": 407
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.packet.json",
+      "oldPath": null,
+      "size": 8828
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.prepared.json",
+      "oldPath": null,
+      "size": 1409
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.proposal.json",
+      "oldPath": null,
+      "size": 298483
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.request.json",
+      "oldPath": null,
+      "size": 8471
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.result.json",
+      "oldPath": null,
+      "size": 1468
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.manifest.json",
+      "oldPath": null,
+      "size": 7014
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.policies.json",
+      "oldPath": null,
+      "size": 2132
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.proposal.json",
+      "oldPath": null,
+      "size": 766969
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.request.json",
+      "oldPath": null,
+      "size": 9027
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.server.json",
+      "oldPath": null,
+      "size": 214
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 7077
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.owner-input.json",
+      "oldPath": null,
+      "size": 374
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.packet.json",
+      "oldPath": null,
+      "size": 9365
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.proposal.json",
+      "oldPath": null,
+      "size": 766969
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.request.json",
+      "oldPath": null,
+      "size": 9087
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 7077
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.owner-input.json",
+      "oldPath": null,
+      "size": 396
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.packet.json",
+      "oldPath": null,
+      "size": 9387
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.policies.json",
+      "oldPath": null,
+      "size": 2132
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.prepared.json",
+      "oldPath": null,
+      "size": 785
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.proposal.json",
+      "oldPath": null,
+      "size": 766969
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.request.json",
+      "oldPath": null,
+      "size": 9087
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.result.json",
+      "oldPath": null,
+      "size": 539855
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.server.json",
+      "oldPath": null,
+      "size": 214
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.uploads.jsonl",
+      "oldPath": null,
+      "size": 560643
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.owner-input.json",
+      "oldPath": null,
+      "size": 266
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.owner-input.json",
+      "oldPath": null,
+      "size": 266
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.journal.json",
+      "oldPath": null,
+      "size": 58993
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.execution-manifest.json",
+      "oldPath": null,
+      "size": 13053
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.intent.json",
+      "oldPath": null,
+      "size": 111891219
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.journal.json",
+      "oldPath": null,
+      "size": 59075
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.packet.json",
+      "oldPath": null,
+      "size": 15489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.request.json",
+      "oldPath": null,
+      "size": 15319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.result.json",
+      "oldPath": null,
+      "size": 1790658
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.execution-manifest.json",
+      "oldPath": null,
+      "size": 13416
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.intent.json",
+      "oldPath": null,
+      "size": 113228146
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.journal.json",
+      "oldPath": null,
+      "size": 1050
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.packet.json",
+      "oldPath": null,
+      "size": 15868
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.request.json",
+      "oldPath": null,
+      "size": 15698
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.execution-manifest.json",
+      "oldPath": null,
+      "size": 13416
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.intent.json",
+      "oldPath": null,
+      "size": 113228146
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.journal.json",
+      "oldPath": null,
+      "size": 1202
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.owner-input.json",
+      "oldPath": null,
+      "size": 220
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.packet.json",
+      "oldPath": null,
+      "size": 15868
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.request.json",
+      "oldPath": null,
+      "size": 15698
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.result.json",
+      "oldPath": null,
+      "size": 608
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 7526
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.owner-input.json",
+      "oldPath": null,
+      "size": 370
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.packet.json",
+      "oldPath": null,
+      "size": 9846
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.prepared.json",
+      "oldPath": null,
+      "size": 1027
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.proposal.json",
+      "oldPath": null,
+      "size": 28885824
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.request.json",
+      "oldPath": null,
+      "size": 9572
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.result.json",
+      "oldPath": null,
+      "size": 1264
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 7283
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.owner-input.json",
+      "oldPath": null,
+      "size": 416
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.packet.json",
+      "oldPath": null,
+      "size": 9629
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.prepared.json",
+      "oldPath": null,
+      "size": 593
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.proposal.json",
+      "oldPath": null,
+      "size": 17974340
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.request.json",
+      "oldPath": null,
+      "size": 9309
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.result.json",
+      "oldPath": null,
+      "size": 1331
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 7283
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-02.proposal.json",
+      "oldPath": null,
+      "size": 17974340
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-02.request.json",
+      "oldPath": null,
+      "size": 9309
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 7283
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.owner-input.json",
+      "oldPath": null,
+      "size": 375
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.packet.json",
+      "oldPath": null,
+      "size": 9588
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.prepared.json",
+      "oldPath": null,
+      "size": 593
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.proposal.json",
+      "oldPath": null,
+      "size": 17975455
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.request.json",
+      "oldPath": null,
+      "size": 9309
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.result.json",
+      "oldPath": null,
+      "size": 869
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.execution-manifest.json",
+      "oldPath": null,
+      "size": 7283
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.owner-input.json",
+      "oldPath": null,
+      "size": 428
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.packet.json",
+      "oldPath": null,
+      "size": 9641
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.prepared.json",
+      "oldPath": null,
+      "size": 593
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.proposal.json",
+      "oldPath": null,
+      "size": 17974295
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.request.json",
+      "oldPath": null,
+      "size": 9309
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.result.json",
+      "oldPath": null,
+      "size": 1262
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 8331
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.owner-decision.json",
+      "oldPath": null,
+      "size": 2919
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.owner-input.json",
+      "oldPath": null,
+      "size": 461
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.packet.json",
+      "oldPath": null,
+      "size": 11032
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.proposal.json",
+      "oldPath": null,
+      "size": 107543
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.request.json",
+      "oldPath": null,
+      "size": 10667
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 8331
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.owner-decision.json",
+      "oldPath": null,
+      "size": 2931
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.owner-input.json",
+      "oldPath": null,
+      "size": 461
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.packet.json",
+      "oldPath": null,
+      "size": 11032
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.prepared.json",
+      "oldPath": null,
+      "size": 1067
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.proposal.json",
+      "oldPath": null,
+      "size": 107543
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.request.json",
+      "oldPath": null,
+      "size": 10667
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.result.json",
+      "oldPath": null,
+      "size": 2759
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 8331
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.owner-decision.json",
+      "oldPath": null,
+      "size": 2931
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.owner-input.json",
+      "oldPath": null,
+      "size": 456
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.packet.json",
+      "oldPath": null,
+      "size": 11027
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.prepared.json",
+      "oldPath": null,
+      "size": 1067
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.proposal.json",
+      "oldPath": null,
+      "size": 107543
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.request.json",
+      "oldPath": null,
+      "size": 10667
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.result.json",
+      "oldPath": null,
+      "size": 2759
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.execution-manifest.json",
+      "oldPath": null,
+      "size": 8331
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.owner-decision.json",
+      "oldPath": null,
+      "size": 2931
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.owner-input.json",
+      "oldPath": null,
+      "size": 456
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.packet.json",
+      "oldPath": null,
+      "size": 11027
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.prepared.json",
+      "oldPath": null,
+      "size": 1067
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.proposal.json",
+      "oldPath": null,
+      "size": 107543
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.request.json",
+      "oldPath": null,
+      "size": 10667
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.result.json",
+      "oldPath": null,
+      "size": 1361
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 5949
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.owner-input.json",
+      "oldPath": null,
+      "size": 529
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.packet.json",
+      "oldPath": null,
+      "size": 8398
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.proposal.json",
+      "oldPath": null,
+      "size": 15847
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.request.json",
+      "oldPath": null,
+      "size": 7919
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 5949
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.owner-input.json",
+      "oldPath": null,
+      "size": 529
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.proposal.json",
+      "oldPath": null,
+      "size": 15847
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.request.json",
+      "oldPath": null,
+      "size": 7919
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 5949
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.owner-input.json",
+      "oldPath": null,
+      "size": 529
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.packet.json",
+      "oldPath": null,
+      "size": 8398
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.prepared.json",
+      "oldPath": null,
+      "size": 589
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.proposal.json",
+      "oldPath": null,
+      "size": 15847
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.request.json",
+      "oldPath": null,
+      "size": 7919
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.result.json",
+      "oldPath": null,
+      "size": 1011
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.execution-manifest.json",
+      "oldPath": null,
+      "size": 13179
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.owner-input.json",
+      "oldPath": null,
+      "size": 3211
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.packet.json",
+      "oldPath": null,
+      "size": 15986
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.proposal.json",
+      "oldPath": null,
+      "size": 17871164
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.request.json",
+      "oldPath": null,
+      "size": 15491
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.execution-manifest.json",
+      "oldPath": null,
+      "size": 13179
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.owner-input.json",
+      "oldPath": null,
+      "size": 582
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.packet.json",
+      "oldPath": null,
+      "size": 15977
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.prepared.json",
+      "oldPath": null,
+      "size": 9998
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.proposal.json",
+      "oldPath": null,
+      "size": 17873608
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.request.json",
+      "oldPath": null,
+      "size": 15491
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.result.json",
+      "oldPath": null,
+      "size": 10204
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 13212
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.owner-input.json",
+      "oldPath": null,
+      "size": 561
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.packet.json",
+      "oldPath": null,
+      "size": 15983
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.prepared.json",
+      "oldPath": null,
+      "size": 152475
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.proposal.json",
+      "oldPath": null,
+      "size": 20640131
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.request.json",
+      "oldPath": null,
+      "size": 15518
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.result.json",
+      "oldPath": null,
+      "size": 152682
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.manifest.json",
+      "oldPath": null,
+      "size": 13154
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.owner-input.json",
+      "oldPath": null,
+      "size": 330
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.packet.json",
+      "oldPath": null,
+      "size": 15741
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.proposal.json",
+      "oldPath": null,
+      "size": 10252204
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.request.json",
+      "oldPath": null,
+      "size": 15461
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.manifest.json",
+      "oldPath": null,
+      "size": 13154
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.owner-input.json",
+      "oldPath": null,
+      "size": 336
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.packet.json",
+      "oldPath": null,
+      "size": 15747
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.proposal.json",
+      "oldPath": null,
+      "size": 10252204
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.request.json",
+      "oldPath": null,
+      "size": 15461
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.manifest.json",
+      "oldPath": null,
+      "size": 13154
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.owner-input.json",
+      "oldPath": null,
+      "size": 305
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.packet.json",
+      "oldPath": null,
+      "size": 15716
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.policies.json",
+      "oldPath": null,
+      "size": 2132
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.prepared.json",
+      "oldPath": null,
+      "size": 4342
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.proposal.json",
+      "oldPath": null,
+      "size": 10252204
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.request.json",
+      "oldPath": null,
+      "size": 15461
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.result.json",
+      "oldPath": null,
+      "size": 4547
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 13164
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.owner-input.json",
+      "oldPath": null,
+      "size": 573
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.packet.json",
+      "oldPath": null,
+      "size": 15950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.prepared.json",
+      "oldPath": null,
+      "size": 9143
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.proposal.json",
+      "oldPath": null,
+      "size": 17682754
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.request.json",
+      "oldPath": null,
+      "size": 15473
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.result.json",
+      "oldPath": null,
+      "size": 9349
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 13164
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.owner-input.json",
+      "oldPath": null,
+      "size": 629
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.proposal.json",
+      "oldPath": null,
+      "size": 17719519
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.request.json",
+      "oldPath": null,
+      "size": 15427
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 13164
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.owner-input.json",
+      "oldPath": null,
+      "size": 629
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.packet.json",
+      "oldPath": null,
+      "size": 16006
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.prepared.json",
+      "oldPath": null,
+      "size": 9185
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.proposal.json",
+      "oldPath": null,
+      "size": 17719519
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.request.json",
+      "oldPath": null,
+      "size": 15473
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.result.json",
+      "oldPath": null,
+      "size": 9391
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.execution-manifest.json",
+      "oldPath": null,
+      "size": 13164
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.owner-input.json",
+      "oldPath": null,
+      "size": 510
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.packet.json",
+      "oldPath": null,
+      "size": 15887
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.prepared.json",
+      "oldPath": null,
+      "size": 66946
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.proposal.json",
+      "oldPath": null,
+      "size": 19597778
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.request.json",
+      "oldPath": null,
+      "size": 15473
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.result.json",
+      "oldPath": null,
+      "size": 67153
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-01.proposal.json",
+      "oldPath": null,
+      "size": 20675187
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 13420
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.owner-input.json",
+      "oldPath": null,
+      "size": 738
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.packet.json",
+      "oldPath": null,
+      "size": 16381
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.prepared.json",
+      "oldPath": null,
+      "size": 11319
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.proposal.json",
+      "oldPath": null,
+      "size": 20681201
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.request.json",
+      "oldPath": null,
+      "size": 15739
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.result.json",
+      "oldPath": null,
+      "size": 11525
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.execution-manifest.json",
+      "oldPath": null,
+      "size": 13164
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.owner-input.json",
+      "oldPath": null,
+      "size": 834
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.packet.json",
+      "oldPath": null,
+      "size": 15911
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.prepared.json",
+      "oldPath": null,
+      "size": 7437
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.proposal.json",
+      "oldPath": null,
+      "size": 17743036
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.request.json",
+      "oldPath": null,
+      "size": 15473
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.result.json",
+      "oldPath": null,
+      "size": 7629
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.execution-manifest.json",
+      "oldPath": null,
+      "size": 13164
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.owner-input.json",
+      "oldPath": null,
+      "size": 834
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.packet.json",
+      "oldPath": null,
+      "size": 15911
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.prepared.json",
+      "oldPath": null,
+      "size": 7437
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.proposal.json",
+      "oldPath": null,
+      "size": 17743036
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.request.json",
+      "oldPath": null,
+      "size": 15473
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.result.json",
+      "oldPath": null,
+      "size": 7643
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 13455
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.owner-input.json",
+      "oldPath": null,
+      "size": 401
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.packet.json",
+      "oldPath": null,
+      "size": 16086
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.prepared.json",
+      "oldPath": null,
+      "size": 5095
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.proposal.json",
+      "oldPath": null,
+      "size": 20672700
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.request.json",
+      "oldPath": null,
+      "size": 15781
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.result.json",
+      "oldPath": null,
+      "size": 5300
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.manifest.json",
+      "oldPath": null,
+      "size": 5143
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.owner-input.json",
+      "oldPath": null,
+      "size": 328
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.packet.json",
+      "oldPath": null,
+      "size": 7345
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.proposal.json",
+      "oldPath": null,
+      "size": 263782
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.request.json",
+      "oldPath": null,
+      "size": 7067
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.result.json",
+      "oldPath": null,
+      "size": 657
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.manifest.json",
+      "oldPath": null,
+      "size": 5147
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.owner-input.json",
+      "oldPath": null,
+      "size": 306
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.packet.json",
+      "oldPath": null,
+      "size": 7328
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.proposal.json",
+      "oldPath": null,
+      "size": 263814
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.request.json",
+      "oldPath": null,
+      "size": 7072
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.result.json",
+      "oldPath": null,
+      "size": 658
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.manifest.json",
+      "oldPath": null,
+      "size": 5147
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.owner-input.json",
+      "oldPath": null,
+      "size": 330
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.packet.json",
+      "oldPath": null,
+      "size": 7352
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.proposal.json",
+      "oldPath": null,
+      "size": 264470
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.request.json",
+      "oldPath": null,
+      "size": 7072
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.result.json",
+      "oldPath": null,
+      "size": 658
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.manifest.json",
+      "oldPath": null,
+      "size": 5147
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.owner-input.json",
+      "oldPath": null,
+      "size": 325
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.packet.json",
+      "oldPath": null,
+      "size": 7347
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.proposal.json",
+      "oldPath": null,
+      "size": 265012
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.request.json",
+      "oldPath": null,
+      "size": 7072
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.result.json",
+      "oldPath": null,
+      "size": 658
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.manifest.json",
+      "oldPath": null,
+      "size": 5147
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.owner-input.json",
+      "oldPath": null,
+      "size": 311
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.packet.json",
+      "oldPath": null,
+      "size": 7333
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.proposal.json",
+      "oldPath": null,
+      "size": 264997
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.request.json",
+      "oldPath": null,
+      "size": 7072
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.result.json",
+      "oldPath": null,
+      "size": 658
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01h.proposal.json",
+      "oldPath": null,
+      "size": 264997
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 6309
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.owner-input.json",
+      "oldPath": null,
+      "size": 491
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.packet.json",
+      "oldPath": null,
+      "size": 8700
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.prepared.json",
+      "oldPath": null,
+      "size": 627
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.proposal.json",
+      "oldPath": null,
+      "size": 4004327
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.request.json",
+      "oldPath": null,
+      "size": 8305
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.result.json",
+      "oldPath": null,
+      "size": 868
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 6309
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.owner-input.json",
+      "oldPath": null,
+      "size": 527
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.packet.json",
+      "oldPath": null,
+      "size": 8736
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.prepared.json",
+      "oldPath": null,
+      "size": 627
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.proposal.json",
+      "oldPath": null,
+      "size": 4004327
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.request.json",
+      "oldPath": null,
+      "size": 8305
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.result.json",
+      "oldPath": null,
+      "size": 1573
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.request.json",
+      "oldPath": null,
+      "size": 14054
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.packet.json",
+      "oldPath": null,
+      "size": 14628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.request.json",
+      "oldPath": null,
+      "size": 14100
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.packet.json",
+      "oldPath": null,
+      "size": 14628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.request.json",
+      "oldPath": null,
+      "size": 14100
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.packet.json",
+      "oldPath": null,
+      "size": 14628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.request.json",
+      "oldPath": null,
+      "size": 14100
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.packet.json",
+      "oldPath": null,
+      "size": 14628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.prepared.json",
+      "oldPath": null,
+      "size": 1576
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.request.json",
+      "oldPath": null,
+      "size": 14100
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.result.json",
+      "oldPath": null,
+      "size": 1754
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.packet.json",
+      "oldPath": null,
+      "size": 14628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.prepared.json",
+      "oldPath": null,
+      "size": 1576
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.request.json",
+      "oldPath": null,
+      "size": 14100
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.result.json",
+      "oldPath": null,
+      "size": 1754
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.packet.json",
+      "oldPath": null,
+      "size": 14628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.request.json",
+      "oldPath": null,
+      "size": 14100
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.execution-manifest.json",
+      "oldPath": null,
+      "size": 11848
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.owner-input.json",
+      "oldPath": null,
+      "size": 624
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.packet.json",
+      "oldPath": null,
+      "size": 14628
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.prepared.json",
+      "oldPath": null,
+      "size": 1576
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.proposal.json",
+      "oldPath": null,
+      "size": 36401902
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.request.json",
+      "oldPath": null,
+      "size": 14100
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.result.json",
+      "oldPath": null,
+      "size": 1733
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-02.proposal.json",
+      "oldPath": null,
+      "size": 39345513
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-03.proposal.json",
+      "oldPath": null,
+      "size": 38160040
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.execution-manifest.json",
+      "oldPath": null,
+      "size": 12031
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.owner-input.json",
+      "oldPath": null,
+      "size": 690
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.packet.json",
+      "oldPath": null,
+      "size": 14885
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.prepared.json",
+      "oldPath": null,
+      "size": 1576
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.proposal.json",
+      "oldPath": null,
+      "size": 37141299
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.request.json",
+      "oldPath": null,
+      "size": 14291
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.result.json",
+      "oldPath": null,
+      "size": 1732
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261005-02.proposal.json",
+      "oldPath": null,
+      "size": 1133391
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261005-03.proposal.json",
+      "oldPath": null,
+      "size": 1133391
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261005-04.proposal.json",
+      "oldPath": null,
+      "size": 1133391
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.execution-manifest.json",
+      "oldPath": null,
+      "size": 14303
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.owner-decision.json",
+      "oldPath": null,
+      "size": 2942
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.owner-input.json",
+      "oldPath": null,
+      "size": 605
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.packet.json",
+      "oldPath": null,
+      "size": 17425
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.proposal.json",
+      "oldPath": null,
+      "size": 2504950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.recovery-owner.json",
+      "oldPath": null,
+      "size": 1148
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.request.json",
+      "oldPath": null,
+      "size": 16916
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.source-owner-decision.json",
+      "oldPath": null,
+      "size": 83434
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.execution-manifest.json",
+      "oldPath": null,
+      "size": 14303
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.owner-decision.json",
+      "oldPath": null,
+      "size": 2942
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.owner-input.json",
+      "oldPath": null,
+      "size": 605
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.packet.json",
+      "oldPath": null,
+      "size": 17425
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.proposal.json",
+      "oldPath": null,
+      "size": 2504950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.recovery-owner.json",
+      "oldPath": null,
+      "size": 1148
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.request.json",
+      "oldPath": null,
+      "size": 16916
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.source-owner-decision.json",
+      "oldPath": null,
+      "size": 83434
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.execution-manifest.json",
+      "oldPath": null,
+      "size": 14303
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.owner-decision.json",
+      "oldPath": null,
+      "size": 2942
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.owner-input.json",
+      "oldPath": null,
+      "size": 605
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.proposal.json",
+      "oldPath": null,
+      "size": 2504950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.recovery-owner.json",
+      "oldPath": null,
+      "size": 1148
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.request.json",
+      "oldPath": null,
+      "size": 16916
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.source-owner-decision.json",
+      "oldPath": null,
+      "size": 83434
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.execution-manifest.json",
+      "oldPath": null,
+      "size": 14303
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.owner-decision.json",
+      "oldPath": null,
+      "size": 2942
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.owner-input.json",
+      "oldPath": null,
+      "size": 605
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.packet.json",
+      "oldPath": null,
+      "size": 17425
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.proposal.json",
+      "oldPath": null,
+      "size": 2504950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.recovery-owner.json",
+      "oldPath": null,
+      "size": 1148
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.request.json",
+      "oldPath": null,
+      "size": 16916
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.source-owner-decision.json",
+      "oldPath": null,
+      "size": 83434
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.execution-manifest.json",
+      "oldPath": null,
+      "size": 14489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.owner-decision.json",
+      "oldPath": null,
+      "size": 2942
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.proposal.json",
+      "oldPath": null,
+      "size": 2504950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.recovery-owner.json",
+      "oldPath": null,
+      "size": 1148
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.source-owner-decision.json",
+      "oldPath": null,
+      "size": 83434
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.execution-manifest.json",
+      "oldPath": null,
+      "size": 14489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.owner-decision.json",
+      "oldPath": null,
+      "size": 2942
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.owner-input.json",
+      "oldPath": null,
+      "size": 605
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.packet.json",
+      "oldPath": null,
+      "size": 17619
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.proposal.json",
+      "oldPath": null,
+      "size": 2504950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.recovery-owner.json",
+      "oldPath": null,
+      "size": 1148
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.request.json",
+      "oldPath": null,
+      "size": 17110
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.source-owner-decision.json",
+      "oldPath": null,
+      "size": 83434
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.execution-manifest.json",
+      "oldPath": null,
+      "size": 14489
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.owner-decision.json",
+      "oldPath": null,
+      "size": 2942
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.owner-input.json",
+      "oldPath": null,
+      "size": 605
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.packet.json",
+      "oldPath": null,
+      "size": 17619
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.policy-rows.json",
+      "oldPath": null,
+      "size": 1532
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.prepared.json",
+      "oldPath": null,
+      "size": 1221
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.proposal.json",
+      "oldPath": null,
+      "size": 2504950
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.reconciliation.json",
+      "oldPath": null,
+      "size": 2338
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.recovery-owner.json",
+      "oldPath": null,
+      "size": 1148
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.request.json",
+      "oldPath": null,
+      "size": 17110
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.result.json",
+      "oldPath": null,
+      "size": 4514
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.server-fingerprint.json",
+      "oldPath": null,
+      "size": 192
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.source-owner-decision.json",
+      "oldPath": null,
+      "size": 83434
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.time-context.json",
+      "oldPath": null,
+      "size": 91
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.partial-20261008-01.proposal.json",
+      "oldPath": null,
+      "size": 2458026
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-armor-typed-effect-publication.typed-20261007-01.proposal.json",
+      "oldPath": null,
+      "size": 1150818
+    },
+    {
+      "status": "??",
+      "path": "reports/domain/armor_sets/source-readiness-2026-10-09.json",
+      "oldPath": null,
+      "size": 1868
+    }
+  ],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-17-local-eight-domain-complete-chain.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-closure-remediation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-data-chain-closure-plan.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-23-remaining-closure-item-decision-checklist.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-31-automation-scheduler-activation-handoff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-19-automation-scheduler-authorization-list.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-22-automation-ingestion-plan-repair.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-armor-frozen-candidate-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-canonical-ownership-execution.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-26-armor-secondary-projection-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-27-armor-image-cache-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-28-armor-source-semantics-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-qualified-cell-diagnostics.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-armor-set-source-evidence-contract.md",
+      "previousStatus": "ready-for-commit"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-30-armor-closure-gap-audit.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.intent.json.gz",
+      "bytes": 111891219,
+      "gzipBytes": 10825985,
+      "sha256": "54fe3430f3657afeb1be8508d906b20732b0f2cf6f44310cd42196d1fde343d8"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.intent.json.gz",
+      "bytes": 113228146,
+      "gzipBytes": 10989107,
+      "sha256": "03f050411857cf0b98536f696aaca936f73b0c965131b29a52464296334183c9"
+    },
+    {
+      "path": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.intent.json",
+      "gzipPath": "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.intent.json.gz",
+      "bytes": 113228146,
+      "gzipBytes": 10989107,
+      "sha256": "03f050411857cf0b98536f696aaca936f73b0c965131b29a52464296334183c9"
+    }
+  ],
+  "locallyPreservedLogs": [
+    "logs/terrapedia-app.2026-10-08.0.log.gz"
+  ],
+  "validation": {
+    "nodeSyntax": [],
+    "json": [
+      "reports/authorization/canonical/used-decisions.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.prepared.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.request.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-02.result.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.packet.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.prepared.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.request.json",
+      "reports/authorization/canonical/canonical-armor-attribute-relation-publication.relation-20261007-03.result.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-01.request.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.prepared.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.request.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-02.result.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.packet.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.prepared.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.request.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-03.result.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.packet.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.prepared.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.proposal.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.request.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-04.result.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.packet.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.prepared.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.proposal.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.request.json",
+      "reports/authorization/canonical/canonical-armor-historical-tuple-repair.20261004-05.result.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.manifest.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.policies.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.request.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.a64-20260930-02.server.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-01.request.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.policies.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.prepared.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.request.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.result.json",
+      "reports/authorization/canonical/canonical-armor-image-cache.continuation-20261005-02.server.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.result.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.intent.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.journal.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.packet.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.request.json",
+      "reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.result.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.prepared.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.request.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.result.json",
+      "reports/authorization/canonical/canonical-armor-item-effect-source.continuation-20261004-02.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.prepared.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.request.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-01.result.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-02.request.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.packet.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.prepared.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.request.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-03.result.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.packet.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.prepared.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.proposal.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.request.json",
+      "reports/authorization/canonical/canonical-armor-item-lineage-refresh.retry-04.result.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-01.request.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.prepared.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.request.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-02.result.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.packet.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.prepared.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.request.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-03.result.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.packet.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.prepared.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.proposal.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.request.json",
+      "reports/authorization/canonical/canonical-armor-missing-attribute-source.partial-20261007-04.result.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-01.request.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-02.request.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.packet.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.prepared.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.request.json",
+      "reports/authorization/canonical/canonical-armor-relation-item-normalization.repair-03.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-06.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.continuation-20261007-07.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.full-20261007-01.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01g.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01h.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.policies.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.mining-20261003-01i.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-01.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-02.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-03.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261007-08.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.secondary-20261008-02.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-04.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.prepared.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.request.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.result.json",
+      "reports/authorization/canonical/canonical-armor-secondary-projection.typed-projection-20261008-01.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.manifest.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.request.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01.result.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.manifest.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.packet.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.proposal.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.request.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01b.result.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.manifest.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.packet.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.proposal.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.request.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01c.result.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.manifest.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.packet.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.proposal.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.request.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01d.result.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.manifest.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.packet.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.proposal.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.request.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01f.result.json",
+      "reports/authorization/canonical/canonical-armor-semantic-repair.mining-20261003-01h.proposal.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.prepared.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.request.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-01.result.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.prepared.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.request.json",
+      "reports/authorization/canonical/canonical-armor-shroomite-relation-item-refresh.repair-02.result.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-08.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-09.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-10.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-11.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.prepared.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-12.result.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.prepared.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-13.result.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-14.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.prepared.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261007-15.result.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.packet.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.prepared.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.proposal.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.request.json",
+      "reports/authorization/canonical/canonical-armor-source-effect-publication.source-20261008-04.result.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261005-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261005-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261005-04.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.packet.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.recovery-owner.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.request.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-01.source-owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.packet.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.recovery-owner.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.request.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-02.source-owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.recovery-owner.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.request.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-03.source-owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.packet.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.recovery-owner.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.request.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-04.source-owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.recovery-owner.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-05.source-owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.packet.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.recovery-owner.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.request.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-06.source-owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.execution-manifest.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.owner-input.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.packet.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.policy-rows.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.prepared.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.reconciliation.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.recovery-owner.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.request.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.result.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.server-fingerprint.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.source-owner-decision.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.time-context.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.partial-20261008-01.proposal.json",
+      "reports/authorization/canonical/canonical-armor-typed-effect-publication.typed-20261007-01.proposal.json",
+      "reports/domain/armor_sets/source-readiness-2026-10-09.json"
+    ],
+    "failures": []
+  }
+}

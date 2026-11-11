@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "armor-typed-effect-publication-execution/v1",
+  "operationId": "canonical-armor-typed-effect-publication",
+  "ownership": [
+    "relation.relation_equipment_effect_attributes.item_effect_sources"
+  ],
+  "proposalSha256": "sha256:a91ed7718848e319c15682f56e38bcbc52b98b4249178c192c0c8eb6dcb5d911",
+  "sourceFingerprint": {
+    "pageRevisionId": 1027106,
+    "iteminfoRevisionId": 1023241,
+    "armorSetsRevisionId": 964993
+  },
+  "status": "PREPARED",
+  "proposalPath": "reports/authorization/canonical/canonical-armor-typed-effect-publication.continuation-20261008-07.proposal.json",
+  "proposalContentSha256": "sha256:5f45d96ef639eed481dcd37b846a054f9b698bff5b871c5b60a5fd6b710c7e01",
+  "authorization": {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-07",
+    "packetHash": "sha256:46d1a3e77947a94aac5b77397032119e492d5ce6af9919a6e558f9fb5d96b7eb",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-10-07T23:22:02.361Z"
+}

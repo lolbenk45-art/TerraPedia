@@ -777,5 +777,217 @@
   {
     "decisionIdentity": "armor-image-cache-a63-20260927-33",
     "dispatchPermitHash": "sha256:1bad37a3b0996f60f241fd3e0432c07ea667d2f1eb6853db36aebbfbdc2f0a05"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01",
+    "dispatchPermitHash": "sha256:6fb9a9b59a8b5d8deeb1c955c918fb9b8ff54feb6280d31aadf3e73f330d645f"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01b",
+    "dispatchPermitHash": "sha256:68c44c77da785bdccbccf0c9ba9d5f779c9a0bc915bb874326c99b9f1983a62a"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01c",
+    "dispatchPermitHash": "sha256:4633d444ab4bc5c0ad520fb61bd1ca70777c7b17cadcc331b20617074b7e283e"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01d",
+    "dispatchPermitHash": "sha256:57952bbaed2ade374d1399874e7f40da831f23d23580957355f197718ba806a6"
+  },
+  {
+    "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01f",
+    "dispatchPermitHash": "sha256:7b088abc5e9747460b47fd102f8cd9080fd8121192c49edbf39a8a94d75544c6"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-mining-20261003-01g",
+    "dispatchPermitHash": "sha256:aaf484e411727e0d14477f90531a64dff13bea59bb81eb7a2745b8c3b0e6436a"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-mining-20261003-01h",
+    "dispatchPermitHash": "sha256:7285c7b442ea50801425276ff575620ca536fec87e5b533a863109e0de417dad"
+  },
+  {
+    "decisionIdentity": "canonical-armor-secondary-projection-mining-20261003-01i",
+    "dispatchPermitHash": "sha256:546d52ae48d980772d53e0290643a945a153be95d1387350a437a1404a25aac7"
+  },
+  {
+    "decisionIdentity": "canonical-armor-historical-tuple-repair-20261004-02",
+    "dispatchPermitHash": "sha256:631376ecd0b43de9eea168640cd925d59833fbc91f48b166e4b073679779e015"
+  },
+  {
+    "decisionIdentity": "canonical-armor-historical-tuple-repair-20261004-03",
+    "dispatchPermitHash": "sha256:c0925f7996b5575d3b070e7d96be86e5ee2f5d2175a5e21765df3606eeb8132f"
+  },
+  {
+    "decisionIdentity": "canonical-armor-historical-tuple-repair-20261004-04",
+    "dispatchPermitHash": "sha256:9e259dcedfbbf448639af81845fd612635de98c76e3cc3814c86ff66463f242a"
+  },
+  {
+    "decisionIdentity": "canonical-armor-historical-tuple-repair-20261004-05",
+    "dispatchPermitHash": "sha256:a5c2554dfd5fe051c3539def764d11e80b943422467dd44a41355804b5279eaa"
+  },
+  {
+    "decisionIdentity": "armor-item-effect-source-admin-20261005-020013-552d02c2",
+    "dispatchPermitHash": "sha256:b52156ce2cc1b3eb20d7f6c460a9af56471ec8438e9752e828da8992f1b19968"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-admin-20261005-002000-d41d375c",
+    "dispatchPermitHash": "sha256:cf015be46a8f8c7b26b89c21ba7ec10941188fb7b5b1137b1376570603b0553a"
+  },
+  {
+    "decisionIdentity": "armor-image-cache-admin-20261005-121000-b0a1c9a2",
+    "dispatchPermitHash": "sha256:86ff55b33dd5bf42fd19288505dfdea32a4cd88df0ac16c38ed7dd70c0717ff2"
+  },
+  {
+    "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-01-a217e186",
+    "dispatchPermitHash": "sha256:9d04e3f530487ea17bef4b8ef5d710e562245cb16bb30764820105f209e2483d"
+  },
+  {
+    "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-03-bcb935b7",
+    "dispatchPermitHash": "sha256:1d7825ab73d4767fd569a6a04ce8587295877b23864f3d6dcc3f290a0495246a"
+  },
+  {
+    "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-04-fc9bdc9d",
+    "dispatchPermitHash": "sha256:1f0601c9c9b78e4ba34f4bb190f2eef8b6a4611d8affb64f315efc765377c20f"
+  },
+  {
+    "decisionIdentity": "canonical-armor-shroomite-relation-item-refresh-admin-20261007-repair-01-9058f199",
+    "dispatchPermitHash": "sha256:33c8814e7d9ccc92068a3b7602dd57ffe115254922fef27ebfa3ee9538c936e1"
+  },
+  {
+    "decisionIdentity": "canonical-armor-shroomite-relation-item-refresh-admin-20261007-repair-02-a8d3f9cf",
+    "dispatchPermitHash": "sha256:2de9a1837be4384935df8ea5bbcdf73f40933c2e78eb9214731efe8ab634c804"
+  },
+  {
+    "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-01-a23e54f5",
+    "dispatchPermitHash": "sha256:25ecd10f3f6b65ec17d7aaedb240c9f5e081f40a2368477d13452b4e6b121f39"
+  },
+  {
+    "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-02-99ac114a",
+    "dispatchPermitHash": "sha256:a022a794a8223511bd79bc74bbea464058923a0e0589a210d1c9eb384db2693b"
+  },
+  {
+    "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-03-4904c587",
+    "dispatchPermitHash": "sha256:c7477300e8519614e0aa34f907676d02ffb9d54bd3a8980dad1316d80504d99c"
+  },
+  {
+    "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-04-5453e0ad",
+    "dispatchPermitHash": "sha256:ad6449673356b0f26eb4879a8a281875d50896c721387f3e6d2121ed277d8d8b"
+  },
+  {
+    "decisionIdentity": "解决blocker问题",
+    "dispatchPermitHash": "sha256:d4f9a6dd5b4799f980ae0b16eaa0d5bdf04ea14bb5aa7211da2be07a95226d5e"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-relation-retry-20261007-03",
+    "dispatchPermitHash": "sha256:38309194b2063a778bb06d796ac170c4fe9713c69dd11577f8d13c9d40fb12ff"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-20261007-01",
+    "dispatchPermitHash": "sha256:3dfac99b075927ba5e7780c377cf8559312f34f1a14ce03ce5c5c24b9d7498d2"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-20261007-03",
+    "dispatchPermitHash": "sha256:e08076c362aad22d0700485200f78d5bad1630ff69f189f35640cd6b08a2f824"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-shroomite-20261007-05",
+    "dispatchPermitHash": "sha256:a1d9b9e37c1a0b88fda89cadc3d89e74e2b859c379c53afd99cf41183d3a541f"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-canonical-armor-relation-item-normalization-repair-01-20261007",
+    "dispatchPermitHash": "sha256:db3fd9184b38caecce98120756a3eae6ae160f27bc65b4b343bad4e57f5590a2"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-canonical-armor-relation-item-normalization-repair-03-20261007",
+    "dispatchPermitHash": "sha256:d39126743c1094f1d3161d45adff063cd398936939a4a9ec714289d274d4196e"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-continuation-20261007-06",
+    "dispatchPermitHash": "sha256:afcb580823d8159d4e68fe829949b825b30a7c6cbcfbbd5d0795177f4116f5b3"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-continuation-20261007-07",
+    "dispatchPermitHash": "sha256:b45e6d4ac679bcc70419df76b265516f61e443b192cec61b48784957277c0645"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261007-09",
+    "dispatchPermitHash": "sha256:40f43fd4aec8f55f0a85115da87fed1e837ec12e76d0c115f7265a1c615a7792"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261007-10",
+    "dispatchPermitHash": "sha256:519317d814cbab564a2bc7b4b79259db1bd22c0af519377a92bbef96c2c0e571"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261007-11",
+    "dispatchPermitHash": "sha256:31eb419cb773c479440ae16805325cb5ac32f7d1c7c4389bbd70823ee98ec56e"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261007-12",
+    "dispatchPermitHash": "sha256:5e6ce59204907e802445d401459a2e1cabb7f2dec563410f6c49f94052c4d46f"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261007-13",
+    "dispatchPermitHash": "sha256:3aeea0970b4a6e2ca0b4f48754c8d14d8aa894f00b73ba3778510448222d3fe9"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261007-14",
+    "dispatchPermitHash": "sha256:da4e34cbdc15f2f8d071b80f284fe398c3bc0b1ff2a90f48b6ce06182bcaf6bf"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261007-15",
+    "dispatchPermitHash": "sha256:a23f478df70ad0b95147832adfa25c87978e26c0c14ff570ff7a18eb9965d692"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-20261007-08",
+    "dispatchPermitHash": "sha256:1dc88ef4ebb72adb6c53b25b68bc2bbe311013247b8e1d9cd213f9bd4cc9a70d"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-full-20261007-01",
+    "dispatchPermitHash": "sha256:41ab02c8cdc509e4ba1b8326cf36886c3dc740b0878f4be5a5397ce6e0342580"
+  },
+  {
+    "decisionIdentity": "canonical-armor-ingestion-admin-partial-20261008-19-解决blocker问题",
+    "dispatchPermitHash": "sha256:913dd488b5435686ec74806436d339e1d8155e91fe1ac59b7f53660faca71347"
+  },
+  {
+    "decisionIdentity": "canonical-armor-ingestion-admin-partial-20261008-25-解决blocker问题",
+    "dispatchPermitHash": "sha256:5c5de49c286e3974ab95246407e8cc5c0943b687734b0c1c5a0d7e5cc1b75f48"
+  },
+  {
+    "decisionIdentity": "canonical-armor-ingestion-admin-partial-20261008-26-解决blocker问题",
+    "dispatchPermitHash": "sha256:f42c8000ec845e74ddd3b7b3b0061f78c3d8d1eeff258eb1a59752eea2b61148"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261008-04",
+    "dispatchPermitHash": "sha256:0acaf89da7c621e0202ee04ef3ffd9460b596071f9e74a206de4e0b71e2330c3"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-source-effect-20261008-02",
+    "dispatchPermitHash": "sha256:9caddff28c22ced1eed4fd8420bbe8855ac1d6b0dae21f8aa7bd2781ad761184"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-01",
+    "dispatchPermitHash": "sha256:00515d543932cfd25d7b51e4833dc6508c61a23c864af79a09f08f2d27a98b99"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-02",
+    "dispatchPermitHash": "sha256:2e9ab9a8581ed0a654b994a392fb43a030f5aaf83606c3c0584ce2ea95a5722b"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-04",
+    "dispatchPermitHash": "sha256:8ce128c1656992dec89e99b6f3fe81797703d54ba4c0d4e94a59f771bd5e12f1"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-06",
+    "dispatchPermitHash": "sha256:b314e1e638f5e4a3bcfea5434c7df35a2853b648f49367b05542742a82c1f1f2"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-07",
+    "dispatchPermitHash": "sha256:7a163e26db77448edf79990aff9339e598913077629251344712d48b1dbe933c"
+  },
+  {
+    "decisionIdentity": "解决blocker问题-secondary-projection-typed-projection-20261008-01",
+    "dispatchPermitHash": "sha256:60ace114ff66d7a64ab40ed67a8fb3e61331c1aefab77b438a4663dd2ed5aac7"
   }
 ]

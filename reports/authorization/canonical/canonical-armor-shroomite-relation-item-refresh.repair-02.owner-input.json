@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "Admin-authorized bounded Shroomite relation_items refresh for source_id 1546-1550 from maint_items revision 1023241 after datetime normalization repair; preserve existing id and record_key and write no other tables.",
+  "authorizationReference": "user://conversation/2026-10-07/canonical-armor-shroomite-relation-item-refresh-repair-02",
+  "decisionIdentity": "canonical-armor-shroomite-relation-item-refresh-admin-20261007-repair-02-a8d3f9cf",
+  "authorizedAt": "2026-10-07T00:14:52.780Z"
+}

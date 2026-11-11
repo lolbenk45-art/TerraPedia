@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor secondary projection bounded lane；仅发布 selectedMemberIds=954,955,5524,5588,5589,5590,5591,5592,5593 的 9 条 attribute projection 与 8 条 effect projection；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-secondary-projection-20261007-01",
+  "authorizedAt": "2026-10-07T09:25:48.000Z"
+}

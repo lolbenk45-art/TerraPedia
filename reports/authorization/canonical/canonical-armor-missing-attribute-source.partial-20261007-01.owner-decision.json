@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "armor-missing-attribute-owner-decision/v1",
+  "operationId": "canonical-armor-missing-attribute-source",
+  "proposalSha256": "sha256:a23e54f5c776075a5f0955de71b233af3bada7d6aa4e0c6a49e69329baafff16",
+  "evidenceSha256": "sha256:7facab41e1572a4cf04ec3a66c73d4c495986a2e7e91a217824eebdbe5e6cdf4",
+  "actor": "admin",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-01-a23e54f5",
+  "reviewedAt": "2026-10-07T06:54:41.468Z",
+  "rationale": "按部分成功方案执行：仅落库当前 proposal 绑定的 Armor missing-attribute landing 与九条 maint rows；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "reviewStatus": "recorded",
+  "gateDecisions": {
+    "source-evidence": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-missing-attribute-source-evidence-20261006.json",
+      "evidenceSha256": "sha256:7ea598ee1679fbc91cb8bc05d252a0839e25fc6d9463dc61cbfe3c25d23f19e0",
+      "note": "Revision-bound Armor overview, Iteminfo and nine item-page evidence match the candidate source hash."
+    },
+    "maint-item-identity": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-missing-attribute-maint-candidate-20261007.json",
+      "evidenceSha256": "sha256:ffc859cf14575f81ba52e10d38438f0f8d45deeda17ec239c037d75bc1283d99",
+      "note": "Nine active maint item identities, internal names, slots and defense values match the proposal."
+    },
+    "item-scoped-facts": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-missing-attribute-maint-candidate-20261007.json",
+      "evidenceSha256": "sha256:ffc859cf14575f81ba52e10d38438f0f8d45deeda17ec239c037d75bc1283d99",
+      "note": "Only the eight explicitly parsed item-scoped facts in this candidate are in scope."
+    },
+    "set-owned-facts": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-missing-attribute-maint-candidate-20261007.json",
+      "evidenceSha256": "sha256:ffc859cf14575f81ba52e10d38438f0f8d45deeda17ec239c037d75bc1283d99",
+      "note": "Set-owned prose is recorded in maint raw evidence and remains quarantined from relation publication."
+    },
+    "recovery-owner": {
+      "status": "resolved",
+      "evidencePath": ".local/tmp/armor-missing-attribute-recovery-owner-20261007.json",
+      "evidenceSha256": "sha256:30d861f5610637edf9d2bca21057bdb541be7188e90ecc3f64e113ddc2d343c0",
+      "note": "Administrator owns read-only reconciliation for this exact proposal; permit replay is forbidden."
+    }
+  },
+  "reviewComplete": true,
+  "executionReady": true,
+  "formalAdmission": false,
+  "databaseWrites": false,
+  "applyAllowed": false,
+  "decisionSha256": "sha256:5087a8e988b22728e1dd3ad95d5d906a359a10df3ff3f1cc0994ded0bddf8d9b"
+}

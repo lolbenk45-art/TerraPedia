@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true；仅修复 relation_items source_id 729,1282 的 defense_value 0 -> NULL，依据 maint_items 与 raw_json 缺失 defense 的 canonical 证据。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-canonical-armor-relation-item-normalization-repair-02-20261007"
+}

@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized-agent",
+  "reason": "Repair Mining Helmet/Shirt/Pants maint-relation identity and attribute lineage after source/API comparison",
+  "authorizationReference": "user://conversation/2026-10-03/armor-mining-relation-repair",
+  "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01"
+}

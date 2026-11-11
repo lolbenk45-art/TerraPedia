@@ -162,3 +162,26 @@ data/generated/resume/
 # Local UI prototype exports
 apps/public-web/public/home-hifi-options.html
 apps/public-web/public/ui/home-hero-hifi/
+
+# Original large reports are preserved in the verified gzip snapshots.
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-01.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-02.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-03.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-04.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-05.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-06.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-07.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-08.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-09.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-10.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-11.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-12.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-13.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-14.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-15.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-16.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-17.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-18.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-19.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-25.intent.json
+/reports/authorization/canonical/canonical-armor-ingestion.partial-20261008-26.intent.json

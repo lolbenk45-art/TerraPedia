@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "armor-item-lineage-refresh-execution/v1",
+  "operationId": "canonical-armor-item-lineage-refresh",
+  "proposalSha256": "sha256:a6bffa670b545dc2825966caf193bbcda8742ee0e239a51b25e7edab9758cdcc",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "targetItemSourceIds": [
+    1546,
+    1547,
+    1548,
+    1549,
+    1550
+  ],
+  "status": "ROLLBACK_CONFIRMED",
+  "affectedRows": 7,
+  "receipts": [
+    {
+      "table": "localLanding",
+      "id": 12554
+    },
+    {
+      "table": "maintLanding",
+      "id": 18672
+    },
+    {
+      "table": "maintItems",
+      "id": 1546,
+      "sourceId": 1546
+    },
+    {
+      "table": "maintItems",
+      "id": 1547,
+      "sourceId": 1547
+    },
+    {
+      "table": "maintItems",
+      "id": 1548,
+      "sourceId": 1548
+    },
+    {
+      "table": "maintItems",
+      "id": 1549,
+      "sourceId": 1549
+    },
+    {
+      "table": "maintItems",
+      "id": 1550,
+      "sourceId": 1550
+    }
+  ],
+  "dispatchPermitConsumed": true,
+  "requiresReadbackReconciliation": false,
+  "error": "Armor Iteminfo lineage maint item readback drifted: 1546",
+  "authorization": {
+    "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-01-a217e186",
+    "packetHash": "sha256:3aa319a609194520d196fede51bfb7e2b00b049da099f03879983ea472acdedf"
+  }
+}

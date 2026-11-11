@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor secondary projection；仅写入当前 proposal 的 verified rows（207 changes），quarantine 的 unresolved source rows 保持 untouched；defenseAuthority=armor_attribute_zero；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-secondary-projection-20261007-08",
+  "authorizedAt": "2026-10-07T15:03:20.034Z"
+}

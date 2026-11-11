@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized-agent",
+  "reason": "Rebind Mining relation raw_json to the corrected maint source before projection validation",
+  "authorizationReference": "user://conversation/2026-10-03/armor-mining-relation-raw-lineage-repair",
+  "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01d"
+}

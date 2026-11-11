@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "armor-canonical-recovery-journal/v1",
+  "operationId": "canonical-armor-ingestion",
+  "state": "COMMITTED",
+  "materializationStatus": "VERIFIED",
+  "runId": "armor-canonical-partial-20261008-25",
+  "decisionIdentity": "canonical-armor-ingestion-admin-partial-20261008-26-解决blocker问题",
+  "packetHash": "sha256:e680ae6566c3eefbb85a9884bb995b1d6704e86ce8bb6870e4d4fe15e40c8568",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "intentSha256": "sha256:e86a8d3b6555ede54c041665e189efddaec2896dd9530a585514fd2516eac2ee",
+  "writeTimestamp": "2026-10-05T13:22:00Z",
+  "concreteAfterSha256": "sha256:b27745bdf908f776c37686fd990d9b999c13c2f605d4261f6bc533a122f3add9",
+  "verifiedIdMap": {},
+  "evidence": {
+    "preparedAt": "2026-10-07T22:09:23Z",
+    "observedState": "COMMITTED",
+    "observedAfterSha256": "sha256:b27745bdf908f776c37686fd990d9b999c13c2f605d4261f6bc533a122f3add9"
+  },
+  "history": [
+    {
+      "state": "PREPARED",
+      "occurredAt": "2026-10-07T22:09:23Z"
+    },
+    {
+      "state": "COMMITTED",
+      "occurredAt": "2026-10-07T22:09:23Z"
+    }
+  ],
+  "journalSha256": "sha256:75158f912d39f597e06e62df218a36c58ae8321771626257fd153a93ba5434dc"
+}

@@ -1,0 +1,16 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Shroomite explicit relation-owner projection；5 条 attribute projection 与 6 条已验证 effect projection；qualified/unresolved source effects quarantine；defenseAuthority=armor_attribute_zero；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-secondary-projection-shroomite-20261007-05",
+  "authorizedAt": "2026-10-07T11:40:37.959Z",
+  "selectedMemberIds": [
+    1546,
+    1547,
+    1548,
+    1549,
+    1550
+  ],
+  "proposalPath": "reports/authorization/canonical/canonical-armor-secondary-projection.shroomite-20261007-05.proposal.json",
+  "proposalSha256": "sha256:167426cddffee4c902a12a03c2117170dad538e62a67bbc01b13b2827f0a8207"
+}

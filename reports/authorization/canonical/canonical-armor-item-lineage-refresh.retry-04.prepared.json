@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "armor-item-lineage-refresh-execution/v1",
+  "operationId": "canonical-armor-item-lineage-refresh",
+  "proposalSha256": "sha256:5463ffa5eb0f06077b485d8eb50cf2b671ebf20fc0044e60c87dbb84dc75c3df",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "targetItemSourceIds": [
+    1546,
+    1547,
+    1548,
+    1549,
+    1550
+  ],
+  "status": "PREPARED",
+  "authorization": {
+    "decisionIdentity": "canonical-armor-item-lineage-refresh-admin-20261006-retry-04-fc9bdc9d",
+    "packetHash": "sha256:f092ad4d8054c0d3717741dba7e35d10cb2374464e52a2d8c0161af320388404"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "armor-item-effect-source-execution/v1",
+  "operationId": "canonical-armor-item-effect-source",
+  "proposalSha256": "sha256:1066ca31ef714010d7d45e0fb9872c003ce169be1338d2e50c2e208c1b43ef93",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "sourceKey": "wiki.armor.item-effects.shroomite.e8db68e45bdf882f7ad62a291030b59fd048fcc69c40484dbc76c3efb1e8443f",
+  "status": "COMMITTED",
+  "affectedRows": 5,
+  "bindings": {
+    "localLandingId": 12545,
+    "maintLandingId": 18671,
+    "maintIds": [
+      2086,
+      2087,
+      2088
+    ]
+  },
+  "dispatchPermitConsumed": true,
+  "acceptance": "source-persistence-only",
+  "authorization": {
+    "packetHash": "sha256:aed91aa7822fe7ff6079893e9d5c1bfb7b48af19e334921ce33e3344f31bd95d",
+    "decisionIdentity": "armor-item-effect-source-admin-20261005-020013-552d02c2",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+    "actor": "admin",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-10-05T02:19:24.574Z"
+}

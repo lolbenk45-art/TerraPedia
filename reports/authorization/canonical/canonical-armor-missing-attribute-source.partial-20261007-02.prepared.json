@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "armor-missing-attribute-source-execution/v1",
+  "operationId": "canonical-armor-missing-attribute-source",
+  "proposalSha256": "sha256:99ac114a4992613916154d10a67c547b8232e187ae28032d02c52a7147736202",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "sourceKey": "wiki.page.armor.attributes.missing-owners.7facab41e1572a4cf04ec3a66c73d4c495986a2e7e91a217824eebdbe5e6cdf4",
+  "status": "PREPARED",
+  "authorization": {
+    "packetHash": "sha256:791be561be8f9d3c7dae512178e13fff88f520eca9a0014c1c95498cbea576c2",
+    "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-02-99ac114a",
+    "policySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+    "actor": "admin",
+    "serverFingerprint": {
+      "host": "127.0.0.1",
+      "port": 13306,
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databases": [
+        "terria_v1_local",
+        "terria_v1_maint",
+        "terria_v1_relation"
+      ]
+    }
+  },
+  "recordedAt": "2026-10-07T07:11:46.867Z"
+}

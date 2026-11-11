@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "armor-typed-effect-publication-reconciliation/v1",
+  "operationId": "canonical-armor-typed-effect-publication",
+  "status": "COMMITTED_READBACK_REQUIRED",
+  "proposalSha256": "sha256:a91ed7718848e319c15682f56e38bcbc52b98b4249178c192c0c8eb6dcb5d911",
+  "sourceFingerprint": {
+    "pageRevisionId": 1027106,
+    "iteminfoRevisionId": 1023241,
+    "armorSetsRevisionId": 964993
+  },
+  "expectedBeforeSha256": "sha256:47fbfa2130eae4ca1934f36bb9bc9d743ace0889d0a2d4de21a9f729fc64c86f",
+  "expectedAfterSha256": "sha256:3c62075f911cf19b3b885400982302a05986670a4b69104b83ab0a954edac3b3",
+  "observedRelationSha256": "sha256:3c62075f911cf19b3b885400982302a05986670a4b69104b83ab0a954edac3b3",
+  "projectionAndApiReadbackRequired": true,
+  "applyAllowed": false,
+  "permitReplayAllowed": false,
+  "postCommitAcceptance": {
+    "schemaVersion": "armor-projection-api-acceptance/v1",
+    "operationId": "canonical-armor-typed-effect-publication",
+    "candidateSha256": null,
+    "databaseWrites": false,
+    "apiReadOnly": true,
+    "postCommit": true,
+    "status": "verified",
+    "runtimeVerified": true,
+    "blockers": [],
+    "projection": {
+      "armorSets": {
+        "expectedCount": 0,
+        "observedCount": 0
+      },
+      "armorAttributes": {
+        "expectedCount": 0,
+        "observedCount": 0
+      },
+      "equipmentEffects": {
+        "expectedCount": 6,
+        "observedCount": 6
+      }
+    },
+    "api": {
+      "armorAttributes": {
+        "expectedCount": 0,
+        "observedCount": 0
+      },
+      "equipmentEffects": {
+        "expectedCount": 6,
+        "observedCount": 6
+      }
+    },
+    "expectedSha256": "sha256:312aa17a1da53950c3c20d60dcfd12c93923630ad90d2c7fb323aac5fded7eed",
+    "observedSha256": "sha256:8b08b2cfd5359e09062f9a59d3553ae0964fdca57130497a7c2c35ff5a985f16",
+    "ownerIds": [
+      1546,
+      1547,
+      1548
+    ]
+  },
+  "runtimeVerified": true,
+  "attemptLabel": "continuation-20261008-07",
+  "recordedAt": "2026-10-07T23:36:01.912Z",
+  "authorization": {
+    "decisionIdentity": "解决blocker问题-typed-effect-publication-continuation-20261008-07",
+    "packetHash": "sha256:46d1a3e77947a94aac5b77397032119e492d5ce6af9919a6e558f9fb5d96b7eb",
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf"
+  },
+  "databaseWrites": false,
+  "permitConsumed": false
+}

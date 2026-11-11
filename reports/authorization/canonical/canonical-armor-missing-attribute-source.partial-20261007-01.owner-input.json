@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor missing-attribute bounded lane；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "canonical-armor-missing-attribute-source-admin-20261007-partial-01-a23e54f5",
+  "authorizedAt": "2026-10-07T06:59:39.000Z"
+}

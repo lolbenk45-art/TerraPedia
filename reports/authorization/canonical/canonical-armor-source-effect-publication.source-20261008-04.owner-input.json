@@ -1,0 +1,7 @@
+{
+  "actor": "admin",
+  "reason": "按部分成功方案执行 Armor source-effect publication parsed owner lane；仅写入当前 proposal 的 25 条 inserts、1 条 update 和 8 条 retire；17 条 preserved out-of-scope rows、无法结构化的 source effects、缺失 source owner 和既有 unresolved rows 保持 quarantine/untouched；defenseAuthority=armor_attribute_zero；unresolvedSourceEffects=quarantine；allowPartialApply=true；unresolvedRowsMustRemainUntouched=true。",
+  "authorizationReference": "继续完成自动化入库任务",
+  "decisionIdentity": "解决blocker问题-source-effect-publication-source-20261008-04",
+  "authorizedAt": "2026-10-07T22:33:00.000Z"
+}

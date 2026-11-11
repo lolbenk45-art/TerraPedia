@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Repair the 15 Armor set tuple mismatches bound to Module:ArmorSetBonuses revision 964993 and publish their corrected projection members; verify relation, projection, and API readbacks.",
+  "authorizationReference": "user://conversation/2026-10-04/armor-historical-tuple-and-projection-repair",
+  "decisionIdentity": "canonical-armor-historical-tuple-repair-20261004-02"
+}

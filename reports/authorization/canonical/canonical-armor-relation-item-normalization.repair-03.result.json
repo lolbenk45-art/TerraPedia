@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "armor-relation-item-normalization-execution/v1",
+  "operationId": "canonical-armor-relation-item-normalization",
+  "proposalSha256": "sha256:87c0b257f9c194390e5f76d90c6eaaffb919d32c02ef2fc0f123c820a0e555aa",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "targetItemSourceIds": [
+    729,
+    1282
+  ],
+  "status": "COMMITTED",
+  "affectedRows": 2,
+  "receipts": [
+    {
+      "table": "relation_items",
+      "id": 729,
+      "sourceId": 729,
+      "recordKey": "dc58c053c1f756a99cae073319e309d317e596613f9a80ef461e5ffff3941b2b"
+    },
+    {
+      "table": "relation_items",
+      "id": 1282,
+      "sourceId": 1282,
+      "recordKey": "00d877a9bb4115f5daf65471bda9bffbae1eb57e7d7e8c26b342e01175666b3b"
+    }
+  ],
+  "dispatchPermitConsumed": true,
+  "authorization": {
+    "decisionIdentity": "解决blocker问题-canonical-armor-relation-item-normalization-repair-03-20261007",
+    "packetHash": "sha256:73d02b6324c8fc06037b6c0ee3d5c71243730e11f9f6ae9e5f877f2c646ac67f"
+  }
+}

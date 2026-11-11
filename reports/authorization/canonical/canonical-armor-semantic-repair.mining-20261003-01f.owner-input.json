@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized-agent",
+  "reason": "Align Mining relation reason with the current direct maint identity match",
+  "authorizationReference": "user://conversation/2026-10-04/armor-mining-relation-reason-lineage-repair",
+  "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01f"
+}

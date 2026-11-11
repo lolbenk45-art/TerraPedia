@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "armor-attribute-relation-publication-execution/v1",
+  "operationId": "canonical-armor-attribute-relation-publication",
+  "proposalSha256": "sha256:37a0183282bffb9eacfcd0f8cb1755ca5db46982b3756a8a5f85dfaf3484ec57",
+  "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+  "targetItemSourceIds": [
+    954,
+    955,
+    5524,
+    5588,
+    5589,
+    5590,
+    5591,
+    5592,
+    5593
+  ],
+  "status": "PREPARED",
+  "authorization": {
+    "decisionIdentity": "解决blocker问题",
+    "packetHash": "sha256:445ec3b374f1b8fb561ef8b7fb99e4efde151f1d9c61eaa2271bf597d6a61972"
+  }
+}

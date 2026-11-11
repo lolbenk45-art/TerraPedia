@@ -1,0 +1,6 @@
+{
+  "actor": "user-authorized-agent",
+  "reason": "Complete Mining three-piece landing lineage required by projection readback",
+  "authorizationReference": "user://conversation/2026-10-03/armor-mining-relation-repair-lineage",
+  "decisionIdentity": "canonical-armor-semantic-repair-mining-20261003-01b"
+}

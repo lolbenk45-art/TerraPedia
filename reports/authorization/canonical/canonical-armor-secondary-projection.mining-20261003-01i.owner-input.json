@@ -1,0 +1,6 @@
+{
+  "actor": "admin",
+  "reason": "Retry bounded Mining 88/410/411 projection with the current policy snapshot",
+  "authorizationReference": "user://conversation/2026-10-04/armor-mining-secondary-projection-policy-retry",
+  "decisionIdentity": "canonical-armor-secondary-projection-mining-20261003-01i"
+}
