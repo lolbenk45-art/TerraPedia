@@ -1,0 +1,20 @@
+{
+  "branch": "review/front-nuxt-visual",
+  "previousHead": "2868b9e03e928b036e3352c69f9fc5a9370d7c98",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.local/tmp/workspace-closeout-20261111/temporary-worktrees/review--front-nuxt-visual",
+  "originalChanges": [],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [],
+    "json": [],
+    "failures": []
+  }
+}
