@@ -69,3 +69,11 @@ test('Shimmer partition accepts the content-addressed generation id emitted by t
   });
   assert.equal(result.generationId, 'd'.repeat(64));
 });
+
+test('Shimmer partition survives JSON serialization and repeated validation', () => {
+  const bundle = buildShimmerPartitionBundle({ scopes: scopes(),
+    ownerApprovals: ['items', 'shimmer', 'town_npc_maintenance'], fences: fences(),
+    generationId: HASH, previewSha256: HASH });
+  assert.deepEqual(buildShimmerPartitionBundle(JSON.parse(JSON.stringify(bundle))), bundle);
+  assert.throws(() => buildShimmerPartitionBundle({ ...bundle, ownerApprovals: ['shimmer'] }), /approval|capabilit/i);
+});

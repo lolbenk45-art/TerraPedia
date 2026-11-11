@@ -456,7 +456,7 @@ export async function loadShimmerPartitionFences(connection, {
     throw new TypeError('Shimmer partition fence loader requires a database connection');
   }
   const normalizedRunId = requireText(runId, 'Shimmer partition fence runId');
-  if (!Array.isArray(generations)) throw new Error('Shimmer partition fence generations are required');
+  if (!isCompleteShimmerBaseline(generations)) throw new Error('Shimmer partition fence generations are required');
   const fences = [];
   for (const scope of SHIMMER_PARTITION_SCOPES) {
     const generation = generations.find((row) => (
@@ -485,6 +485,7 @@ export async function loadShimmerPartitionFences(connection, {
       logicalPredicateHash: scope.logicalPredicateHash,
       generation: Number(row.beforeGeneration),
       fenceToken: row.fenceToken,
+      latestRunId: row.latestRunId,
     });
   }
   return fences;
@@ -494,6 +495,8 @@ export async function acquireShimmerPartitionFences(connection, {
   environmentId = 'local',
   runId,
   generations,
+  beforeAcquire = null,
+  beforeCommit = null,
 } = {}) {
   if (!connection || typeof connection.query !== 'function') {
     throw new TypeError('Shimmer partition fence acquisition requires a database connection');
@@ -502,30 +505,77 @@ export async function acquireShimmerPartitionFences(connection, {
   if (!isCompleteShimmerBaseline(generations)) {
     throw new Error('Shimmer partition fence acquisition requires all six baseline generations');
   }
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-  for (const scope of SHIMMER_PARTITION_SCOPES) {
-    const generation = generations.find((row) => (
-      row.databaseRole === scope.databaseRole && row.table === scope.table
-    ));
-    const fenceToken = `fence:${sha256Bytes(Buffer.from(
-      `${normalizedRunId}:${scope.table}:${randomBytes(16).toString('hex')}`,
-      'utf8',
-    )).slice(7)}`;
-    await connection.query(
-      'INSERT INTO crawler_automation_write_fence'
-      + ' (environment_id, database_role, physical_table, field_group, logical_predicate_hash,'
-      + ' latest_run_id, fence_token, before_generation, expires_at, version)'
-      + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
-      + ' ON DUPLICATE KEY UPDATE latest_run_id = IF(expires_at < CURRENT_TIMESTAMP, VALUES(latest_run_id), latest_run_id),'
-      + ' fence_token = IF(expires_at < CURRENT_TIMESTAMP, VALUES(fence_token), fence_token),'
-      + ' before_generation = IF(expires_at < CURRENT_TIMESTAMP, VALUES(before_generation), before_generation),'
-      + ' expires_at = IF(expires_at < CURRENT_TIMESTAMP, VALUES(expires_at), expires_at),'
-      + ' version = IF(expires_at < CURRENT_TIMESTAMP, 0, version + 1)',
-      [environmentId, scope.databaseRole, scope.table, scope.fieldGroup, scope.logicalPredicateHash,
-        normalizedRunId, fenceToken, generation.generation, expiresAt],
-    );
+  for (const method of ['beginTransaction', 'commit', 'rollback']) {
+    if (typeof connection[method] !== 'function') throw new TypeError('Shimmer fences require a transactional connection');
   }
-  return loadShimmerPartitionFences(connection, { environmentId, runId: normalizedRunId, generations });
+  // This helper owns an idle connection's transaction. SET TRANSACTION fails
+  // inside an existing transaction, avoiding an implicit commit by START.
+  await connection.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+  await connection.beginTransaction();
+  try {
+    if (beforeAcquire != null) await beforeAcquire();
+    // Lock all generation and physical-table fence ranges before inserting.
+    // Treat unrecognized partitions conservatively as overlapping.
+    for (const scope of SHIMMER_PARTITION_SCOPES) {
+      const generation = generations.find((row) => row.table === scope.table);
+      const scopeHash = hashJson({ databaseRole: scope.databaseRole, fieldGroup: scope.fieldGroup,
+        logicalPredicateHash: scope.logicalPredicateHash, table: scope.table });
+      const [current] = await connection.query(
+        'SELECT generation FROM crawler_automation_mutation_generation'
+        + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? AND scope_key_hash = ? FOR UPDATE',
+        [environmentId, scope.databaseRole, scope.table, scopeHash],
+      );
+      if ((current?.length ?? 0) > 1 || Number(current?.[0]?.generation ?? 0) !== Number(generation.generation)) {
+        throw new Error(`Shimmer fence baseline generation drifted: ${scope.table}`);
+      }
+      const [rows] = await connection.query(
+        'SELECT field_group AS fieldGroup, logical_predicate_hash AS logicalPredicateHash,'
+        + ' latest_run_id AS latestRunId, before_generation AS beforeGeneration,'
+        + ' committed_generation AS committedGeneration, commit_marker AS commitMarker,'
+        + ' expires_at > CURRENT_TIMESTAMP AS active FROM crawler_automation_write_fence'
+        + ' WHERE environment_id = ? AND database_role = ? AND physical_table = ? FOR UPDATE',
+        [environmentId, scope.databaseRole, scope.table],
+      );
+      for (const row of rows ?? []) {
+        if (!Number(row.active)) continue;
+        if (row.latestRunId !== normalizedRunId || row.fieldGroup !== scope.fieldGroup
+            || row.logicalPredicateHash !== scope.logicalPredicateHash
+            || Number(row.beforeGeneration) !== Number(generation.generation)
+            || row.committedGeneration != null || row.commitMarker != null) {
+          throw new Error(`Shimmer physical-table fence conflict: ${scope.table}`);
+        }
+      }
+    }
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    for (const scope of SHIMMER_PARTITION_SCOPES) {
+      const generation = generations.find((row) => row.table === scope.table);
+      const fenceToken = `fence:${randomBytes(32).toString('hex')}`;
+      await connection.query(
+        'INSERT INTO crawler_automation_write_fence'
+        + ' (environment_id, database_role, physical_table, field_group, logical_predicate_hash,'
+        + ' latest_run_id, fence_token, before_generation, expires_at, version)'
+        + ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
+        + ' ON DUPLICATE KEY UPDATE latest_run_id = IF(expires_at <= CURRENT_TIMESTAMP, VALUES(latest_run_id), latest_run_id),'
+        + ' fence_token = IF(expires_at <= CURRENT_TIMESTAMP, VALUES(fence_token), fence_token),'
+        + ' before_generation = IF(expires_at <= CURRENT_TIMESTAMP, VALUES(before_generation), before_generation),'
+        + ' committed_generation = IF(expires_at <= CURRENT_TIMESTAMP, NULL, committed_generation),'
+        + ' commit_marker = IF(expires_at <= CURRENT_TIMESTAMP, NULL, commit_marker),'
+        + ' version = IF(expires_at <= CURRENT_TIMESTAMP, 0, version),'
+        + ' expires_at = IF(expires_at <= CURRENT_TIMESTAMP, VALUES(expires_at), expires_at)',
+        [environmentId, scope.databaseRole, scope.table, scope.fieldGroup, scope.logicalPredicateHash,
+          normalizedRunId, fenceToken, generation.generation, expiresAt],
+      );
+    }
+    const fences = await loadShimmerPartitionFences(connection, { environmentId, runId: normalizedRunId, generations });
+    if (beforeCommit != null) await beforeCommit(fences);
+    await connection.commit();
+    return fences;
+  } catch (error) {
+    try { await connection.rollback(); } catch (rollbackError) {
+      throw new AggregateError([error, rollbackError], 'Shimmer fence acquisition and rollback failed');
+    }
+    throw error;
+  }
 }
 
 function assertShimmerOwnerApprovals(value) {
@@ -541,7 +591,8 @@ function isCompleteShimmerBaseline(generations) {
       const row = generations.find((entry) => (
         entry?.databaseRole === scope.databaseRole && entry?.table === scope.table
       ));
-      return Number.isSafeInteger(Number(row?.generation)) && Number(row.generation) >= 0;
+      return row?.fieldGroup === scope.fieldGroup && row?.logicalPredicateHash === scope.logicalPredicateHash
+        && Number.isSafeInteger(Number(row?.generation)) && Number(row.generation) >= 0;
     });
 }
 

@@ -879,7 +879,7 @@ function snapshotDefinitionToProjection(definition) {
   });
 }
 
-function normalizeSnapshotProjectionRow(row) {
+export function normalizeSnapshotProjectionRow(row) {
   const normalized = normalizeShimmerDbRow(row);
   const payloadJson = row?.payloadJson ?? row?.payload_json;
   const payloadSha256 = isSha256(normalized.payloadSha256)
@@ -1171,7 +1171,7 @@ export async function loadTargetFingerprint(connection, db) {
   };
 }
 
-export async function applyBundleChanges({ bundle, connection }) {
+export async function applyBundleChanges({ bundle, connection, incremental = false }) {
   const summary = createLegacySummary({ bundle, database: null, reportPath: null, apply: true });
   const projection = buildShimmerImportProjection({ bundle });
   const context = projection.worldContext;
@@ -1180,6 +1180,14 @@ export async function applyBundleChanges({ bundle, connection }) {
   for (const definition of buildShimmerSnapshotDefinitions(bundle)) {
     const result = await upsertSnapshot(connection, definition, true);
     summary.snapshots[result.action] += 1;
+  }
+  if (incremental) {
+    const statsKeys = ['itemTransforms', 'decraftRules', 'entityTransforms', 'npcTransforms'];
+    for (const [index, tableName] of SHIMMER_TABLE_NAMES.entries()) {
+      await importIncrementalShimmerTableRows(connection, tableName, context.code,
+        importRecordsForTable(bundle, tableName), summary.shimmerTables[statsKeys[index]]);
+    }
+    return summary;
   }
   await importShimmerItemTransforms(connection, context.code, bundle.itemTransformsPayload.records, summary.shimmerTables.itemTransforms, true);
   await importShimmerDecraftRules(connection, context.code, bundle.decraftRulesPayload.records, summary.shimmerTables.decraftRules, true);
@@ -1599,6 +1607,67 @@ async function replaceSourceScopedRowsIfChanged(connection, tableName, columns, 
     await connection.execute(row.sql, row.payload);
   }
   stats.created = rows.length;
+}
+
+export async function importIncrementalShimmerTableRows(connection, tableName, contextCode, records, stats) {
+  if (!SHIMMER_TABLE_NAMES.includes(tableName) || contextCode !== 'SHIMMER') {
+    throw new Error('Incremental Shimmer import requires an exact transform table and context');
+  }
+  const columns = SHIMMER_TABLE_COLUMNS[tableName];
+  const statements = buildShimmerTableInsertRows(tableName, contextCode, records);
+  const targetRows = statements.map((row) => rowFromColumns(columns, row.payload));
+  const targets = new Map();
+  for (const [index, row] of targetRows.entries()) {
+    const key = hashCanonical(scopeKeyForRow(tableName, row));
+    if (row.sourceProvider !== SHIMMER_PROVIDER || row.sourcePage !== SHIMMER_SOURCE_PAGE
+        || targets.has(key)) throw new Error('Incremental Shimmer candidate has an invalid scope or duplicate identity');
+    targets.set(key, { row, statement: statements[index] });
+  }
+  const [existing] = await connection.execute(
+    `SELECT * FROM ${tableName} WHERE deleted = 0 AND source_provider = ? AND source_page = ? ORDER BY id FOR UPDATE`,
+    [SHIMMER_PROVIDER, SHIMMER_SOURCE_PAGE],
+  );
+  const before = new Map();
+  const ids = new Set();
+  for (const raw of existing) {
+    const row = normalizeShimmerDbRow(raw);
+    const id = Number(raw.id);
+    const key = hashCanonical(scopeKeyForRow(tableName, row));
+    if (!Number.isSafeInteger(id) || id < 1 || ids.has(id) || before.has(key)
+        || row.sourceProvider !== SHIMMER_PROVIDER || row.sourcePage !== SHIMMER_SOURCE_PAGE || row.deleted !== 0) {
+      throw new Error('Incremental Shimmer baseline has an invalid or ambiguous identity');
+    }
+    before.set(key, { id, row });
+    ids.add(id);
+  }
+  Object.assign(stats, { created: 0, updated: 0, softDisabled: 0, skipped: 0, replaced: 0 });
+  const write = async (sql, params) => {
+    const [result] = await connection.execute(sql, params);
+    if (Number(result?.affectedRows) !== 1) throw new Error('Incremental Shimmer mutation lost its exact row identity');
+  };
+  for (const [key, target] of targets) {
+    const previous = before.get(key);
+    if (!previous) {
+      await write(target.statement.sql, target.statement.payload);
+      stats.created += 1;
+    } else if (hashCanonical(previous.row) === hashCanonical(target.row)) {
+      stats.skipped += 1;
+    } else {
+      await write(
+        `UPDATE ${tableName} SET ${columns.map((column) => `${toSnakeCase(column)} = ?`).join(', ')}, updated_at = NOW()`
+        + ' WHERE id = ? AND source_provider = ? AND source_page = ? AND deleted = 0',
+        [...columns.map((column) => target.row[column] ?? null), previous.id, SHIMMER_PROVIDER, SHIMMER_SOURCE_PAGE],
+      );
+      stats.updated += 1;
+    }
+  }
+  for (const [key, previous] of before) {
+    if (targets.has(key)) continue;
+    await write(`UPDATE ${tableName} SET status = 0, deleted = 1, updated_at = NOW()`
+      + ' WHERE id = ? AND source_provider = ? AND source_page = ? AND deleted = 0',
+    [previous.id, SHIMMER_PROVIDER, SHIMMER_SOURCE_PAGE]);
+    stats.softDisabled += 1;
+  }
 }
 
 async function loadSourceScopedRows(connection, tableName) {

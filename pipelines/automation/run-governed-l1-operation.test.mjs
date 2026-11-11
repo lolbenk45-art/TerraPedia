@@ -287,7 +287,11 @@ test('Shimmer partition fence loader rejects a missing or foreign fence', async 
 test('Shimmer partition acquisition writes and verifies one real fence per scope', async () => {
   const inserts = [];
   const connection = {
+    beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {},
     async query(sql, params) {
+      if (sql.startsWith('SET TRANSACTION')) return [[]];
+      if (sql.startsWith('SELECT field_group')) return [[]];
+      if (sql.startsWith('SELECT generation')) return [[{ generation: SHIMMER_PARTITION_SCOPES.findIndex((scope) => scope.table === params[2]) }]];
       if (/^INSERT INTO crawler_automation_write_fence/.test(sql)) {
         inserts.push(params);
         return [{ affectedRows: 1 }];
@@ -372,4 +376,62 @@ test('rejects a Shimmer manifest path for a different generation', async () => {
     }),
     /generation|canonical|manifest path/i,
   );
+});
+
+function shimmerFenceDatabase({ conflict = null, failAt = null, generationDrift = false } = {}) {
+  const events = [];
+  const inserted = [];
+  const connection = {
+    beginTransaction: async () => events.push('begin'),
+    commit: async () => events.push('commit'),
+    rollback: async () => events.push('rollback'),
+    async query(sql, params = []) {
+      events.push(sql);
+      if (sql.startsWith('SET TRANSACTION')) return [[]];
+      if (sql.startsWith('SELECT generation')) {
+        const index = SHIMMER_PARTITION_SCOPES.findIndex((scope) => scope.table === params[2]);
+        return [[{ generation: index + (generationDrift ? 1 : 0) }]];
+      }
+      if (sql.startsWith('SELECT field_group')) return [conflict ? [conflict] : []];
+      if (sql.startsWith('INSERT INTO crawler_automation_write_fence')) {
+        if (params[2] === failAt) throw new Error('injected fence failure');
+        inserted.push(params);
+        return [{ affectedRows: 1 }];
+      }
+      if (sql.startsWith('SELECT latest_run_id')) {
+        const row = inserted.find((entry) => entry[2] === params[2]);
+        return [[{ latestRunId: row[5], fenceToken: row[6], beforeGeneration: row[7] }]];
+      }
+      throw new Error(`unexpected query: ${sql}`);
+    },
+  };
+  return { connection, events, inserted };
+}
+const shimmerFenceInput = () => ({ runId: 'final-content-run',
+  generations: SHIMMER_PARTITION_SCOPES.map((scope, generation) => ({ ...scope, generation })) });
+
+test('Shimmer acquisition rejects another active physical-table scope before writing any fence', async () => {
+  const db = shimmerFenceDatabase({ conflict: { active: 1, fieldGroup: 'all_columns',
+    logicalPredicateHash: 'whole-table', latestRunId: 'other-writer' } });
+  await assert.rejects(acquireShimmerPartitionFences(db.connection, shimmerFenceInput()), /conflict/i);
+  assert.equal(db.inserted.length, 0);
+  assert.equal(db.events.at(-1), 'rollback');
+});
+
+test('Shimmer acquisition rolls back partial fences and verifies the locked baseline', async () => {
+  const db = shimmerFenceDatabase({ failAt: SHIMMER_PARTITION_SCOPES[2].table });
+  await assert.rejects(acquireShimmerPartitionFences(db.connection, shimmerFenceInput()), /injected/);
+  assert.equal(db.events.at(-1), 'rollback');
+  assert.ok(!db.events.includes('commit'));
+  const drift = shimmerFenceDatabase({ generationDrift: true });
+  await assert.rejects(acquireShimmerPartitionFences(drift.connection, shimmerFenceInput()), /generation/);
+  assert.equal(drift.inserted.length, 0);
+});
+
+test('Shimmer acquired fences retain the final run identity and commit only after readback', async () => {
+  const db = shimmerFenceDatabase();
+  const fences = await acquireShimmerPartitionFences(db.connection, shimmerFenceInput());
+  assert.ok(fences.every((fence) => fence.latestRunId === 'final-content-run'));
+  assert.equal(db.events.at(-1), 'commit');
+  assert.equal(db.inserted.length, 6);
 });

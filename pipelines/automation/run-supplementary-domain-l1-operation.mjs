@@ -22,8 +22,10 @@ import {
 } from '../import/import-wiki-shimmer-to-db.mjs';
 import {
   buildShimmerPartitionBundle,
+  getVerifiedShimmerPartitionScope,
   SHIMMER_PARTITION_SCOPES,
 } from './shimmer-partition-contract.mjs';
+import { restoreShimmerScopeSnapshot, verifyShimmerExecutionFences } from './shimmer-partition-recovery.mjs';
 import { loadMysqlModule } from '../lib/mysql-module.mjs';
 import {
   assertRepositoryOrdinaryFile,
@@ -87,6 +89,7 @@ export async function executeSupplementaryL1Operation({
   now = new Date().toISOString(),
   postCommitVerify = null,
 } = {}) {
+  if (bundle?.previewOnly === true) throw new Error('Shimmer preview-only evidence cannot execute');
   if (bundle?.executionMode === 'MANUAL_OWNER_L1' && bundle.sourceDispatchIdentity != null) {
     throw new Error('manual L1 bundles must not carry a scheduler source dispatch identity');
   }
@@ -258,12 +261,13 @@ export async function executeSupplementaryL1Operation({
 /**
  * The legacy SQL-intent recorder can prove only whole-table scopes.  Let a
  * registered structured producer reach the L2 gate for the two shared-NPC
- * partitions, while rejecting every other scoped claim before a transaction
+ * partitions and the six registered Shimmer partitions, rejecting other claims before a transaction
  * or persistence side effect begins.
  */
 function assertAutomaticScopeCanEnterTransaction(ownedTables) {
   for (const scope of ownedTables ?? []) {
     if (scope?.fieldGroup === 'all_columns' && scope?.logicalPredicateHash == null) continue;
+    if (getVerifiedShimmerPartitionScope(scope)) continue;
     const definition = getVerifiedSharedNpcsScopeDefinition(scope);
     if (!definition
         || scope.table !== definition.table
@@ -1146,6 +1150,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       });
     },
     async persistRunChain(bundle, authorizationContext, automaticGate = null) {
+      if (bundle.domainId === 'shimmer') await verifyShimmerExecutionFences(connection, bundle);
       const expiresAt = toMysqlTimestamp(authorizationContext.expiresAt);
       const automatic = bundle.executionMode === 'ACTIVATION_GATED_AUTO';
       await connection.query(
@@ -1244,16 +1249,9 @@ export function createMysqlSupplementaryL1Adapter(connection, {
       }
       for (const generation of bundle.baseline.generations) {
         const fenceScope = resolveFenceScope(generation);
-        const partitionFence = bundle.domainId === 'shimmer'
-          ? bundle.importPlan?.shimmerPartition?.fences?.find((fence) => (
-            fence.databaseRole === generation.databaseRole
-            && fence.table === generation.table
-            && fence.logicalPredicateHash === fenceScope.logicalPredicateHash
-          ))
-          : null;
-        if (bundle.domainId === 'shimmer' && !partitionFence) {
-          throw new Error(`Shimmer partition fence is missing before persistence: ${generation.table}`);
-        }
+        // Shimmer fences were acquired and verified under the final run identity.
+        // Do not replace or renew them through the legacy whole-table upsert.
+        if (bundle.domainId === 'shimmer') continue;
         await connection.query(
           'INSERT INTO crawler_automation_write_fence'
           + ' (environment_id, database_role, physical_table, field_group, logical_predicate_hash,'
@@ -1264,7 +1262,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
           + ' committed_generation = NULL, commit_marker = NULL, expires_at = VALUES(expires_at),'
           + ' version = version + 1',
           [environmentId, generation.databaseRole, generation.table, fenceScope.fieldGroup, fenceScope.logicalPredicateHash,
-            bundle.runId, partitionFence?.fenceToken ?? hashJson({ runId: bundle.runId, ...fenceScope }),
+            bundle.runId, hashJson({ runId: bundle.runId, ...fenceScope }),
             generation.generation, expiresAt],
         );
       }
@@ -1406,9 +1404,7 @@ export function createMysqlSupplementaryL1Adapter(connection, {
           expiresAt: fence.expiresAt ?? null,
         });
 
-        const [rows] = await connection.query(
-          `SELECT * FROM \`${expected.table}\` ORDER BY \`id\` FOR UPDATE`,
-        );
+        const rows = await readOwnedScopeRows(connection, expected, ' FOR UPDATE');
         tableRows[expected.table] = stableValue(rows ?? []);
       }
 
@@ -1522,7 +1518,7 @@ export async function readCurrentSupplementaryContext(connection, {
   const [policyRows] = await connection.query(
     'SELECT p.domain_id AS domainId, p.current_version AS policyVersion,'
     + ' pv.policy_hash AS policyHash, p.current_level AS currentLevel,'
-    + ' p.operational_state AS operationalState, pv.policy_json AS policyJson FROM crawler_automation_policy p'
+    + ' p.operational_state AS operationalState, pv.policy_json AS policyJson, pv.approved_by AS approvedBy FROM crawler_automation_policy p'
     + ' JOIN crawler_automation_policy_version pv ON pv.domain_id = p.domain_id'
     + ` AND pv.policy_version = p.current_version ORDER BY p.domain_id${suffix}`,
   );
@@ -1560,7 +1556,7 @@ export async function readCurrentSupplementaryContext(connection, {
   }
   const tables = {};
   for (const scope of ownedTables) {
-    const [rows] = await connection.query(`SELECT * FROM \`${scope.table}\` ORDER BY \`id\`${suffix}`);
+    const rows = await readOwnedScopeRows(connection, scope, suffix);
     tables[scope.table] = rows ?? [];
   }
   const dependencyTables = await readCurrentDependencyTables(connection, {
@@ -1594,6 +1590,7 @@ export async function readCurrentSupplementaryContext(connection, {
     currentLevel: policy.currentLevel,
     operationalState: policy.operationalState,
     policyJson,
+    approvedBy: policy.approvedBy ?? null,
     ownedTables,
     baselineFingerprint: hashJson(baseline),
     approvalMode: policy.currentLevel === 'L2' ? 'AUTO_APPLY_ACTIVATED' : 'APPROVED_OWNER_L1',
@@ -1699,16 +1696,22 @@ async function verifyCommittedSupplementaryOperation(connection, bundle, { lock 
  * overwritten by compensation from an older run.
  */
 async function compensateCommittedSupplementaryOperation(connection, bundle, state) {
-  assertWholeTableSnapshotCompensationScopes(bundle?.ownedTables);
+  if (bundle?.domainId === 'shimmer') assertShimmerImporterWriteScope(bundle);
+  else assertWholeTableSnapshotCompensationScopes(bundle?.ownedTables);
   if (!state?.baselineTables || typeof state.baselineTables !== 'object') {
     throw new Error('automatic compensation requires a locked table snapshot');
   }
   await connection.beginTransaction();
   try {
     await verifyCommittedSupplementaryOperation(connection, bundle, { lock: true });
+    if (bundle.domainId === 'shimmer') await verifyShimmerExecutionFences(connection, bundle, { committed: true });
     const restoredTables = [];
     for (const scope of [...bundle.ownedTables].reverse()) {
-      await restoreTableSnapshot(connection, scope.table, state.baselineTables[scope.table]);
+      if (bundle.domainId === 'shimmer') {
+        await restoreShimmerScopeSnapshot(connection, scope, state.baselineTables[scope.table]);
+      } else {
+        await restoreTableSnapshot(connection, scope.table, state.baselineTables[scope.table]);
+      }
       restoredTables.push(scope.table);
     }
     for (const expected of bundle.baseline.generations) {
@@ -2158,10 +2161,12 @@ export async function applyFrozenDomainImport({ connection, bundle, repoRoot }, 
   if (bundle.importPlan.previewSha256 !== preview.previewSha256) {
     throw new Error('frozen shimmer preview drifted before apply');
   }
-  await applyShimmerBundleChanges({ bundle: shimmerBundle, connection });
+  const summary = await applyShimmerBundleChanges({
+    bundle: shimmerBundle, connection, incremental: bundle.executionMode === 'ACTIVATION_GATED_AUTO',
+  });
   const after = await loadCurrentShimmerScope(connection, shimmerBundle);
   assertShimmerImportScopeMatchesPreview({ after, preview });
-  return preview.summary;
+  return summary;
 }
 
 export function loadFrozenShimmerImportBundle({ repoRoot, frozenSource }, {
@@ -2771,6 +2776,24 @@ function normalizeAutomaticOwnedTableSequence(scopes, label) {
     }
     return normalized;
   });
+}
+
+async function readOwnedScopeRows(connection, scope, suffix = '') {
+  const shimmer = getVerifiedShimmerPartitionScope(scope);
+  let where = '';
+  let parameters = [];
+  if (shimmer?.table === 'world_contexts') {
+    where = ' WHERE code = ?';
+    parameters = ['SHIMMER'];
+  } else if (shimmer?.table === 'entity_source_snapshots') {
+    where = ' WHERE provider = ? AND source_page = ?';
+    parameters = ['wiki_zh', '微光'];
+  } else if (shimmer) {
+    where = ' WHERE source_provider = ? AND source_page = ? AND deleted = 0';
+    parameters = ['wiki_zh', '微光'];
+  }
+  const [rows] = await connection.query(`SELECT * FROM \`${scope.table}\`${where} ORDER BY \`id\`${suffix}`, parameters);
+  return rows ?? [];
 }
 
 function resolveCurrentOwnedTables({ bundle, policy, policyJson }) {

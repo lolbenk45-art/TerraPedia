@@ -2054,6 +2054,65 @@ test('importShimmerItemTransforms rewrites source scope when projection changes'
   assert.equal(conn.calls.filter((call) => /\bINSERT INTO shimmer_item_transforms\b/i.test(call.sql)).length, 1);
 });
 
+test('incremental Shimmer transform import preserves identity and changes only changed fields', async () => {
+  const before = shimmerItemRecord({ notes: 'old note' });
+  const conn = createFakeConnection({ existingRows: [{ id: 42, ...existingShimmerItemRow(before) }] });
+  const stats = {};
+  await shimmerImporter.importIncrementalShimmerTableRows(conn, 'shimmer_item_transforms', 'SHIMMER',
+    [shimmerItemRecord({ notes: 'new note' })], stats);
+  assert.equal(stats.updated, 1);
+  assert.equal(stats.created, 0);
+  assert.equal(stats.softDisabled, 0);
+  assert.ok(!conn.calls.some(({ sql }) => /DELETE FROM|INSERT INTO/.test(sql)));
+  const update = conn.calls.find(({ sql }) => /UPDATE shimmer_item_transforms/.test(sql));
+  assert.match(update.sql, /WHERE id = \? AND source_provider = \? AND source_page = \? AND deleted = 0/);
+  assert.deepEqual(update.params.slice(-3), [42, 'wiki_zh', '微光']);
+  assert.match(conn.calls[0].sql, /FOR UPDATE/);
+});
+
+test('incremental Shimmer import soft-disables removed keys and never deletes source history', async () => {
+  const conn = createFakeConnection({ existingRows: [{ id: 42, ...existingShimmerItemRow(shimmerItemRecord()) }] });
+  const stats = {};
+  await shimmerImporter.importIncrementalShimmerTableRows(conn, 'shimmer_item_transforms', 'SHIMMER', [], stats);
+  assert.equal(stats.softDisabled, 1);
+  assert.equal(stats.created, 0);
+  assert.ok(!conn.calls.some(({ sql }) => /DELETE FROM/.test(sql)));
+  assert.ok(conn.calls.some(({ sql }) => /SET status = 0, deleted = 1/.test(sql)));
+});
+
+test('incremental Shimmer import rejects ambiguous keys and invalid row IDs before mutation', async () => {
+  for (const rows of [
+    [{ id: 42, ...existingShimmerItemRow(shimmerItemRecord()) }, { id: 43, ...existingShimmerItemRow(shimmerItemRecord()) }],
+    [{ id: 0, ...existingShimmerItemRow(shimmerItemRecord()) }],
+  ]) {
+    const conn = createFakeConnection({ existingRows: rows });
+    await assert.rejects(() => shimmerImporter.importIncrementalShimmerTableRows(conn, 'shimmer_item_transforms',
+      'SHIMMER', [shimmerItemRecord({ notes: 'changed' })], {}), /identity|duplicate|ambiguous/);
+    assert.ok(conn.calls.every(({ sql }) => sql.trim().startsWith('SELECT')));
+  }
+});
+
+test('incremental Shimmer import skips equal rows and reports actual inserts', async () => {
+  const record = shimmerItemRecord();
+  const unchanged = createFakeConnection({ existingRows: [{ id: 42, ...existingShimmerItemRow(record) }] });
+  const unchangedStats = {};
+  await shimmerImporter.importIncrementalShimmerTableRows(unchanged, 'shimmer_item_transforms', 'SHIMMER', [record], unchangedStats);
+  assert.equal(unchangedStats.skipped, 1);
+  assert.ok(unchanged.calls.every(({ sql }) => sql.trim().startsWith('SELECT')));
+  const empty = createFakeConnection();
+  const insertedStats = {};
+  await shimmerImporter.importIncrementalShimmerTableRows(empty, 'shimmer_item_transforms', 'SHIMMER', [record], insertedStats);
+  assert.equal(insertedStats.created, 1);
+  assert.equal(empty.calls.filter(({ sql }) => /INSERT INTO/.test(sql)).length, 1);
+});
+
+test('incremental Shimmer import rejects candidate source escape before any database access', async () => {
+  const conn = createFakeConnection();
+  await assert.rejects(() => shimmerImporter.importIncrementalShimmerTableRows(conn, 'shimmer_item_transforms', 'SHIMMER',
+    [shimmerItemRecord({ sourcePage: '其他' })], {}), /scope/);
+  assert.equal(conn.calls.length, 0);
+});
+
 test('shimmer snapshot upsert preserves a same-key collision from another source page', async () => {
   const source = fs.readFileSync(new URL('./import-wiki-shimmer-to-db.mjs', import.meta.url), 'utf8');
   const upsertSnapshotSource = source.match(

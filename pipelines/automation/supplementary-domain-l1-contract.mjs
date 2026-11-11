@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import {
   buildShimmerPartitionBundle,
+  buildShimmerPartitionPreview,
   SHIMMER_PARTITION_SCOPES,
 } from './shimmer-partition-contract.mjs';
 
@@ -96,13 +97,18 @@ export function buildSupplementaryL1Bundle(input = {}) {
   }
   const generatedAt = requireTimestamp(input.generatedAt, 'generatedAt');
   const executionMode = normalizeExecutionMode(input.executionMode);
+  if (input.previewOnly != null && typeof input.previewOnly !== 'boolean') throw new Error('previewOnly must be boolean');
+  const previewOnly = input.previewOnly === true;
+  if (previewOnly && (domainId !== 'shimmer' || executionMode !== 'ACTIVATION_GATED_AUTO')) {
+    throw new Error('preview-only evidence is supported only for automatic Shimmer');
+  }
   const policy = normalizePolicy(input.policy, domainId, executionMode);
   const ownedTables = normalizeOwnedTables(input.ownedTables);
   const importPlan = cloneObject(input.importPlan, 'importPlan');
   const hasShimmerCrossOwnerScope = domainId === 'shimmer'
     && ownedTables.some((scope) => scope.table === 'world_contexts' || scope.table === 'entity_source_snapshots');
-  const shimmerPartition = domainId === 'shimmer' && (hasShimmerCrossOwnerScope || importPlan.shimmerPartition != null)
-    ? validateShimmerPartitionImportPlan({ importPlan, ownedTables })
+  const shimmerPartition = domainId === 'shimmer' && (previewOnly || hasShimmerCrossOwnerScope || importPlan.shimmerPartition != null)
+    ? validateShimmerPartitionImportPlan({ importPlan, ownedTables, previewOnly })
     : null;
   assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerPartition });
   if (executionMode === 'ACTIVATION_GATED_AUTO') {
@@ -129,7 +135,7 @@ export function buildSupplementaryL1Bundle(input = {}) {
   const decisionHash = hashJson({
     runId,
     domainId,
-    decision: executionMode === 'ACTIVATION_GATED_AUTO' ? 'AUTO_APPLY_ACTIVATED' : 'REQUIRES_OWNER_L1',
+    decision: previewOnly ? 'PREVIEW_ONLY' : executionMode === 'ACTIVATION_GATED_AUTO' ? 'AUTO_APPLY_ACTIVATED' : 'REQUIRES_OWNER_L1',
     policySetHash: policy.policySetHash,
     evidenceHash,
     logicalDiffHash,
@@ -142,7 +148,8 @@ export function buildSupplementaryL1Bundle(input = {}) {
     domainId,
     databaseName: 'terria_v1_local',
     generatedAt,
-    approvalMode: executionMode === 'ACTIVATION_GATED_AUTO' ? 'AUTO_APPLY_ACTIVATED' : 'APPROVED_OWNER_L1',
+    approvalMode: previewOnly ? 'PREVIEW_ONLY' : executionMode === 'ACTIVATION_GATED_AUTO' ? 'AUTO_APPLY_ACTIVATED' : 'APPROVED_OWNER_L1',
+    ...(previewOnly ? { previewOnly: true } : {}),
     executionMode,
     policy,
     baseline,
@@ -185,6 +192,7 @@ export function validateSupplementaryL1Bundle(value) {
     ownedTables: value.ownedTables,
     importPlan: value.importPlan,
     executionMode: value.executionMode,
+    previewOnly: value.previewOnly,
     reconciliationInput: value.reconciliationInput,
   });
   if (rebuilt.bundleHash !== bundleHash
@@ -218,10 +226,14 @@ function normalizeSourceDispatchIdentity(value) {
 export function assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerPartition = null } = {}) {
   const domain = requireDomain(domainId);
   const normalized = normalizeOwnedTables(ownedTables);
-  const expected = domain === 'shimmer' && shimmerPartition != null
+  // Read-only policy/context validation precedes fence acquisition. Executable
+  // bundles separately require validateShimmerPartitionImportPlan above.
+  const partitionScopes = domain === 'shimmer' && (shimmerPartition != null
+    || normalized.some((scope) => scope.table === 'world_contexts' || scope.table === 'entity_source_snapshots'));
+  const expected = partitionScopes
     ? SHIMMER_PARTITION_OWNED_TABLES
     : OWNED_TABLES_BY_DOMAIN[domain];
-  const comparable = domain === 'shimmer' && shimmerPartition != null
+  const comparable = partitionScopes
     ? normalized
     : normalized.map(({ databaseRole, table }) => ({ databaseRole, table }));
   if (JSON.stringify(sortOwnedTables(comparable))
@@ -231,8 +243,11 @@ export function assertSupplementaryOwnedTables(domainId, ownedTables, { shimmerP
   return true;
 }
 
-function validateShimmerPartitionImportPlan({ importPlan, ownedTables }) {
-  const partition = buildShimmerPartitionBundle(importPlan?.shimmerPartition);
+function validateShimmerPartitionImportPlan({ importPlan, ownedTables, previewOnly = false }) {
+  if (previewOnly && importPlan.shimmerPartition != null) throw new Error('Shimmer preview must not carry executable fences');
+  const partition = previewOnly
+    ? buildShimmerPartitionPreview(importPlan?.shimmerPartitionPreview)
+    : buildShimmerPartitionBundle(importPlan?.shimmerPartition);
   const expectedOwnedTables = SHIMMER_PARTITION_OWNED_TABLES;
   if (JSON.stringify(ownedTables) !== JSON.stringify(expectedOwnedTables)) {
     throw new Error('Shimmer six-scope partition must exactly match ownedTables');

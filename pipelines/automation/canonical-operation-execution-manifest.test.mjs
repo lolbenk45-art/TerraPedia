@@ -1627,6 +1627,12 @@ test('scheduler activation manifest consumes explicit preflight and T1 paths wit
 });
 
 const SCHEDULER_RUNTIME_REQUIRED_PATHS = [
+  'pipelines/automation/finalize-shimmer-automatic-bundle.mjs',
+  'pipelines/automation/shimmer-policy-scope-transition.mjs',
+  'pipelines/automation/shimmer-partition-contract.mjs',
+  'pipelines/automation/shimmer-partition-recovery.mjs',
+  'pipelines/automation/l2-read-only-diff-producer.mjs',
+  'pipelines/automation/l2-automatic-ceiling.mjs',
   'pipelines/automation/run-base-domain-automatic-operation.mjs',
   'pipelines/automation/run-supplementary-domain-automatic-operation.mjs',
   'pipelines/automation/automatic-execution-artifacts.mjs',

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assertRepositoryOrdinaryFile } from '../lib/private-repository-path.mjs';
+import { SHIMMER_PARTITION_SCOPES, getVerifiedShimmerPartitionScope, matchesShimmerPartitionRow } from './shimmer-partition-contract.mjs';
 
 import {
   buildIndependentArmorSetRows,
@@ -24,6 +25,7 @@ import { buildBossImportProjection } from '../import/import-wiki-bosses-to-db.mj
 import {
   buildShimmerImportProjection,
   loadVerifiedShimmerImportBundle,
+  normalizeSnapshotProjectionRow,
 } from '../import/import-wiki-shimmer-to-db.mjs';
 import {
   getVerifiedSharedNpcsScopeDefinition,
@@ -603,10 +605,21 @@ function buildImporterStructuredCandidate({ domainId, ownedTables, sourcePayload
     throw new Error('frozen Shimmer source does not match the verified generation');
   }
   const shimmerProjection = buildShimmerImportProjection({ bundle: shimmerBundle });
-  return importerCandidateEnvelope(STRUCTURED_DOMAIN_TABLES.shimmer.map((tableName) => table(
-    tableName,
-    (shimmerProjection.shimmerTables[tableName] ?? []).map(toSnakeCaseRow),
-  )));
+  return importerCandidateEnvelope(ownedTables.map((scope) => {
+    if (scope.table === 'world_contexts') {
+      return table(scope.table, [{ ...toSnakeCaseRow(shimmerProjection.worldContext), status: 1, deleted: 0 }]);
+    }
+    if (scope.table === 'entity_source_snapshots') {
+      const existing = (currentTables[scope.table] ?? [])
+        .filter((row) => matchesShimmerPartitionRow(scope, row))
+        .map((row) => toSnakeCaseRow(normalizeSnapshotProjectionRow(row)));
+      return table(scope.table, mergeRelationProjectionRows(
+        shimmerProjection.snapshots.map(toSnakeCaseRow), existing,
+        ['entity_type', 'provider', 'source_kind', 'source_locator'],
+      ));
+    }
+    return table(scope.table, (shimmerProjection.shimmerTables[scope.table] ?? []).map(toSnakeCaseRow));
+  }));
 }
 
 function importerCandidateEnvelope(tables) {
@@ -862,7 +875,13 @@ function normalizeStructuredOwnedTables(value, domain) {
     assertSupportedStructuredScope(domain, scope);
     return scope;
   });
-  const expectedTables = STRUCTURED_DOMAIN_TABLES[domain];
+  const expectedTables = domain === 'shimmer' && scopes.some((scope) => getVerifiedShimmerPartitionScope(scope))
+    ? SHIMMER_PARTITION_SCOPES.map((scope) => scope.table)
+    : STRUCTURED_DOMAIN_TABLES[domain];
+  if (domain === 'shimmer' && expectedTables.length === 6
+      && scopes.some((scope) => !getVerifiedShimmerPartitionScope(scope))) {
+    throw new Error('Shimmer structured six-scope contract cannot mix partition and whole-table scopes');
+  }
   if (scopes.length !== expectedTables.length
       || expectedTables.some((table) => !scopes.some((scope) => scope.table === table))) {
     throw new Error(`structured automatic L2 diff scope is unsupported for ${domain}`);
@@ -878,6 +897,7 @@ function assertSupportedStructuredScope(domain, scope) {
   if (!getVerifiedStructuredScopeDefinition(domain, scope)) {
     throw new Error(`structured automatic L2 diff has no registered schema contract for ${domain}/${scope.table}`);
   }
+  if (domain === 'shimmer' && getVerifiedShimmerPartitionScope(scope)) return;
   if (scope.table === 'npcs') {
     const definition = getVerifiedSharedNpcsScopeDefinition(scope);
     if (!definition) {
@@ -997,7 +1017,11 @@ function normalizeCurrentTables(current, scopes) {
   for (const scope of scopes) {
     const rows = snapshot.tables[scope.table];
     if (!Array.isArray(rows)) throw new Error(`structured diff current snapshot is missing ${scope.table}`);
-    tables[scope.table] = rows.map((row, index) => normalizeDataRow(row, `structured diff current ${scope.table} row ${index}`));
+    tables[scope.table] = rows.map((row, index) => {
+      const normalized = normalizeDataRow(row, `structured diff current ${scope.table} row ${index}`);
+      return scope.table === 'entity_source_snapshots' && getVerifiedShimmerPartitionScope(scope)
+        ? toSnakeCaseRow(normalizeSnapshotProjectionRow(normalized)) : normalized;
+    });
   }
   return tables;
 }
@@ -1062,6 +1086,15 @@ function assertRowsContainColumns(rows, columns, label) {
 }
 
 function filterRowsForScope(rows, scope, label) {
+  if (getVerifiedShimmerPartitionScope(scope)) {
+    return rows.filter((row, index) => {
+      const matches = matchesShimmerPartitionRow(scope, row);
+      if (!matches && label.includes('candidate')) {
+        throw new Error(`${label} ${scope.table} row ${index} is outside the exact Shimmer partition`);
+      }
+      return matches;
+    });
+  }
   if (scope.table.startsWith('shimmer_')) {
     const scoped = [];
     for (const [index, row] of rows.entries()) {

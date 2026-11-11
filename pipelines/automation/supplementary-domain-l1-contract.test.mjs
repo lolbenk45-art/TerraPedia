@@ -97,6 +97,24 @@ test('constructs a Shimmer six-scope bundle only with a matching partition contr
   })), /six-scope|partition/i);
 });
 
+test('Shimmer automatic previews carry six scopes without inventing approval or fence tokens', () => {
+  const original = shimmerInput();
+  const { generationId, previewSha256, scopes } = original.importPlan.shimmerPartition;
+  const value = { ...original, previewOnly: true, executionMode: 'ACTIVATION_GATED_AUTO',
+    policy: { ...original.policy, level: 'L2', policyVersion: 3, policyJson: { ownedTables: original.ownedTables } },
+    importPlan: { shimmerPartitionPreview: { scopes, generationId, previewSha256 } } };
+  const preview = buildSupplementaryL1Bundle(value);
+  assert.equal(preview.previewOnly, true);
+  assert.equal(preview.approvalMode, 'PREVIEW_ONLY');
+  assert.equal(preview.importPlan.shimmerPartition, undefined);
+  assert.equal(validateSupplementaryL1Bundle(preview), true);
+  assert.throws(() => buildSupplementaryL1Bundle({ ...value, previewOnly: false }), /six-scope|partition/i);
+  assert.throws(() => buildSupplementaryL1Bundle({ ...value,
+    importPlan: { ...value.importPlan, shimmerPartition: original.importPlan.shimmerPartition } }), /preview|fence/i);
+  assert.throws(() => buildSupplementaryL1Bundle({ ...value,
+    importPlan: { shimmerPartitionPreview: { scopes, generationId, previewSha256, executable: true } } }), /preview|executable/i);
+});
+
 test('builds a stable immutable L1 bundle for a supported domain', () => {
   assert.deepEqual(SUPPLEMENTARY_L1_DOMAINS, ['audio', 'bosses', 'shimmer']);
   const bundle = buildSupplementaryL1Bundle(input());

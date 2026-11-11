@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 Read-only closure run completed with explicit Item-source and compatibility variances.
 
@@ -82,3 +82,10 @@ Read-only closure run completed with explicit Item-source and compatibility vari
 - Findings: one implementation-contract defect was found: the Item image origin-repair adapter is missing from the projection manifest bundle fixture. The plan now requires a focused Task 0.1 repair before any data execution. Historical numbers are explicitly non-authoritative, `relation-health-report.mjs` path is verified, and external/missing-evidence lanes are deterministic quarantine branches.
 - Disposition: fixed.
 - Re-review required: no for plan preparation; required after Task 0 changes any scope or operation contract.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.

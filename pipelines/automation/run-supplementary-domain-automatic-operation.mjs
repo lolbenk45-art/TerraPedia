@@ -2,6 +2,9 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
+import { isDeepStrictEqual } from 'node:util';
+import { finalizeShimmerAutomaticBundle } from './finalize-shimmer-automatic-bundle.mjs';
+import { assertShimmerAutomaticPolicy } from './shimmer-policy-scope-transition.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -133,6 +136,20 @@ export async function runSupplementaryDomainAutomaticOperation({
       ['SCHEDULER_ACTIVATION', SCHEDULER_ACTIVATION_DOMAIN],
     );
     activation = rows?.[0];
+    if (domain === 'shimmer' && activation) {
+      const [policies] = await activationConnection.query(
+        'SELECT p.domain_id AS domainId, p.current_version AS policyVersion,'
+        + ' p.current_level AS currentLevel, p.operational_state AS operationalState,'
+        + ' pv.policy_hash AS policyHash, pv.policy_json AS policyJson'
+        + ' FROM crawler_automation_policy p JOIN crawler_automation_policy_version pv'
+        + ' ON pv.domain_id = p.domain_id AND pv.policy_version = p.current_version ORDER BY p.domain_id',
+      );
+      assertShimmerAutomaticPolicy({
+        policy: policies?.find((row) => row.domainId === 'shimmer'),
+        policyRows: policies ?? [],
+        activationPolicySetHash: activation.policySetHash,
+      });
+    }
   } catch (error) {
     runnerProgress.publish({ status: 'failed', phase: 'failed', message: error?.message ?? String(error) });
     runnerProgress.stop();
@@ -229,6 +246,7 @@ export async function runSupplementaryDomainAutomaticOperation({
       domainId: previewBundle.domainId,
       generatedAt: previewBundle.generatedAt,
       executionMode: previewBundle.executionMode,
+      ...(domain === 'shimmer' ? { previewOnly: true } : {}),
       policy: previewBundle.policy,
       baseline: previewBundle.baseline,
       source: {
@@ -313,14 +331,17 @@ export async function runSupplementaryDomainAutomaticOperation({
         bytes: previewSourceBytes,
         label: 'automatic operation source',
       });
-      writePrivateOperationBundleNoOverwrite({
+      const publishBundle = (payload) => writePrivateOperationBundleNoOverwrite({
         repoRoot,
         artifactRoot: operationArtifact.artifactRoot,
         expectedIdentity: operationArtifact.identity,
         outputPath: operationBundlePath,
-        payload: expectedBundle,
+        payload,
       });
-      bundle = expectedBundle;
+      bundle = domain === 'shimmer'
+        ? await finalizeShimmerAutomaticBundle({ connection, preview: expectedBundle, activation, repoRoot, publishBundle })
+        : expectedBundle;
+      if (domain !== 'shimmer') publishBundle(bundle);
     }
     if (activation.policySetHash !== bundle.policy.policySetHash) {
       throw new Error('scheduler activation policy set does not match frozen supplementary bundle');
@@ -657,17 +678,36 @@ function assertCommittedAutomaticRecoveryBundleMatches(bundle, expectedBundle, v
       || !expectedImportPlan || typeof expectedImportPlan !== 'object') {
     throw new Error('committed automatic operation artifact import plan is missing');
   }
+  let comparableImportPlan = actualImportPlan;
+  if (bundle.domainId === 'shimmer') {
+    const partition = actualImportPlan.shimmerPartition;
+    const preview = expectedImportPlan.shimmerPartitionPreview;
+    const approval = actualImportPlan.shimmerPolicyApproval;
+    if (!partition || !preview || partition.generationId !== preview.generationId
+        || !sameJsonValue(partition.scopes, preview.scopes)
+        || partition.fences.some((fence) => fence.latestRunId !== bundle.runId)
+        || !approval?.actor || approval.policyVersion !== bundle.policy.policyVersion
+        || approval.policyHash !== bundle.policy.policyHash || approval.policySetHash !== bundle.policy.policySetHash) {
+      throw new Error('committed Shimmer partition does not match the fresh frozen source and policy');
+    }
+    const { shimmerPartition: _partition, shimmerPolicyApproval: _approval, ...stable } = actualImportPlan;
+    const summary = Object.fromEntries(Object.entries(stable.summary ?? {}).map(([table, value]) => [table,
+      { ...value, before: expectedImportPlan.summary?.[table]?.before }]));
+    comparableImportPlan = { ...stable, summary, previewSha256: expectedImportPlan.previewSha256,
+      shimmerPartitionPreview: preview };
+  }
   const {
     sourceCheckedAt: actualSourceCheckedAt,
     automaticPreviewSource: actualPreviewSource,
     ...actualStableImportPlan
-  } = actualImportPlan;
+  } = comparableImportPlan;
   const {
     sourceCheckedAt: _expectedSourceCheckedAt,
     automaticPreviewSource: expectedPreviewSource,
     ...expectedStableImportPlan
   } = expectedImportPlan;
-  if (!sameJsonValue(actualStableImportPlan, expectedStableImportPlan)
+  if (!(bundle.domainId === 'shimmer' ? isDeepStrictEqual(actualStableImportPlan, expectedStableImportPlan)
+    : sameJsonValue(actualStableImportPlan, expectedStableImportPlan))
       || !isTimestamp(actualSourceCheckedAt)
       || actualPreviewSource?.sha256 !== expectedPreviewSource?.sha256) {
     throw new Error('committed automatic operation artifact import plan does not match the fresh frozen source');

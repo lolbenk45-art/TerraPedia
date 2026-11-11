@@ -1,0 +1,296 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "shimmer-runtime-repair-assessment",
+  "observedAt": "2026-09-29T15:03:57.664Z",
+  "proposalOnly": true,
+  "executable": false,
+  "approved": false,
+  "writesDatabase": false,
+  "scopeAuthorizationReference": "user://conversation/automation-canonical-ownership-repair-approved-01",
+  "target": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf"
+  },
+  "owner": [
+    {
+      "username": "admin",
+      "status": "ACTIVE"
+    }
+  ],
+  "activeFences": 0,
+  "readiness": {
+    "before": [
+      {
+        "domain": "items",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/items/source-readiness-2026-09-22.json"
+      },
+      {
+        "domain": "npcs",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/npcs/source-readiness-2026-09-22.json"
+      },
+      {
+        "domain": "projectiles",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/projectiles/source-readiness-2026-09-22.json"
+      },
+      {
+        "domain": "buffs",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/buffs/source-readiness-2026-09-22.json"
+      },
+      {
+        "domain": "armor_sets",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/armor_sets/source-readiness-2026-09-22.json"
+      },
+      {
+        "domain": "bosses",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/bosses/source-readiness-2026-09-22.json"
+      },
+      {
+        "domain": "shimmer",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/shimmer/source-readiness-2026-09-22.json"
+      },
+      {
+        "domain": "audio",
+        "readinessStatus": "blocked",
+        "observedAt": "2026-09-22T12:15:31.601Z",
+        "evidencePath": "reports/domain/audio/source-readiness-2026-09-22.json"
+      }
+    ],
+    "after": [
+      {
+        "domain": "items",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.121Z",
+        "evidencePath": "reports/domain/items/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      },
+      {
+        "domain": "npcs",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.214Z",
+        "evidencePath": "reports/domain/npcs/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      },
+      {
+        "domain": "projectiles",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.474Z",
+        "evidencePath": "reports/domain/projectiles/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      },
+      {
+        "domain": "buffs",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.549Z",
+        "evidencePath": "reports/domain/buffs/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      },
+      {
+        "domain": "armor_sets",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.621Z",
+        "evidencePath": "reports/domain/armor_sets/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      },
+      {
+        "domain": "bosses",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.687Z",
+        "evidencePath": "reports/domain/bosses/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      },
+      {
+        "domain": "shimmer",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.842Z",
+        "evidencePath": "reports/domain/shimmer/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      },
+      {
+        "domain": "audio",
+        "readinessStatus": "eligible",
+        "observedAt": "2026-09-29T15:00:17.897Z",
+        "evidencePath": "reports/domain/audio/source-readiness-2026-09-29-shimmer-preflight-repair.json"
+      }
+    ],
+    "preflightPath": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-43.preflight.json"
+  },
+  "preview": {
+    "generationId": "379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761",
+    "previewSha256": "sha256:10c26241ad3039dc92173f97ff0361267305f8bf04ddb22042239d36eed45385",
+    "dateStrings": true,
+    "scopes": {
+      "shimmer_item_transforms": {
+        "beforeCount": 279,
+        "afterCount": 279,
+        "beforeHash": "sha256:fc94313681f0c9cbd947952fb1805cc094c9236b6494ae61776eb7eb0add9bcd",
+        "afterHash": "sha256:fc94313681f0c9cbd947952fb1805cc094c9236b6494ae61776eb7eb0add9bcd",
+        "keysMatch": true,
+        "hashMatch": true
+      },
+      "shimmer_decraft_rules": {
+        "beforeCount": 248,
+        "afterCount": 248,
+        "beforeHash": "sha256:bc427e533016b45a6c4ef221d719f15c8920e44e148168d6a78b6bacee208ee8",
+        "afterHash": "sha256:bc427e533016b45a6c4ef221d719f15c8920e44e148168d6a78b6bacee208ee8",
+        "keysMatch": true,
+        "hashMatch": true
+      },
+      "shimmer_entity_transforms": {
+        "beforeCount": 121,
+        "afterCount": 121,
+        "beforeHash": "sha256:5828302430a02b105e2a96384db0892191ca3917f05b58ddf03cc9994e65fa62",
+        "afterHash": "sha256:5828302430a02b105e2a96384db0892191ca3917f05b58ddf03cc9994e65fa62",
+        "keysMatch": true,
+        "hashMatch": true
+      },
+      "shimmer_npc_transforms": {
+        "beforeCount": 29,
+        "afterCount": 29,
+        "beforeHash": "sha256:1f85a0361b334450cd568ed823b88926bd0ad6fd871718e00caa6c443e621cbd",
+        "afterHash": "sha256:1f85a0361b334450cd568ed823b88926bd0ad6fd871718e00caa6c443e621cbd",
+        "keysMatch": true,
+        "hashMatch": true
+      },
+      "world_contexts": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "beforeHash": "sha256:5be3421e0f2974eeb6a10aba77be2a2403698444d54d53b85555489de5c2ab7e",
+        "afterHash": "sha256:5be3421e0f2974eeb6a10aba77be2a2403698444d54d53b85555489de5c2ab7e",
+        "keysMatch": true,
+        "hashMatch": true
+      },
+      "entity_source_snapshots": {
+        "beforeCount": 63,
+        "afterCount": 63,
+        "beforeHash": "sha256:a686a7b1cfdd5f05e4dc49fa43fb00d3133a31e46e4d19eadc0161395c47db5c",
+        "afterHash": "sha256:a686a7b1cfdd5f05e4dc49fa43fb00d3133a31e46e4d19eadc0161395c47db5c",
+        "keysMatch": true,
+        "hashMatch": true
+      }
+    }
+  },
+  "currentPolicy": {
+    "domainId": "shimmer",
+    "policyVersion": 2,
+    "level": "L2",
+    "operationalState": "ACTIVE",
+    "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+    "policyJson": {
+      "level": "L2",
+      "ownedTables": [
+        {
+          "table": "shimmer_decraft_rules",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        },
+        {
+          "table": "shimmer_entity_transforms",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        },
+        {
+          "table": "shimmer_item_transforms",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        },
+        {
+          "table": "shimmer_npc_transforms",
+          "fieldGroup": "all_columns",
+          "databaseRole": "local"
+        }
+      ],
+      "anomalyAction": "CIRCUIT_OPEN",
+      "schemaVersion": 1,
+      "ratioInsertCap": 0.1,
+      "ratioUpdateCap": 0.1,
+      "ratioDisableCap": 0.005,
+      "requireSnapshot": true,
+      "absoluteInsertCap": 500,
+      "absoluteUpdateCap": 500,
+      "absoluteDisableCap": 20,
+      "ratioRelationshipDeleteCap": 0.05,
+      "sourceFreshnessMaxAgeMinutes": 60,
+      "absoluteRelationshipDeleteCap": 200
+    }
+  },
+  "proposedTargetPolicy": {
+    "domainId": "shimmer",
+    "policyVersion": 3,
+    "level": "L2",
+    "policyHash": "sha256:9c9cb42ef6317a5e27fb3256690eec01ffbdfeb564cea54b8acac1cdb928ae97",
+    "policyJson": {
+      "level": "L2",
+      "ownedTables": [
+        {
+          "databaseRole": "local",
+          "table": "entity_source_snapshots",
+          "fieldGroup": "shimmer_source_lineage",
+          "logicalPredicateHash": "sha256:a79590959d3b03baaa49559f7c76295de03c25acb5fa896bd9d81f7e061ab3dd"
+        },
+        {
+          "databaseRole": "local",
+          "table": "shimmer_decraft_rules",
+          "fieldGroup": "shimmer_source_page",
+          "logicalPredicateHash": "sha256:fe8307df1e6e9aaf214642eeb1fe4856eebbf029251062c3757048392061677f"
+        },
+        {
+          "databaseRole": "local",
+          "table": "shimmer_entity_transforms",
+          "fieldGroup": "shimmer_source_page",
+          "logicalPredicateHash": "sha256:3c77ff876ce081d8608391ed749adeab005c28614e4e1a498ab3d81e5deea449"
+        },
+        {
+          "databaseRole": "local",
+          "table": "shimmer_item_transforms",
+          "fieldGroup": "shimmer_source_page",
+          "logicalPredicateHash": "sha256:830aaf92da1d58c4fbc2e5b8f543939f8c1e2b9a5660d5616e5086f7b45e3fbf"
+        },
+        {
+          "databaseRole": "local",
+          "table": "shimmer_npc_transforms",
+          "fieldGroup": "shimmer_source_page",
+          "logicalPredicateHash": "sha256:971bca4a1a0205a2a25c5a9800d30f1160cffc5a76e691571ae343f86e770830"
+        },
+        {
+          "databaseRole": "local",
+          "table": "world_contexts",
+          "fieldGroup": "shimmer_context",
+          "logicalPredicateHash": "sha256:b4bd3a2e273b20bf1a4f385e80c6e9f544aadafbfbbe3cac44e150576934bdbd"
+        }
+      ],
+      "anomalyAction": "CIRCUIT_OPEN",
+      "schemaVersion": 1,
+      "ratioInsertCap": 0.1,
+      "ratioUpdateCap": 0.1,
+      "ratioDisableCap": 0.005,
+      "requireSnapshot": true,
+      "absoluteInsertCap": 500,
+      "absoluteUpdateCap": 500,
+      "absoluteDisableCap": 20,
+      "ratioRelationshipDeleteCap": 0.05,
+      "sourceFreshnessMaxAgeMinutes": 60,
+      "absoluteRelationshipDeleteCap": 200
+    }
+  },
+  "currentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+  "proposedTargetPolicySetHash": "sha256:d5c0e9bd473af51f4900048769a02bf92606532ef5c2fa2548f09c422d8a7c9b",
+  "existingCeilingBuilderError": "current policy must be exact L1/ACTIVE",
+  "remainingGates": [
+    "coordinator-owned immutable L2 v2 to L2 v3 exact-scope transition; existing ceiling and stable reauthorization operations cannot perform this transition",
+    "owner capability evidence binding, acquisition under final operation run identity, and automatic preview/executor integration",
+    "fresh source freshness/probe, operation-specific packet and permit, complete reconciliation, public API readback"
+  ],
+  "ownerApprovals": [],
+  "approval": null,
+  "implementationFollowup": "docs/audits/2026-09-30-shimmer-six-scope-implementation.json",
+  "candidateStatus": "Historical alphabetical-scope candidate superseded by exact SHIMMER_PARTITION_SCOPES order in implementationFollowup; never execute this diagnostic"
+}

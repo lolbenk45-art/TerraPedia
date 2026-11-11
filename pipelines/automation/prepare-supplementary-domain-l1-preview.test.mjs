@@ -7,6 +7,8 @@ import test from 'node:test';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { buildCanonicalOperationExecutionManifest } from './canonical-operation-execution-manifest.mjs';
+import { SHIMMER_POLICY_SCOPES } from './shimmer-policy-scope-transition.mjs';
+import { computePolicyHash } from './bootstrap-automation-policy.mjs';
 
 import {
   buildDomainSourceCommand,
@@ -19,6 +21,39 @@ import {
 } from './prepare-supplementary-domain-l1-preview.mjs';
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
+
+test('automatic Shimmer preview checks six-scope policy before source and freezes non-executable evidence', async (t) => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'shimmer-six-preview-'));
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const calls = [];
+  const policyJson = { level: 'L2', ownedTables: SHIMMER_POLICY_SCOPES };
+  const context = {
+    policy: { domainId: 'shimmer', level: 'L2', operationalState: 'ACTIVE', policyVersion: 3,
+      policyHash: computePolicyHash(policyJson), policySetHash: HASH('b'), policyJson },
+    ownedTables: SHIMMER_POLICY_SCOPES,
+    baseline: { environmentId: 'local', projectionHash: HASH('c'),
+      generations: SHIMMER_POLICY_SCOPES.map((scope) => ({ ...scope, generation: 0 })) },
+  };
+  const result = await prepareSupplementaryDomainL1Preview({ domainId: 'shimmer', repoRoot,
+    generatedAt: '2026-09-29T15:30:00.000Z', runId: 'shimmer_l1_six_scope_preview', executionMode: 'ACTIVATION_GATED_AUTO',
+  }, {
+    loadPolicyContext: async () => { calls.push('policy'); return context; },
+    runSource: async ({ config }) => {
+      calls.push('source');
+      assert.deepEqual(config.ownedTables, SHIMMER_POLICY_SCOPES);
+      return { sourcePayload: { generationId: 'a'.repeat(64) },
+        proposal: { previewSha256: HASH('d'), targetFingerprintSha256: HASH('e'), preview: { tables: {} } } };
+    },
+  });
+  assert.equal(calls[0], 'policy');
+  const bundle = JSON.parse(fs.readFileSync(result.bundlePath, 'utf8'));
+  assert.equal(bundle.previewOnly, true);
+  assert.equal(bundle.approvalMode, 'PREVIEW_ONLY');
+  assert.equal(bundle.ownedTables.length, 6);
+  assert.equal(bundle.importPlan.shimmerPartition, undefined);
+  assert.equal(bundle.importPlan.shimmerPartitionPreview.executable, false);
+  assert.equal(bundle.importPlan.shimmerPartitionPreview.generationId, 'a'.repeat(64));
+});
 
 test('supplementary source executes reviewed child bytes while keeping outputs in the durable root', (t) => {
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'supplementary-split-roots-'));

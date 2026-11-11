@@ -18,6 +18,8 @@ import {
 } from './build-canonical-shimmer-import-proposal.mjs';
 import { readCanonicalShimmerImportInputContract } from './canonical-shimmer-import-input-contract.mjs';
 import { readCurrentSupplementaryContext } from './run-supplementary-domain-l1-operation.mjs';
+import { SHIMMER_POLICY_SCOPES, assertShimmerSixScopePolicy } from './shimmer-policy-scope-transition.mjs';
+import { SHIMMER_PARTITION_SCOPES, buildShimmerPartitionPreview } from './shimmer-partition-contract.mjs';
 import {
   buildSupplementaryL1Bundle,
   SUPPLEMENTARY_EXECUTION_MODES,
@@ -69,11 +71,12 @@ export const DOMAIN_PREVIEW_CONFIG = Object.freeze({
 
 export async function prepareSupplementaryDomainL1Preview(options = {}, dependencies = {}) {
   const domainId = requireDomain(options.domainId);
-  const config = DOMAIN_PREVIEW_CONFIG[domainId];
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
   const generatedAt = requireTimestamp(options.generatedAt ?? new Date().toISOString());
   const runId = requireText(options.runId, 'runId');
   const executionMode = requireExecutionMode(options.executionMode);
+  const previewOnly = domainId === 'shimmer' && executionMode === 'ACTIVATION_GATED_AUTO';
+  const config = previewOnly ? { ...DOMAIN_PREVIEW_CONFIG.shimmer, ownedTables: SHIMMER_POLICY_SCOPES } : DOMAIN_PREVIEW_CONFIG[domainId];
   requirePreviewRunId(runId, domainId);
   const progressPath = path.resolve(repoRoot, options.progressPath ?? config.progressPath);
   const artifactRoot = resolvePreviewArtifactRoot({
@@ -95,7 +98,8 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
     ?? ((filePath, payload) => writeJsonFile(filePath, payload));
   const runSource = requireFunction(dependencies.runSource, 'runSource');
   const loadPolicyContext = requireFunction(dependencies.loadPolicyContext, 'loadPolicyContext');
-  const buildImportPlan = requireFunction(dependencies.buildImportPlan, 'buildImportPlan');
+  const buildImportPlan = requireFunction(dependencies.buildImportPlan
+    ?? (({ sourcePayload, sourceResult }) => buildDomainImportPlan(domainId, sourcePayload, sourceResult, { previewOnly })), 'buildImportPlan');
   const probeSource = dependencies.probeSource ?? null;
   const acknowledgeSource = dependencies.acknowledgeSource ?? null;
   const reuseCurrentSourceSnapshot = options.reuseCurrentSourceSnapshot == null
@@ -143,6 +147,10 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       });
     }
     progress({ status: 'running', message: `starting ${domainId} source refresh`, current: 0, total: 3 });
+    if (previewOnly) {
+      const initial = await loadPolicyContext({ domainId, config, repoRoot });
+      assertShimmerSixScopePolicy(initial.policy);
+    }
     const firstSnapshot = reuseCurrentSourceSnapshot ?? (probeSource ? await probeSource({ domainId }) : null);
     const sourceResult = await runSource({ domainId, config, repoRoot, progressPath });
     const sourcePayload = requireObject(sourceResult?.sourcePayload, 'sourcePayload');
@@ -188,6 +196,7 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
     }
     progress({ status: 'running', message: `froze ${domainId} source`, current: 1, total: 3, outputPath: sourcePath });
     const context = await loadPolicyContext({ domainId, config, repoRoot });
+    if (previewOnly) assertShimmerSixScopePolicy(context.policy);
     const importPlan = await buildImportPlan({ domainId, config, repoRoot, sourcePayload, sourceResult, context });
     phase = 'preview';
     const bundle = buildSupplementaryL1Bundle({
@@ -204,6 +213,7 @@ export async function prepareSupplementaryDomainL1Preview(options = {}, dependen
       ownedTables: context.ownedTables ?? config.ownedTables,
       importPlan,
       executionMode,
+      ...(previewOnly ? { previewOnly: true } : {}),
       ...(sourceDispatchIdentity == null ? {} : { sourceDispatchIdentity }),
     });
     if (executionMode === 'ACTIVATION_GATED_AUTO') {
@@ -274,10 +284,11 @@ export async function runSupplementaryDomainL1PreviewCli({
 } = {}) {
   const args = parseArgs(argv);
   const domainId = requireDomain(args.domain);
-  const config = DOMAIN_PREVIEW_CONFIG[domainId];
   const root = path.resolve(repoRoot);
   const runId = args['run-id'] ?? `${domainId}_l1_${now.replace(/\D/g, '').slice(0, 14)}`;
   const executionMode = resolveSupplementaryPreviewExecutionMode(args);
+  const previewOnly = domainId === 'shimmer' && executionMode === 'ACTIVATION_GATED_AUTO';
+  const config = previewOnly ? { ...DOMAIN_PREVIEW_CONFIG.shimmer, ownedTables: SHIMMER_POLICY_SCOPES } : DOMAIN_PREVIEW_CONFIG[domainId];
   const reuseCurrentSourceSnapshot = args['reuse-current-source'] === 'true'
     ? loadReusableCurrentSourceSnapshot({
         domainId,
@@ -329,7 +340,7 @@ export async function runSupplementaryDomainL1PreviewCli({
           ownedTables: current.ownedTables,
         };
       },
-      buildImportPlan: ({ sourcePayload, sourceResult }) => buildDomainImportPlan(domainId, sourcePayload, sourceResult),
+      buildImportPlan: ({ sourcePayload, sourceResult }) => buildDomainImportPlan(domainId, sourcePayload, sourceResult, { previewOnly }),
       probeSource: reuseCurrentSourceSnapshot
         ? null
         : ({ domainId: probeDomainId }) => probeSupplementarySource({ domainId: probeDomainId }),
@@ -561,7 +572,7 @@ export function buildDomainSourceCommand({ domainId, progressPath, runId, resume
   return commands[requireDomain(domainId)];
 }
 
-function buildDomainImportPlan(domainId, sourcePayload, sourceResult) {
+function buildDomainImportPlan(domainId, sourcePayload, sourceResult, { previewOnly = false } = {}) {
   if (domainId === 'audio') {
     return { summary: { assets: sourcePayload.assets?.length ?? 0 } };
   }
@@ -571,7 +582,11 @@ function buildDomainImportPlan(domainId, sourcePayload, sourceResult) {
   return {
     previewSha256: sourceResult?.proposal?.previewSha256,
     targetFingerprintSha256: sourceResult?.proposal?.targetFingerprintSha256,
-    summary: sourceResult?.proposal?.preview?.summary ?? {},
+    summary: sourceResult?.proposal?.preview?.tables ?? sourceResult?.proposal?.preview?.summary ?? {},
+    ...(previewOnly ? { shimmerPartitionPreview: buildShimmerPartitionPreview({
+      scopes: SHIMMER_PARTITION_SCOPES, generationId: sourcePayload?.generationId,
+      previewSha256: sourceResult?.proposal?.previewSha256,
+    }) } : {}),
   };
 }
 

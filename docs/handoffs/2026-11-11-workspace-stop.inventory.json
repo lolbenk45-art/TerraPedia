@@ -1,0 +1,294 @@
+{
+  "branch": "feat/automation-domain-shimmer",
+  "previousHead": "0834ac458acbe41a2decda9b39abef7a0c36854b",
+  "previousUpstream": "",
+  "originalWorktree": "/home/lolben/TerraPedia/.worktrees/automation-domain-shimmer",
+  "originalChanges": [
+    {
+      "status": " M",
+      "path": "docs/devlog/entries/2026-09-29-automation-domain-shimmer-runtime-preflight.md",
+      "oldPath": null,
+      "size": 6991
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/canonical-operation-execution-manifest.test.mjs",
+      "oldPath": null,
+      "size": 97989
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/l2-automatic-ceiling.mjs",
+      "oldPath": null,
+      "size": 47525
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/l2-read-only-diff-producer.mjs",
+      "oldPath": null,
+      "size": 65917
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/prepare-supplementary-domain-l1-preview.mjs",
+      "oldPath": null,
+      "size": 39927
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/prepare-supplementary-domain-l1-preview.test.mjs",
+      "oldPath": null,
+      "size": 39879
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/run-governed-l1-operation.mjs",
+      "oldPath": null,
+      "size": 32851
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/run-governed-l1-operation.test.mjs",
+      "oldPath": null,
+      "size": 18516
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/run-supplementary-domain-automatic-operation.mjs",
+      "oldPath": null,
+      "size": 50065
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/run-supplementary-domain-automatic-operation.test.mjs",
+      "oldPath": null,
+      "size": 90461
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/run-supplementary-domain-l1-operation.mjs",
+      "oldPath": null,
+      "size": 127284
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/run-supplementary-domain-l1-operation.test.mjs",
+      "oldPath": null,
+      "size": 146761
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/shimmer-partition-contract.mjs",
+      "oldPath": null,
+      "size": 5915
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/shimmer-partition-contract.test.mjs",
+      "oldPath": null,
+      "size": 2940
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/supplementary-domain-l1-contract.mjs",
+      "oldPath": null,
+      "size": 19909
+    },
+    {
+      "status": " M",
+      "path": "pipelines/automation/supplementary-domain-l1-contract.test.mjs",
+      "oldPath": null,
+      "size": 13267
+    },
+    {
+      "status": " M",
+      "path": "pipelines/import/import-wiki-shimmer-to-db.mjs",
+      "oldPath": null,
+      "size": 67785
+    },
+    {
+      "status": " M",
+      "path": "pipelines/import/import-wiki-shimmer-to-db.test.mjs",
+      "oldPath": null,
+      "size": 89255
+    },
+    {
+      "status": "??",
+      "path": "docs/audits/2026-09-29-shimmer-runtime-repair.json",
+      "oldPath": null,
+      "size": 11237
+    },
+    {
+      "status": "??",
+      "path": "docs/audits/2026-09-30-shimmer-six-scope-implementation.json",
+      "oldPath": null,
+      "size": 10466
+    },
+    {
+      "status": "??",
+      "path": "docs/devlog/entries/2026-09-29-shimmer-automatic-scope-execution.md",
+      "oldPath": null,
+      "size": 8354
+    },
+    {
+      "status": "??",
+      "path": "docs/plans/2026-09-29-shimmer-runtime-unblock.md",
+      "oldPath": null,
+      "size": 10551
+    },
+    {
+      "status": "??",
+      "path": "pipelines/automation/finalize-shimmer-automatic-bundle.mjs",
+      "oldPath": null,
+      "size": 4621
+    },
+    {
+      "status": "??",
+      "path": "pipelines/automation/shimmer-partition-recovery.mjs",
+      "oldPath": null,
+      "size": 8218
+    },
+    {
+      "status": "??",
+      "path": "pipelines/automation/shimmer-partition-recovery.test.mjs",
+      "oldPath": null,
+      "size": 6587
+    },
+    {
+      "status": "??",
+      "path": "pipelines/automation/shimmer-policy-scope-transition.mjs",
+      "oldPath": null,
+      "size": 8685
+    },
+    {
+      "status": "??",
+      "path": "pipelines/automation/shimmer-policy-scope-transition.test.mjs",
+      "oldPath": null,
+      "size": 5954
+    },
+    {
+      "status": "??",
+      "path": "pipelines/automation/shimmer-six-scope-diff.test.mjs",
+      "oldPath": null,
+      "size": 10847
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-43.preflight.json",
+      "oldPath": null,
+      "size": 33765
+    },
+    {
+      "status": "??",
+      "path": "reports/authorization/canonical/shimmer-six-scope-20260929-diagnostic.source.json",
+      "oldPath": null,
+      "size": 543
+    }
+  ],
+  "closedEntries": [
+    {
+      "path": "docs/devlog/entries/2026-07-29-approved-public-pages-production.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-07-remaining-domain-isolated-acceptance.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-14-crawler-auto-domain-consumption-resume.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-17-local-eight-domain-complete-chain.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-closure-remediation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-22-local-remaining-data-chain-closure-plan.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-23-remaining-closure-item-decision-checklist.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-08-31-automation-scheduler-activation-handoff.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-19-automation-scheduler-authorization-list.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-22-automation-ingestion-plan-repair.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-armor-frozen-candidate-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-24-canonical-ownership-execution.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-26-armor-secondary-projection-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-27-armor-image-cache-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-28-armor-source-semantics-continuation.md",
+      "previousStatus": "active"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-automation-domain-shimmer-runtime-preflight.md",
+      "previousStatus": "blocked"
+    },
+    {
+      "path": "docs/devlog/entries/2026-09-29-shimmer-automatic-scope-execution.md",
+      "previousStatus": "active"
+    }
+  ],
+  "compressedReports": [],
+  "locallyPreservedLogs": [],
+  "validation": {
+    "nodeSyntax": [
+      "pipelines/automation/canonical-operation-execution-manifest.test.mjs",
+      "pipelines/automation/l2-automatic-ceiling.mjs",
+      "pipelines/automation/l2-read-only-diff-producer.mjs",
+      "pipelines/automation/prepare-supplementary-domain-l1-preview.mjs",
+      "pipelines/automation/prepare-supplementary-domain-l1-preview.test.mjs",
+      "pipelines/automation/run-governed-l1-operation.mjs",
+      "pipelines/automation/run-governed-l1-operation.test.mjs",
+      "pipelines/automation/run-supplementary-domain-automatic-operation.mjs",
+      "pipelines/automation/run-supplementary-domain-automatic-operation.test.mjs",
+      "pipelines/automation/run-supplementary-domain-l1-operation.mjs",
+      "pipelines/automation/run-supplementary-domain-l1-operation.test.mjs",
+      "pipelines/automation/shimmer-partition-contract.mjs",
+      "pipelines/automation/shimmer-partition-contract.test.mjs",
+      "pipelines/automation/supplementary-domain-l1-contract.mjs",
+      "pipelines/automation/supplementary-domain-l1-contract.test.mjs",
+      "pipelines/import/import-wiki-shimmer-to-db.mjs",
+      "pipelines/import/import-wiki-shimmer-to-db.test.mjs",
+      "pipelines/automation/finalize-shimmer-automatic-bundle.mjs",
+      "pipelines/automation/shimmer-partition-recovery.mjs",
+      "pipelines/automation/shimmer-partition-recovery.test.mjs",
+      "pipelines/automation/shimmer-policy-scope-transition.mjs",
+      "pipelines/automation/shimmer-policy-scope-transition.test.mjs",
+      "pipelines/automation/shimmer-six-scope-diff.test.mjs"
+    ],
+    "json": [
+      "docs/audits/2026-09-29-shimmer-runtime-repair.json",
+      "docs/audits/2026-09-30-shimmer-six-scope-implementation.json",
+      "reports/authorization/canonical/canonical-crawler-v2-scheduler-activation.retry-43.preflight.json",
+      "reports/authorization/canonical/shimmer-six-scope-20260929-diagnostic.source.json"
+    ],
+    "failures": []
+  }
+}

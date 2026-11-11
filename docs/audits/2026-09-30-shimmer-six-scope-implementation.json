@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "shimmer-six-scope-implementation-checkpoint",
+  "observedAt": "2026-09-29T16:13:42.844Z",
+  "writesDatabase": false,
+  "executable": false,
+  "runtimeAcceptanceComplete": false,
+  "currentRuntime": {
+    "observedAt": "2026-09-29T16:13:42.844Z",
+    "writesDatabase": false,
+    "server": {
+      "serverUuid": "b4ae6728-4f72-11f1-bcc9-00155d37eadf",
+      "databaseName": "terria_v1_local"
+    },
+    "owners": [
+      {
+        "username": "admin",
+        "status": "ACTIVE"
+      }
+    ],
+    "activeFences": 0,
+    "policies": [
+      {
+        "domainId": "shimmer",
+        "policyVersion": 2,
+        "level": "L2",
+        "state": "ACTIVE",
+        "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+        "policyJson": {
+          "level": "L2",
+          "ownedTables": [
+            {
+              "table": "shimmer_decraft_rules",
+              "fieldGroup": "all_columns",
+              "databaseRole": "local"
+            },
+            {
+              "table": "shimmer_entity_transforms",
+              "fieldGroup": "all_columns",
+              "databaseRole": "local"
+            },
+            {
+              "table": "shimmer_item_transforms",
+              "fieldGroup": "all_columns",
+              "databaseRole": "local"
+            },
+            {
+              "table": "shimmer_npc_transforms",
+              "fieldGroup": "all_columns",
+              "databaseRole": "local"
+            }
+          ],
+          "anomalyAction": "CIRCUIT_OPEN",
+          "schemaVersion": 1,
+          "ratioInsertCap": 0.1,
+          "ratioUpdateCap": 0.1,
+          "ratioDisableCap": 0.005,
+          "requireSnapshot": true,
+          "absoluteInsertCap": 500,
+          "absoluteUpdateCap": 500,
+          "absoluteDisableCap": 20,
+          "ratioRelationshipDeleteCap": 0.05,
+          "sourceFreshnessMaxAgeMinutes": 60,
+          "absoluteRelationshipDeleteCap": 200
+        }
+      }
+    ]
+  },
+  "redis": {
+    "port": 6380,
+    "database": 14,
+    "ping": "+PONG"
+  },
+  "diagnostic": {
+    "observedAt": "2026-09-29T15:35:02.310Z",
+    "requiresFreshSource": true,
+    "generationId": "379faae98a1996d3132781c4ba373f05ad3bed75f2eeb7c62072e860fc8b3761",
+    "counts": {
+      "entityBaselineCount": 741,
+      "relationshipBaselineCount": 0,
+      "inserts": 0,
+      "updates": 0,
+      "relationshipDeletes": 0,
+      "softDisables": 0,
+      "hardDeletes": 0
+    },
+    "scopeCount": 6
+  },
+  "candidate": {
+    "schemaVersion": 1,
+    "operationId": "automation-shimmer-l2-scope-transition",
+    "proposalOnly": true,
+    "executable": false,
+    "generatedAt": "2026-09-29T15:35:02.052Z",
+    "serverFingerprint": "sha256:af34c7eaa77aba166092b6404da2858d412e3d4b0453edc31539688038c0c7f7",
+    "currentPolicy": {
+      "domainId": "shimmer",
+      "policyVersion": 2,
+      "level": "L2",
+      "operationalState": "ACTIVE",
+      "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61",
+      "policyJson": {
+        "level": "L2",
+        "ownedTables": [
+          {
+            "table": "shimmer_decraft_rules",
+            "fieldGroup": "all_columns",
+            "databaseRole": "local"
+          },
+          {
+            "table": "shimmer_entity_transforms",
+            "fieldGroup": "all_columns",
+            "databaseRole": "local"
+          },
+          {
+            "table": "shimmer_item_transforms",
+            "fieldGroup": "all_columns",
+            "databaseRole": "local"
+          },
+          {
+            "table": "shimmer_npc_transforms",
+            "fieldGroup": "all_columns",
+            "databaseRole": "local"
+          }
+        ],
+        "anomalyAction": "CIRCUIT_OPEN",
+        "schemaVersion": 1,
+        "ratioInsertCap": 0.1,
+        "ratioUpdateCap": 0.1,
+        "ratioDisableCap": 0.005,
+        "requireSnapshot": true,
+        "absoluteInsertCap": 500,
+        "absoluteUpdateCap": 500,
+        "absoluteDisableCap": 20,
+        "ratioRelationshipDeleteCap": 0.05,
+        "sourceFreshnessMaxAgeMinutes": 60,
+        "absoluteRelationshipDeleteCap": 200
+      }
+    },
+    "currentPolicyRows": [
+      {
+        "domainId": "armor_sets",
+        "policyVersion": 2,
+        "policyHash": "sha256:2b901c6ac1426bffb1d710d0c17e4dcc3b9a935724306163e7a45a3bf86b5fd8"
+      },
+      {
+        "domainId": "audio",
+        "policyVersion": 2,
+        "policyHash": "sha256:9d9d5b9d03acd4d866c16d52641d821be1fa8bec7d3dd43cf65908d91666d596"
+      },
+      {
+        "domainId": "biomes",
+        "policyVersion": 1,
+        "policyHash": "sha256:f87211cd6487637be3579a77e6ff25dff6304697fa3d01da671115b98481522e"
+      },
+      {
+        "domainId": "bosses",
+        "policyVersion": 2,
+        "policyHash": "sha256:53397b73f15a43fc695919c00b232074eaf0bf14746165a243924583c44a9d38"
+      },
+      {
+        "domainId": "buffs",
+        "policyVersion": 2,
+        "policyHash": "sha256:902849d8a36008d4916774338cfb2f2bb9553f13deb9c1193f33518483caef7d"
+      },
+      {
+        "domainId": "crawler_v2_scheduler",
+        "policyVersion": 1,
+        "policyHash": "sha256:8bf6466906713eb6bd82f0b74ad8f47029d36a17fbaa9fd7fa57c7d84803d479"
+      },
+      {
+        "domainId": "items",
+        "policyVersion": 2,
+        "policyHash": "sha256:0b626acb0cc463e20ef3a0debf77842235de75931a1702eb7aeafda56dbf9c0a"
+      },
+      {
+        "domainId": "npcs",
+        "policyVersion": 2,
+        "policyHash": "sha256:9d86b1b94c0eb1f25bb8d79396f5a21f6ffb6521cd56fb54d05745b09bcf3e53"
+      },
+      {
+        "domainId": "projectiles",
+        "policyVersion": 2,
+        "policyHash": "sha256:9c660925b3b7731b8efed5daa1e0211ede5d1e93743a29fd952f2c6e88ab903b"
+      },
+      {
+        "domainId": "shimmer",
+        "policyVersion": 2,
+        "policyHash": "sha256:ae0c684f2282e8015867f5cc3bf12e68a51bbfcb5e80861233eaeafb3e67ef61"
+      }
+    ],
+    "currentPolicySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "targetPolicy": {
+      "domainId": "shimmer",
+      "policyVersion": 3,
+      "level": "L2",
+      "policyHash": "sha256:c3f05e6343a50901a9672a9fd6cb23e660c1e043641e3baf442456970f11f821",
+      "policyJson": {
+        "level": "L2",
+        "ownedTables": [
+          {
+            "databaseRole": "local",
+            "table": "world_contexts",
+            "fieldGroup": "shimmer_context",
+            "logicalPredicateHash": "sha256:b4bd3a2e273b20bf1a4f385e80c6e9f544aadafbfbbe3cac44e150576934bdbd"
+          },
+          {
+            "databaseRole": "local",
+            "table": "entity_source_snapshots",
+            "fieldGroup": "shimmer_source_lineage",
+            "logicalPredicateHash": "sha256:a79590959d3b03baaa49559f7c76295de03c25acb5fa896bd9d81f7e061ab3dd"
+          },
+          {
+            "databaseRole": "local",
+            "table": "shimmer_item_transforms",
+            "fieldGroup": "shimmer_source_page",
+            "logicalPredicateHash": "sha256:830aaf92da1d58c4fbc2e5b8f543939f8c1e2b9a5660d5616e5086f7b45e3fbf"
+          },
+          {
+            "databaseRole": "local",
+            "table": "shimmer_decraft_rules",
+            "fieldGroup": "shimmer_source_page",
+            "logicalPredicateHash": "sha256:fe8307df1e6e9aaf214642eeb1fe4856eebbf029251062c3757048392061677f"
+          },
+          {
+            "databaseRole": "local",
+            "table": "shimmer_entity_transforms",
+            "fieldGroup": "shimmer_source_page",
+            "logicalPredicateHash": "sha256:3c77ff876ce081d8608391ed749adeab005c28614e4e1a498ab3d81e5deea449"
+          },
+          {
+            "databaseRole": "local",
+            "table": "shimmer_npc_transforms",
+            "fieldGroup": "shimmer_source_page",
+            "logicalPredicateHash": "sha256:971bca4a1a0205a2a25c5a9800d30f1160cffc5a76e691571ae343f86e770830"
+          }
+        ],
+        "anomalyAction": "CIRCUIT_OPEN",
+        "schemaVersion": 1,
+        "ratioInsertCap": 0.1,
+        "ratioUpdateCap": 0.1,
+        "ratioDisableCap": 0.005,
+        "requireSnapshot": true,
+        "absoluteInsertCap": 500,
+        "absoluteUpdateCap": 500,
+        "absoluteDisableCap": 20,
+        "ratioRelationshipDeleteCap": 0.05,
+        "sourceFreshnessMaxAgeMinutes": 60,
+        "absoluteRelationshipDeleteCap": 200
+      }
+    },
+    "targetPolicySetHash": "sha256:eb95d002c83635aaef8b8c0eb4ba8c158fc7e3837865e8df7937ae95a7115e7f",
+    "transitionHash": "sha256:8570927634f4d83ef7b6933b495f794bb691b911a5fddf42380236faf7b93d28"
+  },
+  "validation": {
+    "runtime": "Node v26.1.0",
+    "tests": 431,
+    "passed": 431,
+    "failed": 0,
+    "log": ".local/tmp/shimmer-s1-regression-20260930.log"
+  },
+  "remainingGates": [
+    "Coordinator registered immutable v2/L2 to v3/L2 transition with independently verified three-capability approvals, fresh packet, permit, journal and crash recovery",
+    "Integrated code-root verification and fresh authorization/code manifest",
+    "Fresh registered source, automatic execution, transaction-bound reconciliation and DB/API readback",
+    "Fresh bounded scheduler canary; unchanged old generation is not data-visible acceptance"
+  ],
+  "preflight": {
+    "observedAt": "2026-09-29T16:18:14.192775783Z",
+    "counts": {
+      "liveAttempts": 0,
+      "sweepClaims": 0
+    },
+    "reconciler": {
+      "status": "healthy",
+      "overdueAttemptCount": 0,
+      "failureCount": 0
+    },
+    "v2": {
+      "stateStoreEpoch": "epoch-8c1a61e1-c3f4-46bc-98d2-0884ca743346",
+      "namespace": "terrapedia:crawler:wiki-monitor:v2:",
+      "queueContractVersion": 2
+    },
+    "policySetHash": "sha256:e425764ed673f1d16bdbc7b3511cff10f1f090f8276dbfdf7aaf04f9a5ae4df0",
+    "controlEnabled": false,
+    "domains": [
+      {
+        "domainId": "items",
+        "readinessStatus": "eligible"
+      },
+      {
+        "domainId": "npcs",
+        "readinessStatus": "eligible"
+      },
+      {
+        "domainId": "projectiles",
+        "readinessStatus": "eligible"
+      },
+      {
+        "domainId": "buffs",
+        "readinessStatus": "eligible"
+      },
+      {
+        "domainId": "armor_sets",
+        "readinessStatus": "eligible"
+      },
+      {
+        "domainId": "bosses",
+        "readinessStatus": "eligible"
+      },
+      {
+        "domainId": "shimmer",
+        "readinessStatus": "eligible"
+      },
+      {
+        "domainId": "audio",
+        "readinessStatus": "eligible"
+      }
+    ]
+  }
+}

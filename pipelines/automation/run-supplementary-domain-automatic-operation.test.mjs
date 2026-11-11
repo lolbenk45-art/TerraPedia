@@ -11,8 +11,56 @@ import {
 } from './run-supplementary-domain-automatic-operation.mjs';
 import { buildAutomaticRunId } from './run-automatic-domain-operation.mjs';
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
+import { computePolicyHash } from './bootstrap-automation-policy.mjs';
+import { computePolicySetHash } from './policy-set-hash.mjs';
+import { SHIMMER_POLICY_SCOPES } from './shimmer-policy-scope-transition.mjs';
 
 const HASH = (letter) => `sha256:${letter.repeat(64)}`;
+
+for (const scenario of ['legacy', 'valid', 'wrong-predicate', 'wrong-hash', 'stale-activation', 'wrong-level']) {
+  test(`Shimmer automatic entry validates ${scenario} policy before source work`, async () => {
+    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'shimmer-policy-preflight-'));
+    const policyJson = { ...automaticBossPolicy().policyJson, ownedTables: structuredClone(SHIMMER_POLICY_SCOPES) };
+    if (scenario === 'legacy') {
+      policyJson.ownedTables = SHIMMER_POLICY_SCOPES.filter((s) => s.table.startsWith('shimmer_'))
+        .map(({ databaseRole, table }) => ({ databaseRole, table, fieldGroup: 'all_columns' }));
+    }
+    if (scenario === 'wrong-predicate') policyJson.ownedTables[0].logicalPredicateHash = HASH('f');
+    const rows = [{
+      domainId: 'shimmer', policyVersion: 3, currentLevel: scenario === 'wrong-level' ? 'L1' : 'L2',
+      operationalState: 'ACTIVE', policyJson,
+      policyHash: scenario === 'wrong-hash' ? HASH('f') : computePolicyHash(policyJson),
+    }];
+    const policySetHash = computePolicySetHash(rows);
+    let sourceCalls = 0;
+    const connection = {
+      query: async (sql) => {
+        if (sql.includes('FROM crawler_automation_policy p')) return [rows];
+        if (sql.includes('FROM crawler_automation_activation_decision')) return [[{
+          decisionIdentity: 'activation-shimmer-1', packetHash: HASH('e'),
+          policySetHash: scenario === 'stale-activation' ? HASH('b') : policySetHash,
+          actor: 'admin', reason: 'test', authorizationReference: 'test',
+          authorizedAt: '2000-01-01T00:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z',
+        }]];
+        throw new Error(`Unexpected pre-source query: ${sql}`);
+      },
+      end: async () => {},
+    };
+    try {
+      await assert.rejects(() => runSupplementaryDomainAutomaticOperation({
+        argv: ['--domain=shimmer', `--progress-path=${path.join(repoRoot, 'progress.json')}`],
+        env: databaseEnv(repoRoot), now: '2026-09-29T15:30:00.000Z',
+        mysqlModule: { createConnection: async () => connection },
+        runPreviewImpl: async () => { sourceCalls += 1; throw new Error('source sentinel'); },
+      }), scenario === 'valid' ? /source sentinel/ : /Shimmer.*policy|Shimmer.*scope|Shimmer.*activation/i);
+      assert.equal(sourceCalls, scenario === 'valid' ? 1 : 0);
+      const progress = JSON.parse(fs.readFileSync(path.join(repoRoot, 'progress.json'), 'utf8'));
+      assert.equal(progress.status, 'failed');
+    } finally {
+      fs.rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+}
 const BOSS_AUTOMATIC_SCOPES = Object.freeze([
   Object.freeze({ databaseRole: 'local', table: 'boss_groups', fieldGroup: 'all_columns' }),
   Object.freeze({ databaseRole: 'local', table: 'npcs', fieldGroup: 'boss_owned', logicalPredicateHash: HASH('d') }),
@@ -299,9 +347,12 @@ test('supplementary automatic runner publishes source-identity failure when its 
 
 test('shimmer automatic runner requests an ephemeral import proposal', async () => {
   let previewArgs = null;
+  const policyJson = { ...automaticBossPolicy().policyJson, ownedTables: SHIMMER_POLICY_SCOPES };
+  const policies = [{ domainId: 'shimmer', policyVersion: 3, currentLevel: 'L2',
+    operationalState: 'ACTIVE', policyJson, policyHash: computePolicyHash(policyJson) }];
   const activationConnection = {
-    query: async () => [[{
-      decisionIdentity: 'activation-1', packetHash: HASH('e'), policySetHash: HASH('b'),
+    query: async (sql) => sql.includes('FROM crawler_automation_policy p') ? [policies] : [[{
+      decisionIdentity: 'activation-1', packetHash: HASH('e'), policySetHash: computePolicySetHash(policies),
       actor: 'admin', reason: 'test', authorizationReference: 'test',
       authorizedAt: '2026-08-15T01:00:00.000Z', expiresAt: '2026-08-16T01:00:00.000Z',
     }]],
@@ -1966,5 +2017,116 @@ for (const value of [undefined, '', '../attempt']) {
       runPreviewImpl: async () => { previews += 1; throw new Error('preview must not start'); },
     }), /automatic attempt identity|queueId/);
     assert.equal(previews, 0);
+  });
+}
+
+for (const scenario of ['success', 'missing-approval', 'baseline-drift', 'expired-activation', 'publish-failure', 'server-drift']) {
+  test(`real Shimmer automatic preview to final-run fence handoff: ${scenario}`, async () => {
+    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'shimmer-final-handoff-'));
+    const { SHIMMER_PARTITION_SCOPES } = await import('./shimmer-partition-contract.mjs');
+    const policyJson = { ...automaticBossPolicy().policyJson, ownedTables: SHIMMER_POLICY_SCOPES };
+    const policyHash = computePolicyHash(policyJson);
+    const policies = [{ domainId: 'shimmer', policyVersion: 3, currentLevel: 'L2', operationalState: 'ACTIVE',
+      policyJson, policyHash, approvedBy: scenario === 'missing-approval' ? null : 'admin' }];
+    const policySetHash = computePolicySetHash(policies);
+    const policy = { ...policies[0], level: 'L2', policySetHash };
+    const activation = { decisionIdentity: 'shimmer-activation', packetHash: HASH('e'), policySetHash,
+      actor: 'admin', reason: 'test', authorizationReference: 'test',
+      authorizedAt: '2000-01-01T00:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' };
+    const tables = Object.fromEntries(SHIMMER_POLICY_SCOPES.map((scope) => [scope.table, []]));
+    const baseline = { environmentId: 'local', generations: SHIMMER_POLICY_SCOPES.map((scope) => ({ ...scope, generation: 0 })),
+      projectionHash: computePolicyHash(tables) };
+    const events = [];
+    const acquired = [];
+    let committedManifest = null;
+    let appliedBundle = null;
+    let finalBundlePath = null;
+    const target = { host: '127.0.0.1', port: 13306, database: 'terria_v1_local', serverUuid: 'test-server-uuid' };
+    const connection = {
+      config: target,
+      beginTransaction: async () => events.push('begin'),
+      commit: async () => events.push('fence-commit'),
+      rollback: async () => events.push('rollback'),
+      end: async () => {},
+      query: async (sql, params = []) => {
+        if (sql.includes('@@server_uuid')) return [[{ serverUuid: scenario === 'server-drift' ? 'other-server' : target.serverUuid }]];
+        if (sql.startsWith('SET TRANSACTION')) return [[]];
+        if (sql.includes('FROM crawler_automation_owner')) return [[{ username: 'admin', status: 'ACTIVE' }]];
+        if (sql.includes('FROM crawler_automation_policy p')) return [policies];
+        if (sql.includes('FROM crawler_automation_activation_decision')) {
+          if (sql.includes('AS active')) return [[{ ...activation, active: scenario === 'expired-activation' ? 0 : 1 }]];
+          return [[activation]];
+        }
+        if (sql.includes('FROM crawler_automation_run r')) return [committedManifest ? [{ domainId: 'shimmer', manifestJson: committedManifest }] : []];
+        if (sql.startsWith('SELECT generation')) return [[{ generation: scenario === 'baseline-drift' ? 1 : 0 }]];
+        if (sql.startsWith('SELECT * FROM')) return [[]];
+        if (sql.startsWith('SELECT field_group')) return [[]];
+        if (sql.startsWith('INSERT INTO crawler_automation_write_fence')) {
+          acquired.push(params);
+          return [{ affectedRows: 1 }];
+        }
+        if (sql.startsWith('SELECT latest_run_id')) {
+          const entry = acquired.find((row) => row[2] === params[2]);
+          if (scenario === 'publish-failure' && params[2] === SHIMMER_POLICY_SCOPES.at(-1).table) {
+            fs.writeFileSync(finalBundlePath, '{}', { mode: 0o600, flag: 'wx' });
+          }
+          return [[{ latestRunId: entry[5], fenceToken: entry[6], beforeGeneration: entry[7] }]];
+        }
+        throw new Error(`unexpected SQL: ${sql}`);
+      },
+    };
+    const input = {
+      argv: ['--domain=shimmer'], env: databaseEnv(repoRoot), now: '2026-09-29T15:30:00.000Z',
+      nowProvider: () => '2026-09-29T15:31:00.000Z',
+      mysqlModule: { createConnection: async () => connection },
+      runPreviewImpl: async ({ argv }) => {
+        const value = (name) => argv.find((arg) => arg.startsWith(`--${name}=`)).slice(name.length + 3);
+        const artifactRoot = path.resolve(repoRoot, value('artifact-root'));
+        fs.mkdirSync(artifactRoot, { recursive: true, mode: 0o700 });
+        const sourcePath = path.join(artifactRoot, 'source.json');
+        const sourceBytes = Buffer.from(JSON.stringify({ generationId: 'c'.repeat(64) }));
+        fs.writeFileSync(sourcePath, sourceBytes, { mode: 0o600, flag: 'wx' });
+        const source = { path: path.relative(repoRoot, sourcePath).replaceAll('\\', '/'), sha256: `sha256:${createHash('sha256').update(sourceBytes).digest('hex')}` };
+        const payload = buildSupplementaryL1Bundle({ domainId: 'shimmer', operationId: 'automation-shimmer-first-l1',
+          runId: value('run-id'), generatedAt: '2026-09-29T15:30:00.000Z',
+          executionMode: 'ACTIVATION_GATED_AUTO', previewOnly: true, policy, baseline, source,
+          ownedTables: SHIMMER_POLICY_SCOPES, importPlan: { previewSha256: HASH('d'), targetFingerprintSha256: computePolicyHash(target), summary: {},
+            shimmerPartitionPreview: { scopes: SHIMMER_PARTITION_SCOPES, generationId: 'c'.repeat(64), previewSha256: HASH('d') } } });
+        const bundlePath = path.join(artifactRoot, 'bundle.json');
+        fs.writeFileSync(bundlePath, `${JSON.stringify(payload)}\n`, { mode: 0o600, flag: 'wx' });
+        finalBundlePath = path.join(repoRoot, 'reports/authorization/canonical/automatic/shimmer',
+          buildAutomaticRunId('shimmer', HASH('c')), 'operation.bundle.json');
+        return { bundlePath, stableSourceSnapshot: { contentHash: HASH('c'), checkedAt: '2026-09-29T15:30:00.000Z', sourceKey: 'shimmer' } };
+      },
+      executeOperationImpl: async ({ bundle }) => {
+        events.push('apply'); appliedBundle = bundle;
+        committedManifest = { source: bundle.source, automaticSourceFingerprint: HASH('c') };
+        return { status: 'completed' };
+      },
+      acknowledgeSourceImpl: async () => events.push('ack'),
+    };
+    try {
+      if (scenario !== 'success') {
+        await assert.rejects(runSupplementaryDomainAutomaticOperation(input),
+          scenario === 'missing-approval' ? /approval/ : scenario === 'baseline-drift' ? /baseline/ : scenario === 'expired-activation' ? /activation/ : scenario === 'server-drift' ? /server/ : /exist|overwrite/);
+        assert.equal(events.includes('apply'), false);
+        assert.equal(events.includes('ack'), false);
+        assert.equal(events.includes('fence-commit'), false);
+        assert.equal(events.at(-1), 'rollback');
+      } else {
+        await runSupplementaryDomainAutomaticOperation(input);
+        assert.equal(appliedBundle.previewOnly, undefined);
+        assert.equal(appliedBundle.importPlan.shimmerPartitionPreview, undefined);
+        assert.equal(appliedBundle.importPlan.shimmerPolicyApproval.actor, 'admin');
+        assert.ok(appliedBundle.importPlan.shimmerPartition.fences.every((fence) => fence.latestRunId === appliedBundle.runId));
+        assert.deepEqual(events, ['begin', 'fence-commit', 'apply', 'ack']);
+        events.length = 0;
+        await runSupplementaryDomainAutomaticOperation(input);
+        assert.deepEqual(events, ['ack']);
+        assert.equal(acquired.length, 6);
+      }
+    } finally {
+      fs.rmSync(repoRoot, { recursive: true, force: true });
+    }
   });
 }

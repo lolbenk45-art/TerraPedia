@@ -7,9 +7,46 @@ import test from 'node:test';
 
 import { buildSupplementaryL1Bundle } from './supplementary-domain-l1-contract.mjs';
 import { SHIMMER_PARTITION_SCOPES } from './shimmer-partition-contract.mjs';
+import { SHIMMER_POLICY_SCOPES } from './shimmer-policy-scope-transition.mjs';
 import * as operationModule from './run-supplementary-domain-l1-operation.mjs';
 
 const { executeSupplementaryL1Operation } = operationModule;
+
+test('preview-only Shimmer evidence cannot enter an execution transaction', async () => {
+  let begun = false;
+  await assert.rejects(() => executeSupplementaryL1Operation({
+    bundle: { domainId: 'shimmer', previewOnly: true },
+    adapter: { begin: async () => { begun = true; } },
+  }), /preview-only|preview only/i);
+  assert.equal(begun, false);
+});
+
+test('Shimmer context reads the exact six-scope policy without constructing an executable partition', async () => {
+  const calls = [];
+  const connection = { query: async (sql, params = []) => {
+    calls.push([sql, params]);
+    if (sql.includes('crawler_automation_owner')) return [[{ username: 'admin', status: 'ACTIVE' }]];
+    if (sql.includes('FROM crawler_automation_policy p')) return [[{
+      domainId: 'shimmer', policyVersion: 3, policyHash: HASH('a'), currentLevel: 'L2', operationalState: 'ACTIVE',
+      policyJson: { level: 'L2', ownedTables: SHIMMER_POLICY_SCOPES },
+    }]];
+    if (sql.includes('crawler_automation_mutation_generation')) return [[{ generation: 1 }]];
+    if (sql.includes('crawler_automation_activation_decision') || sql.startsWith('SELECT *')) return [[]];
+    throw new Error(`Unexpected SQL: ${sql}`);
+  } };
+  const current = await operationModule.readCurrentSupplementaryContext(connection, {
+    bundle: { domainId: 'shimmer', executionMode: 'ACTIVATION_GATED_AUTO', ownedTables: SHIMMER_POLICY_SCOPES },
+  });
+  assert.deepEqual(current.ownedTables, SHIMMER_POLICY_SCOPES);
+  assert.equal(current.baseline.generations.length, 6);
+  assert.ok(calls.every(([sql]) => sql.startsWith('SELECT')));
+  const contextQuery = calls.find(([sql]) => sql.includes('FROM `world_contexts`'));
+  assert.match(contextQuery[0], /WHERE code = \?/);
+  assert.deepEqual(contextQuery[1], ['SHIMMER']);
+  const snapshotQuery = calls.find(([sql]) => sql.includes('FROM `entity_source_snapshots`'));
+  assert.match(snapshotQuery[0], /WHERE provider = \? AND source_page = \?/);
+  assert.deepEqual(snapshotQuery[1], ['wiki_zh', '微光']);
+});
 
 for (const executionMode of ['MANUAL_OWNER_L1', 'ACTIVATION_GATED_AUTO']) {
   test(`Shimmer ${executionMode} rejects undeclared importer writes before starting a transaction`, async () => {

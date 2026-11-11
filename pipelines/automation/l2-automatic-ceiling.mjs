@@ -6,6 +6,8 @@
  * preview is unsafe for an automatic write and is rejected closed.
  */
 
+import { getVerifiedShimmerPartitionScope } from './shimmer-partition-contract.mjs';
+
 const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const SAFE_COLUMN_NAME = /^[a-z][a-z0-9_]*$/;
 const COUNT_FIELDS = Object.freeze([
@@ -617,8 +619,29 @@ export function getVerifiedSharedNpcsScopeDefinition(scope) {
 
 export function getVerifiedStructuredScopeDefinition(domainId, scope) {
   if (typeof domainId !== 'string' || !domainId.trim() || !scope || typeof scope !== 'object') return null;
+  if (domainId === 'shimmer' && getVerifiedShimmerPartitionScope(scope)) {
+    const auxiliary = SHIMMER_AUXILIARY_DEFINITIONS[scope.table];
+    const base = auxiliary ?? VERIFIED_STRUCTURED_SCOPE_DEFINITIONS.get(`shimmer:local:${scope.table}:all_columns:`);
+    return Object.freeze({ ...base, domainId: 'shimmer', databaseRole: scope.databaseRole,
+      table: scope.table, fieldGroup: scope.fieldGroup, logicalPredicateHash: scope.logicalPredicateHash });
+  }
   return VERIFIED_STRUCTURED_SCOPE_DEFINITIONS.get(structuredScopeDefinitionKey(domainId, scope)) ?? null;
 }
+
+const SHIMMER_AUXILIARY_DEFINITIONS = Object.freeze({
+  world_contexts: Object.freeze({
+    keyColumns: Object.freeze(['code']),
+    compareColumns: Object.freeze(['code', 'name_en', 'name_zh', 'context_type', 'description', 'icon_url', 'sort_order', 'status', 'deleted']),
+    numericColumns: Object.freeze(['sort_order', 'status', 'deleted']),
+    jsonColumns: Object.freeze([]), mutationKind: 'entity',
+  }),
+  entity_source_snapshots: Object.freeze({
+    keyColumns: Object.freeze(['entity_type', 'provider', 'source_kind', 'source_locator']),
+    compareColumns: Object.freeze(['entity_type', 'provider', 'source_kind', 'source_locator', 'source_page',
+      'source_revision_timestamp', 'payload_sha256', 'fetched_at', 'is_current', 'parse_status']),
+    numericColumns: Object.freeze(['is_current']), jsonColumns: Object.freeze([]), mutationKind: 'entity',
+  }),
+});
 
 /**
  * Validate a planned automatic L2 change against the immutable policy JSON.

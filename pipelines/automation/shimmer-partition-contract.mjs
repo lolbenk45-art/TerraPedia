@@ -19,12 +19,47 @@ export const SHIMMER_PARTITION_SCOPES = Object.freeze([
   ...TRANSFORM_TABLES.map((table) => Object.freeze({ capability: 'shimmer', databaseRole: 'local', table, fieldGroup: 'shimmer_source_page', logicalPredicate: 'provider=wiki_zh,source_page=微光', logicalPredicateHash: predicate(`shimmer:${table}:provider=wiki_zh,source_page=微光`) })),
 ]);
 
-export function buildShimmerPartitionBundle({ scopes, ownerApprovals, fences, generationId, previewSha256 } = {}) {
+export function getVerifiedShimmerPartitionScope(scope) {
+  return SHIMMER_PARTITION_SCOPES.find((expected) => (
+    scope?.databaseRole === expected.databaseRole && scope.table === expected.table
+    && scope.fieldGroup === expected.fieldGroup && scope.logicalPredicateHash === expected.logicalPredicateHash
+  )) ?? null;
+}
+
+export function matchesShimmerPartitionRow(scope, row) {
+  const definition = getVerifiedShimmerPartitionScope(scope);
+  if (!definition) throw new Error('Shimmer row partition requires an exact registered scope');
+  if (definition.table === 'world_contexts') return row?.code === 'SHIMMER';
+  if (definition.table === 'entity_source_snapshots') return row?.provider === 'wiki_zh' && row?.source_page === '微光';
+  return row?.source_provider === 'wiki_zh' && row?.source_page === '微光' && (row?.deleted === 0 || row?.deleted === '0');
+}
+
+export function buildShimmerPartitionPreview(input = {}) {
+  const allowed = new Set(['scopes', 'generationId', 'previewSha256', 'schemaVersion', 'executable']);
+  if (Object.keys(input).some((key) => !allowed.has(key)) || (input.executable != null && input.executable !== false)
+      || (input.schemaVersion != null && input.schemaVersion !== 'shimmer-six-scope-preview/v1')) {
+    throw new Error('Shimmer partition preview cannot contain executable authority or fences');
+  }
+  const scopes = assertScopes(input.scopes);
+  if (!GENERATION_ID_PATTERN.test(String(input.generationId ?? '')) || !HASH_PATTERN.test(String(input.previewSha256 ?? ''))) {
+    throw new Error('Shimmer partition preview generation and preview identities are required');
+  }
+  return deepFreeze({ schemaVersion: 'shimmer-six-scope-preview/v1', executable: false,
+    scopes, generationId: input.generationId, previewSha256: input.previewSha256 });
+}
+
+export function buildShimmerPartitionBundle({ scopes, ownerApprovals, ownerCapabilities, fences, generationId, previewSha256 } = {}) {
   const normalizedScopes = assertScopes(scopes);
   if (!GENERATION_ID_PATTERN.test(String(generationId ?? '')) || !HASH_PATTERN.test(String(previewSha256 ?? ''))) {
     throw new Error('Shimmer partition generation and preview identities are required');
   }
-  const approvals = [...new Set(ownerApprovals ?? [])].sort();
+  // These are declared capabilities, not independently verified authority.
+  // Accept the normalized representation on subsequent bundle validation.
+  const approvals = [...new Set(ownerApprovals ?? ownerCapabilities ?? [])].sort();
+  if (ownerApprovals != null && ownerCapabilities != null
+      && JSON.stringify(approvals) !== JSON.stringify([...new Set(ownerCapabilities)].sort())) {
+    throw new Error('Shimmer owner approval capabilities disagree');
+  }
   for (const capability of ['items', 'shimmer', 'town_npc_maintenance']) {
     if (!approvals.includes(capability)) throw new Error(`Shimmer owner approval is missing: ${capability}`);
   }
