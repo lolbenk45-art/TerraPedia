@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
   WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS,
-  buildDomainSmokePlan
+  buildDomainSmokePlan,
+  extractVersionEvidence
 } from './wiki-monitor-domain-smoke.mjs';
 
 const EXPECTED_DOMAINS = [
@@ -27,6 +28,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const scriptPath = path.join(__dirname, 'wiki-monitor-domain-smoke.mjs');
+
+test('extracts typed version claims and page-level annotations without conflating them', () => {
+  assert.deepEqual(extractVersionEvidence([
+    'return { ["_terrariaversion"] = "1.4.5.6" }',
+    '{{source code ref|v=1.4.4.9|method=Terraria.Item.Update}}',
+    '{{eicons|1.4.4.8|small=y}}'
+  ].join('\n')), [
+    { kind: 'wiki-version-field', value: '1.4.5.6' },
+    { kind: 'source-code-ref', value: '1.4.4.9' },
+    { kind: 'version-icon', value: '1.4.4.8' }
+  ]);
+});
+
+test('returns no version evidence for content without explicit version markers', () => {
+  assert.deepEqual(extractVersionEvidence('A Terraria page without a version marker.'), []);
+});
 
 test('wiki monitor domain smoke covers every monitored wiki domain', () => {
   assert.deepEqual(

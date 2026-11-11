@@ -165,3 +165,37 @@ test('runs only selected domains and writes selected-domain progress metadata', 
   assert.equal(progress.queue, 'limit=10; domains=2; selected=items,buffs');
   assert.deepEqual(progress.domains.map((entry) => entry.domain), ['items', 'buffs']);
 });
+
+test('stores content hashes and typed version evidence without storing page bodies', async () => {
+  const { root, options } = makeTmpRun();
+  const contentHash = `sha256:${'a'.repeat(64)}`;
+  const versionEvidence = [{ kind: 'wiki-version-field', value: '1.4.5.6' }];
+  const report = await runDomainSmoke({
+    ...options,
+    domains: 'items',
+    limit: 1
+  }, {
+    async searchWikiPages() {
+      return [{ title: 'Wood' }];
+    },
+    async fetchPageRevisions(titles) {
+      return titles.map((title) => ({
+        title,
+        pageId: 1,
+        revisionId: 2,
+        revisionTimestamp: '2026-10-22T00:00:00Z',
+        contentLength: 42,
+        contentHash,
+        versionEvidence,
+        content: 'raw page body must not be persisted'
+      }));
+    }
+  });
+
+  const record = report.domains[0].records[0];
+  assert.equal(record.contentHash, contentHash);
+  assert.deepEqual(record.versionEvidence, versionEvidence);
+  assert.equal(Object.hasOwn(record, 'content'), false);
+  const output = readJson(path.join(root, 'out', 'items.json'));
+  assert.deepEqual(output.records[0], record);
+});

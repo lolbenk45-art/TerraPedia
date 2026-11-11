@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
@@ -209,6 +210,16 @@ async function downloadDomainSample(domain, limit, deps = {}) {
   }
   const titles = unique(searchResults.map((result) => result.title)).slice(0, limit);
   const revisions = titles.length ? await fetchRevisions(titles) : [];
+  const records = revisions.map((revision, index) => ({
+    index: index + 1,
+    title: revision.title,
+    pageId: revision.pageId,
+    revisionId: revision.revisionId,
+    revisionTimestamp: revision.revisionTimestamp,
+    contentLength: revision.contentLength,
+    contentHash: revision.contentHash ?? null,
+    versionEvidence: Array.isArray(revision.versionEvidence) ? revision.versionEvidence : []
+  }));
   return {
     domain: domain.domain,
     label: domain.label,
@@ -217,14 +228,8 @@ async function downloadDomainSample(domain, limit, deps = {}) {
     requestedLimit: limit,
     actualCount: revisions.length,
     status: revisions.length >= limit ? 'completed' : 'partial',
-    records: revisions.map((revision, index) => ({
-      index: index + 1,
-      title: revision.title,
-      pageId: revision.pageId,
-      revisionId: revision.revisionId,
-      revisionTimestamp: revision.revisionTimestamp,
-      contentLength: revision.contentLength
-    }))
+    versionEvidenceSummary: summarizeVersionEvidence(records),
+    records
   };
 }
 
@@ -260,9 +265,66 @@ async function fetchPageRevisions(titles) {
         pageId: page.pageid ?? null,
         revisionId: revision.revid ?? null,
         revisionTimestamp: revision.timestamp ?? null,
-        contentLength: String(content ?? '').length
+        contentLength: String(content ?? '').length,
+        contentHash: hashContent(content),
+        versionEvidence: extractVersionEvidence(content)
       };
     });
+}
+
+export function extractVersionEvidence(content) {
+  const text = String(content ?? '');
+  const patterns = [
+    {
+      kind: 'wiki-version-field',
+      regex: /["']?(?:_terrariaversion|wikiVersion|terrariaVersion)["']?\s*\]?\s*(?:=|:)\s*["']?(\d+(?:\.\d+){1,3})/gi
+    },
+    {
+      kind: 'source-code-ref',
+      regex: /\{\{\s*source[\s_-]*code[\s_-]*ref\b[^{}]{0,300}?\bv\s*=\s*["']?(\d+(?:\.\d+){1,3})/gi
+    },
+    {
+      kind: 'version-icon',
+      regex: /\{\{\s*eicons\s*\|\s*(\d+(?:\.\d+){1,3})/gi
+    }
+  ];
+  const seen = new Set();
+  const evidence = [];
+
+  for (const { kind, regex } of patterns) {
+    for (const match of text.matchAll(regex)) {
+      const value = match[1];
+      const identity = `${kind}:${value}`;
+      if (seen.has(identity)) continue;
+      seen.add(identity);
+      evidence.push({ kind, value });
+    }
+  }
+
+  return evidence;
+}
+
+function summarizeVersionEvidence(records) {
+  const countsByKind = {};
+  const valuesByKind = {};
+  for (const record of records) {
+    for (const { kind, value } of record.versionEvidence) {
+      countsByKind[kind] = (countsByKind[kind] ?? 0) + 1;
+      const values = valuesByKind[kind] ?? new Set();
+      values.add(value);
+      valuesByKind[kind] = values;
+    }
+  }
+  return {
+    countsByKind,
+    valuesByKind: Object.fromEntries(
+      Object.entries(valuesByKind).map(([kind, values]) => [kind, [...values].sort()])
+    )
+  };
+}
+
+function hashContent(content) {
+  return `sha256:${createHash('sha256').update(String(content ?? ''), 'utf8').digest('hex')}`;
 }
 
 function writeSmokeProgress(plan, {
