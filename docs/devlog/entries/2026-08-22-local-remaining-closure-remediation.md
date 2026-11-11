@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 Formal plan is [2026-08-22-remaining-closure-remediation.md](../../superpowers/plans/2026-08-22-remaining-closure-remediation.md). It replaces no historical evidence and targets only the unclosed Item-source, strict projection-parity, quality-gate, and broad-Maven blockers.
 
@@ -336,3 +336,10 @@ Formal plan is [2026-08-22-remaining-closure-remediation.md](../../superpowers/p
   auditing plus a fresh no-overwrite Armor proposal bound to the current
   Item-after source state. That proposal must receive a new exact owner
   confirmation before any permit or DML.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.

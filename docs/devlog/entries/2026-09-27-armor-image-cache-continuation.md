@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context and scope
 
@@ -77,3 +77,10 @@
 - Real rederivation then exposed one unresolved source ambiguity: MiningHelmet/item88 has active relation attribute IDs12/338, keys `455238488de0d3a575da5ff82f5de157dd0034fd49924155a19a981ad63177bb` and `beb2902c7ffa7a5fdcdec48c2c02c0eff65cc35fa8be56e97539386222afc525`, with `sentrySlots`2/1. Both trace to maint landing18668/hash `97a8a09d0c24f7b7406ccb8a5fbd3c415eae64476708a933f7148b6d24262581`, revision `2023-10-23T04:15:47Z`. The old builder could switch projection12 between their keys instead of reaching a no-op. Two more RED cases now make both full-chain candidate and secondary proposal reject multiple active attributes per member. No source was guessed or repaired in SQL.
 - Final Node22 integration:214/214 pass (10 files), syntax and diff checks pass. Runtime guarded rederivation correctly rejects the MiningHelmet ambiguity; Ninja256/257/258 public/admin values still match DB with3 effects each. Durable summary: `docs/audits/2026-09-28-armor-validator-readback.json`; detailed logs `.local/logs/armor-{validator-final-tests,secondary-retirement-red,ambiguous-source-red}.log`.
 - Current-model review disposition: code fixes are checkpointable; MiningHelmet provenance and set-effect source acquisition remain explicit follow-up blockers owned by Codex in this entry. Full-chain acceptance is not complete. Do not reuse any existing packet after code-bundle changes or repeat `.32/.33` image caching.
+
+## User stop decision — 2026-11-11
+
+- 用户明确停止全部现有任务；本条因 intentionally stopped 关闭，不代表功能完成或验收通过。
+- 保留上文历史问题、验证记录与未完成项；旧的执行、授权和 next-action 指令均不自动恢复。
+- 本次未重新验证业务功能；复工须重新确认目标、运行态与授权，并创建新的 active entry。
+- 分支交接：`docs/handoffs/2026-11-11-workspace-stop.md`。Stop reason: user-requested cancellation and recoverable branch snapshot.
